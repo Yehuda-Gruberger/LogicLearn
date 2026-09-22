@@ -289,7 +289,7 @@ public without sharing class LogicLearnAdminController {
         if (types.isEmpty()) throw new AuraHandledException('The LogicLearn in-app notification type is not configured.');
         Messaging.CustomNotification notice = new Messaging.CustomNotification();
         notice.setNotificationTypeId(types[0].Id);
-        notice.setTargetId(video.Id);
+        notice.setTargetPageRef('{"type":"standard__navItemPage","attributes":{"apiName":"Training_Library"},"state":{"c__videoId":"' + video.Id + '"}}');
         notice.setTitle(notificationType == 'Reminder' ? 'LogicLearn reminder' : notificationType == 'Assignment' ? 'New required tutorial' : 'New LogicLearn tutorial');
         String body = notificationType == 'Reminder' ? 'Reminder: complete ' + video.Name :
             notificationType == 'Assignment' ? video.Name + ' has been assigned to you' : video.Name + ' is now available';
