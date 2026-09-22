@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Training_Notification_Template_Name</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Training Notification Email Template Name</shortDescription>
+        <value>Training Video Assignment Notification</value>
+    </labels>
+    <labels>
+        <fullName>Training_Max_Video_MB</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Max Training Video Size (MB)</shortDescription>
+        <value>150</value>
+    </labels>
+</CustomLabels>

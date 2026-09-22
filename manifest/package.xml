@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>TrainingNotificationService</members>
+        <members>TrainingNotifyQueueable</members>
+        <members>TrainingVideoController</members>
+        <members>TrainingVideoControllerTest</members>
+        <members>TrainingVideoTriggerHandler</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>TrainingVideoTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+    <types>
+        <members>myTrainingPending</members>
+        <members>trainingAdminConsole</members>
+        <members>trainingLibrary</members>
+        <members>trainingVideoManager</members>
+        <members>trainingVideoPlayer</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>Training_Folder__c</members>
+        <members>Training_Video__c</members>
+        <members>Training_View__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>Training_Folder__c</members>
+        <members>Training_Library</members>
+        <members>Training_Video__c</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>Training_Folder__c-Training Folder Layout</members>
+        <members>Training_Video__c-Training Video Layout</members>
+        <name>Layout</name>
+    </types>
+    <types>
+        <members>Training_Video_Record_Page</members>
+        <name>FlexiPage</name>
+    </types>
+    <types>
+        <members>Training_Library_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <types>
+        <members>Training_Max_Video_MB</members>
+        <members>Training_Notification_Template_Name</members>
+        <name>CustomLabel</name>
+    </types>
+    <version>59.0</version>
+</Package>

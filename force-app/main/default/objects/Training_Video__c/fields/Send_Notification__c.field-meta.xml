@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Send_Notification__c</fullName>
+    <label>Send Notification</label>
+    <defaultValue>false</defaultValue>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+    <inlineHelpText>Check and save to email everyone assigned to this video a link to the training library. Clears itself after sending; check it again to re-notify.</inlineHelpText>
+</CustomField>

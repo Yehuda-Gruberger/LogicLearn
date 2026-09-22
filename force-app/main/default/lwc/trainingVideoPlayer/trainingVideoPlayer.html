@@ -1,0 +1,50 @@
+<template>
+    <div class="player-card">
+        <template lwc:if={isLoading}>
+            <div class="state">
+                <lightning-spinner alternative-text="Loading video" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:if={error}>
+            <div class="state error">
+                <lightning-icon icon-name="utility:error" variant="error" size="small"></lightning-icon>
+                <span>{error}</span>
+            </div>
+        </template>
+
+        <template lwc:if={videoUrl}>
+            <div class="video-wrap">
+                <!-- controls gives native play/scrub/volume/fullscreen; the servlet honors
+                     range requests so scrubbing streams without a full download. -->
+                <video
+                    class="video-el"
+                    src={videoUrl}
+                    controls
+                    controlslist="nodownload"
+                    preload="metadata"
+                    onloadedmetadata={handleLoadedMetadata}
+                    ontimeupdate={handleTimeUpdate}
+                    onseeking={handleSeeking}
+                    onended={handleEnded}
+                    onpause={handlePause}
+                ></video>
+            </div>
+
+            <div class="controlbar">
+                <span class="speed-label">Speed</span>
+                <div class="speed-group" role="group" aria-label="Playback speed">
+                    <template for:each={speedOptions} for:item="opt">
+                        <button
+                            key={opt.value}
+                            class="speed-btn"
+                            data-speed={opt.value}
+                            data-active={opt.variant}
+                            onclick={handleSpeedChange}
+                        >{opt.label}</button>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

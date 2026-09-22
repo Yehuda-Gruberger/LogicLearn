@@ -1,0 +1,121 @@
+<template>
+    <div class="console">
+        <!-- ── Folders ── -->
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-title">Folders</span>
+                <lightning-button label="New Folder" icon-name="utility:add" onclick={handleNewFolder}></lightning-button>
+            </div>
+            <template lwc:if={hasFolders}>
+                <ul class="folders">
+                    <template for:each={folderList} for:item="f">
+                        <li key={f.id} class={f.rowClass} style={f.indentStyle}>
+                            <lightning-icon icon-name="utility:open_folder" size="x-small"></lightning-icon>
+                            <span class="folder-name">{f.name}</span>
+                            <div class="folder-actions">
+                                <lightning-button-icon icon-name="utility:edit" alternative-text="Edit" title="Edit" variant="bare" data-id={f.id} onclick={handleEditFolder}></lightning-button-icon>
+                                <lightning-button-icon icon-name="utility:delete" alternative-text="Delete" title="Delete" variant="bare" data-id={f.id} onclick={handleDeleteFolder}></lightning-button-icon>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:else>
+                <p class="muted">No folders yet. Create one to organize your videos.</p>
+            </template>
+        </div>
+
+        <!-- ── Videos ── -->
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-title">Videos</span>
+                <lightning-button variant="brand" label="New Video" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+            </div>
+            <template lwc:if={hasVideos}>
+                <lightning-datatable
+                    key-field="id"
+                    data={videos}
+                    columns={videoColumns}
+                    hide-checkbox-column
+                    onrowaction={handleVideoRowAction}
+                ></lightning-datatable>
+            </template>
+            <template lwc:else>
+                <p class="muted">No videos yet. Click New Video to add one.</p>
+            </template>
+        </div>
+    </div>
+
+    <!-- ── Folder form modal ── -->
+    <template lwc:if={showFolderForm}>
+        <section class="modal-backdrop" onclick={closeFolderForm}>
+            <div class="modal" onclick={stopPropagation}>
+                <header class="modal-head">
+                    <span class="modal-title">{folderModalTitle}</span>
+                </header>
+                <lightning-record-edit-form
+                    object-api-name="Training_Folder__c"
+                    record-id={editingFolderId}
+                    onsuccess={handleFolderSaved}
+                >
+                    <lightning-messages></lightning-messages>
+                    <div class="form-body">
+                        <lightning-input-field field-name="Name"></lightning-input-field>
+                        <lightning-input-field field-name="Parent_Folder__c"></lightning-input-field>
+                        <lightning-input-field field-name="Sort_Order__c"></lightning-input-field>
+                        <lightning-input-field field-name="Icon__c"></lightning-input-field>
+                        <lightning-input-field field-name="Description__c"></lightning-input-field>
+                    </div>
+                    <div class="modal-foot">
+                        <lightning-button label="Cancel" onclick={closeFolderForm}></lightning-button>
+                        <lightning-button variant="brand" type="submit" label="Save" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </lightning-record-edit-form>
+            </div>
+        </section>
+    </template>
+
+    <!-- ── Video form modal ── -->
+    <template lwc:if={showVideoForm}>
+        <section class="modal-backdrop" onclick={closeVideoForm}>
+            <div class="modal" onclick={stopPropagation}>
+                <header class="modal-head">
+                    <span class="modal-title">{videoModalTitle}</span>
+                </header>
+                <lightning-record-edit-form
+                    object-api-name="Training_Video__c"
+                    record-id={editingVideoId}
+                    onsuccess={handleVideoSaved}
+                >
+                    <lightning-messages></lightning-messages>
+                    <div class="form-body">
+                        <lightning-input-field field-name="Name"></lightning-input-field>
+                        <lightning-input-field field-name="Folder__c"></lightning-input-field>
+                        <lightning-input-field field-name="Category__c"></lightning-input-field>
+                        <lightning-input-field field-name="Status__c"></lightning-input-field>
+                        <lightning-input-field field-name="Sort_Order__c"></lightning-input-field>
+                        <lightning-input-field field-name="Description__c"></lightning-input-field>
+                    </div>
+                    <div class="modal-foot">
+                        <lightning-button label="Cancel" onclick={closeVideoForm}></lightning-button>
+                        <lightning-button variant="brand" type="submit" label="Save" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </lightning-record-edit-form>
+                <p class="form-hint">After saving a new video you can upload the file and assign it.</p>
+            </div>
+        </section>
+    </template>
+
+    <!-- ── Manage (upload + assign + tracking) modal ── -->
+    <template lwc:if={showManage}>
+        <section class="modal-backdrop" onclick={closeManage}>
+            <div class="modal modal-lg" onclick={stopPropagation}>
+                <header class="modal-head">
+                    <span class="modal-title">Manage video</span>
+                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare" onclick={closeManage}></lightning-button-icon>
+                </header>
+                <c-training-video-manager record-id={manageVideoId}></c-training-video-manager>
+            </div>
+        </section>
+    </template>
+</template>

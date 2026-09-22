@@ -1,0 +1,95 @@
+.count {
+    font-size: 0.72rem;
+    color: #6c7c90;
+    font-weight: 600;
+    padding-right: 0.5rem;
+}
+
+.body {
+    padding: 0 0.25rem 0.25rem;
+}
+
+.list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.row:hover,
+.row:focus-visible {
+    background: #f2f5f9;
+    outline: none;
+}
+
+.row-ico {
+    --sds-c-icon-color-foreground-default: #0b6e7f;
+}
+
+.row-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.row-title {
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: #16202e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.row-status {
+    font-size: 0.7rem;
+    color: #6c7c90;
+}
+
+.pill {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.45rem;
+    border-radius: 1rem;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.pill.mand {
+    color: #b3261e;
+    background: #fae6e4;
+    border-color: #efc4c0;
+}
+
+.pill.pend {
+    color: #9a6400;
+    background: #f7edd8;
+    border-color: #ecd9b0;
+}
+
+.msg {
+    padding: 0.75rem;
+    font-size: 0.82rem;
+    color: #46566b;
+}
+
+.msg.error {
+    color: #b3261e;
+}
+
+.msg.done {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

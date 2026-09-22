@@ -1,0 +1,149 @@
+.console {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.panel {
+    background: #fff;
+    border: 1px solid #d8dee7;
+    border-radius: 0.6rem;
+    padding: 0.9rem 1rem 1rem;
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.panel-title {
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: #16202e;
+}
+
+.muted {
+    color: #97a3b4;
+    font-size: 0.85rem;
+}
+
+/* Folders */
+.folders {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.folder-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.35rem;
+    border-radius: 0.35rem;
+}
+
+.folder-row:hover {
+    background: #f2f5f9;
+}
+
+.folder-row.child .folder-name {
+    font-weight: 500;
+    color: #46566b;
+}
+
+.folder-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #16202e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-actions {
+    display: flex;
+    gap: 0.1rem;
+    opacity: 0;
+    transition: opacity 0.12s;
+}
+
+.folder-row:hover .folder-actions {
+    opacity: 1;
+}
+
+/* Modals */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(9, 18, 26, 0.6);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem;
+    overflow-y: auto;
+}
+
+.modal {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 0.6rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    padding: 1rem 1.25rem 1.25rem;
+}
+
+.modal-lg {
+    max-width: 900px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e9ef;
+}
+
+.modal-lg .modal-head {
+    padding: 0.6rem 0.75rem 0.6rem 1rem;
+    border-bottom: 1px solid #e5e9ef;
+    margin-bottom: 0;
+}
+
+.modal-title {
+    font-size: 1rem;
+    font-weight: 650;
+    color: #16202e;
+}
+
+.form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+}
+
+.modal-foot {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.form-hint {
+    font-size: 0.72rem;
+    color: #97a3b4;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 700px) {
+    .console {
+        grid-template-columns: 1fr;
+    }
+}

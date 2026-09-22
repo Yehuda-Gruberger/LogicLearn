@@ -1,0 +1,158 @@
+<template>
+    <div class="app">
+        <!-- ===== Folder rail ===== -->
+        <aside class="rail">
+            <div class="rail-title">Folders</div>
+            <template for:each={folderItems} for:item="folder">
+                <div
+                    key={folder.id}
+                    class={folder.itemClass}
+                    style={folder.indentStyle}
+                    data-id={folder.id}
+                    onclick={handleFolderSelect}
+                >
+                    <lightning-icon icon-name="utility:open_folder" size="x-small" class="rail-ico"></lightning-icon>
+                    <span class="rail-name">{folder.name}</span>
+                    <span class="rail-count">{folder.count}</span>
+                </div>
+            </template>
+
+            <div class="rail-sep"></div>
+            <div class="rail-progress">
+                <div class="rp-label">
+                    <span>Your progress</span>
+                    <span class="tnum">{progressCountLabel}</span>
+                </div>
+                <div class="bar"><span style={progressStyle}></span></div>
+            </div>
+        </aside>
+
+        <!-- ===== Main ===== -->
+        <div class="main">
+            <div class="topbar">
+                <div class="titles">
+                    <div class="eyebrow">Refuah Helpline</div>
+                    <h1 class="h1">Training Library</h1>
+                </div>
+                <div class="topbar-spacer"></div>
+                <template lwc:if={isAdmin}>
+                    <div class="seg" role="group" aria-label="View">
+                        <button class={libraryBtnClass} onclick={showLibraryMode}>Library</button>
+                        <button class={adminBtnClass} onclick={showAdminMode}>Admin</button>
+                    </div>
+                </template>
+                <template lwc:if={isAdminMode}></template>
+                <template lwc:else>
+                    <div class="search">
+                        <lightning-input
+                            type="search"
+                            variant="label-hidden"
+                            placeholder="Search training videos"
+                            value={searchTerm}
+                            onchange={handleSearch}
+                        ></lightning-input>
+                    </div>
+                    <lightning-button-icon
+                        icon-name="utility:refresh"
+                        alternative-text="Refresh"
+                        title="Refresh"
+                        onclick={handleRefresh}
+                    ></lightning-button-icon>
+                </template>
+            </div>
+
+            <div class="scroll">
+                <template lwc:if={isAdminMode}>
+                    <c-training-admin-console></c-training-admin-console>
+                </template>
+
+                <template lwc:elseif={error}>
+                    <div class="empty error">
+                        <lightning-icon icon-name="utility:error" variant="error"></lightning-icon>
+                        <p>{error}</p>
+                    </div>
+                </template>
+
+                <template lwc:elseif={hasResults}>
+                    <template for:each={displaySections} for:item="section">
+                        <section key={section.key} class="section">
+                            <div class="sec-head">
+                                <span class="sec-title">{section.folderName}</span>
+                                <span class="sec-count">{section.countLabel}</span>
+                                <span class="sec-done">{section.doneLabel}</span>
+                            </div>
+                            <template lwc:if={section.description}>
+                                <p class="sec-desc">{section.description}</p>
+                            </template>
+
+                            <div class="grid">
+                                <template for:each={section.videos} for:item="video">
+                                    <article
+                                        key={video.id}
+                                        class={video.cardClass}
+                                        data-id={video.id}
+                                        data-title={video.title}
+                                        onclick={handleCardClick}
+                                        tabindex="0"
+                                    >
+                                        <div class="thumb" style={video.thumbStyle}>
+                                            <template lwc:if={video.isMandatory}>
+                                                <span class="mand-ribbon">
+                                                    <lightning-icon icon-name="utility:warning" size="xx-small" variant="inverse"></lightning-icon>
+                                                    Mandatory
+                                                </span>
+                                            </template>
+                                            <div class="play">
+                                                <lightning-icon icon-name="utility:play" size="small"></lightning-icon>
+                                            </div>
+                                            <template lwc:if={video.durationLabel}>
+                                                <span class="dur tnum">{video.durationLabel}</span>
+                                            </template>
+                                            <template lwc:if={video.showProgressBar}>
+                                                <div class="thumb-prog"><span style={video.progressBarStyle}></span></div>
+                                            </template>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="card-title">{video.title}</div>
+                                            <template lwc:if={video.category}>
+                                                <div class="card-meta">{video.category}</div>
+                                            </template>
+                                            <div class="card-foot">
+                                                <span class={video.pillClass}>{video.pillLabel}</span>
+                                                <template lwc:if={video.footNote}>
+                                                    <span class="foot-note tnum">{video.footNote}</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </template>
+                            </div>
+                        </section>
+                    </template>
+                </template>
+
+                <template lwc:else>
+                    <div class="empty">
+                        <lightning-icon icon-name="utility:video" size="large"></lightning-icon>
+                        <p>No training videos to show yet.</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- In-place video player modal -->
+    <template lwc:if={showPlayer}>
+        <section class="modal-backdrop" onclick={handleClosePlayer}>
+            <div class="modal" onclick={stopPropagation}>
+                <header class="modal-head">
+                    <span class="modal-title">{activeTitle}</span>
+                    <button class="modal-close" title="Close" onclick={handleClosePlayer}>
+                        <lightning-icon icon-name="utility:close" size="x-small" variant="inverse"></lightning-icon>
+                    </button>
+                </header>
+                <c-training-video-player video-id={activeVideoId} autoplay={activeAutoplay}></c-training-video-player>
+            </div>
+        </section>
+    </template>
+</template>

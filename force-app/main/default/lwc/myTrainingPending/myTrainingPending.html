@@ -1,0 +1,33 @@
+<template>
+    <lightning-card title="My Training" icon-name="utility:video">
+        <span slot="actions" class="count">{countLabel}</span>
+
+        <div class="body">
+            <template lwc:if={error}>
+                <p class="msg error">{error}</p>
+            </template>
+
+            <template lwc:elseif={hasItems}>
+                <ul class="list">
+                    <template for:each={items} for:item="item">
+                        <li key={item.id} class="row" data-id={item.id} onclick={handleClick} tabindex="0">
+                            <lightning-icon icon-name="utility:play" size="x-small" class="row-ico"></lightning-icon>
+                            <div class="row-main">
+                                <span class="row-title">{item.title}</span>
+                                <span class="row-status">{item.statusLabel}</span>
+                            </div>
+                            <span class={item.pillClass}>{item.pillLabel}</span>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+
+            <template lwc:else>
+                <div class="msg done">
+                    <lightning-icon icon-name="utility:success" variant="success" size="small"></lightning-icon>
+                    <span>You're all caught up on training.</span>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
