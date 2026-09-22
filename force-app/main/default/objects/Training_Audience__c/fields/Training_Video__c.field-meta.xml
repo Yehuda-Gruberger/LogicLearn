@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Training_Video__c</fullName><label>Training Video</label><referenceTo>Training_Video__c</referenceTo>
+    <relationshipLabel>Audiences</relationshipLabel><relationshipName>Audiences</relationshipName>
+    <reparentableMasterDetail>false</reparentableMasterDetail><type>MasterDetail</type><writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

@@ -4,6 +4,9 @@ import {refreshApex} from "@salesforce/apex";
 import {deleteRecord} from "lightning/uiRecordApi";
 import getFolders from "@salesforce/apex/TrainingVideoController.getFolders";
 import getAdminVideos from "@salesforce/apex/TrainingVideoController.getAdminVideos";
+import initializeLogicLearn from "@salesforce/apex/LogicLearnAdminController.initializeLogicLearn";
+import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
+import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
 
 const VIDEO_COLUMNS = [
     {label: "Title", fieldName: "title", type: "text"},
@@ -16,8 +19,7 @@ const VIDEO_COLUMNS = [
         type: "action",
         typeAttributes: {
             rowActions: [
-                {label: "Manage (upload & assign)", name: "manage"},
-                {label: "Edit details", name: "edit"},
+                {label: "Edit tutorial", name: "edit"},
                 {label: "Delete", name: "delete"}
             ]
         }
@@ -26,6 +28,7 @@ const VIDEO_COLUMNS = [
 
 export default class TrainingAdminConsole extends LightningElement {
     videoColumns = VIDEO_COLUMNS;
+    activeSection = "tutorials";
 
     folders = [];
     @track videos = [];
@@ -33,13 +36,32 @@ export default class TrainingAdminConsole extends LightningElement {
     _wiredVideos;
 
     @track showFolderForm = false;
-    @track showVideoForm = false;
-    @track showManage = false;
+    @track showTutorialEditor = false;
     editingFolderId = null;
     editingVideoId = null;
-    manageVideoId = null;
+    tutorialRecordId = null;
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
+    folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
+
+    connectedCallback() {
+        initializeLogicLearn()
+            .then(() => Promise.all([
+                this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
+                this._wiredVideos ? refreshApex(this._wiredVideos) : Promise.resolve()
+            ]))
+            .catch((error) => this.showToast("Setup error", this.extractError(error), "error"));
+    }
+
+    get isTutorials() { return this.activeSection === "tutorials"; }
+    get isGroups() { return this.activeSection === "groups"; }
+    get isTracking() { return this.activeSection === "tracking"; }
+    get isSettings() { return this.activeSection === "settings"; }
+    get tutorialsTabClass() { return this.activeSection === "tutorials" ? "admin-tab active" : "admin-tab"; }
+    get groupsTabClass() { return this.activeSection === "groups" ? "admin-tab active" : "admin-tab"; }
+    get trackingTabClass() { return this.activeSection === "tracking" ? "admin-tab active" : "admin-tab"; }
+    get settingsTabClass() { return this.activeSection === "settings" ? "admin-tab active" : "admin-tab"; }
+    handleSection(event) { this.activeSection = event.currentTarget.dataset.section; }
 
     @wire(getFolders)
     wiredFolders(result) {
@@ -92,18 +114,29 @@ export default class TrainingAdminConsole extends LightningElement {
         return this.videos.length > 0;
     }
 
+    get folderOptions() {
+        return this.folders.filter((folder) => folder.id !== this.folderForm.folderId)
+            .map((folder) => ({value: folder.id, label: folder.name, meta: "Folder"}));
+    }
+
     // ── Folder CRUD ──
 
     handleNewFolder() {
         this.editingFolderId = null;
         this.folderModalTitle = "New Folder";
+        this.folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
         this.showFolderForm = true;
     }
 
-    handleEditFolder(event) {
+    async handleEditFolder(event) {
         this.editingFolderId = event.currentTarget.dataset.id;
         this.folderModalTitle = "Edit Folder";
-        this.showFolderForm = true;
+        try {
+            this.folderForm = await getFolder({folderId: this.editingFolderId});
+            this.showFolderForm = true;
+        } catch (error) {
+            this.showToast("Error", this.extractError(error), "error");
+        }
     }
 
     handleDeleteFolder(event) {
@@ -120,47 +153,40 @@ export default class TrainingAdminConsole extends LightningElement {
         this.showFolderForm = false;
     }
 
-    handleFolderSaved() {
-        this.showFolderForm = false;
-        this.showToast("Saved", "Folder saved.", "success");
-        refreshApex(this._wiredFolders);
+    handleFolderField(event) {
+        this.folderForm = {...this.folderForm, [event.currentTarget.dataset.field]: event.target.value};
+    }
+
+    handleFolderParent(event) {
+        this.folderForm = {...this.folderForm, parentId: event.detail.value};
+    }
+
+    async handleFolderSaved() {
+        const name = this.template.querySelector('[data-field="name"]');
+        if (!name.reportValidity()) return;
+        try {
+            await saveFolder({input: this.folderForm});
+            this.showFolderForm = false;
+            this.showToast("Saved", "Folder saved.", "success");
+            await refreshApex(this._wiredFolders);
+        } catch (error) {
+            this.showToast("Error", this.extractError(error), "error");
+        }
     }
 
     // ── Video CRUD ──
 
     handleNewVideo() {
-        this.editingVideoId = null;
-        this.videoModalTitle = "New Video";
-        this.showVideoForm = true;
-    }
-
-    closeVideoForm() {
-        this.showVideoForm = false;
-    }
-
-    handleVideoSaved(event) {
-        const wasCreate = !this.editingVideoId;
-        const newId = event.detail.id;
-        this.showVideoForm = false;
-        this.showToast("Saved", "Video saved.", "success");
-        refreshApex(this._wiredVideos);
-        // Straight after creating a video, open Manage so the admin can upload + assign.
-        if (wasCreate && newId) {
-            this.manageVideoId = newId;
-            this.showManage = true;
-        }
+        this.tutorialRecordId = null;
+        this.showTutorialEditor = true;
     }
 
     handleVideoRowAction(event) {
         const action = event.detail.action.name;
         const row = event.detail.row;
-        if (action === "manage") {
-            this.manageVideoId = row.id;
-            this.showManage = true;
-        } else if (action === "edit") {
-            this.editingVideoId = row.id;
-            this.videoModalTitle = "Edit Video";
-            this.showVideoForm = true;
+        if (action === "edit") {
+            this.tutorialRecordId = row.id;
+            this.showTutorialEditor = true;
         } else if (action === "delete") {
             deleteRecord(row.id)
                 .then(() => {
@@ -171,9 +197,13 @@ export default class TrainingAdminConsole extends LightningElement {
         }
     }
 
-    closeManage() {
-        this.showManage = false;
-        this.manageVideoId = null;
+    closeTutorialEditor() {
+        this.showTutorialEditor = false;
+        this.tutorialRecordId = null;
+    }
+
+    handleTutorialSaved() {
+        this.closeTutorialEditor();
         refreshApex(this._wiredVideos);
     }
 

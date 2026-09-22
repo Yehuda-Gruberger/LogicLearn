@@ -2,6 +2,7 @@ import {LightningElement, api, track} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import getPlayback from "@salesforce/apex/TrainingVideoController.getPlayback";
 import recordProgress from "@salesforce/apex/TrainingVideoController.recordProgress";
+import markExternalComplete from "@salesforce/apex/TrainingVideoController.markExternalComplete";
 
 // How often (seconds of playback) to persist progress, so we don't DML on every timeupdate tick.
 const REPORT_INTERVAL_SECONDS = 5;
@@ -23,6 +24,9 @@ export default class TrainingVideoPlayer extends LightningElement {
     resumePercent = 0;
     completed = false;
     isMandatory = false;
+    isExternal = false;
+    externalUrl;
+    preventSkipping = false;
 
     @track currentSpeed = 1;
 
@@ -63,8 +67,13 @@ export default class TrainingVideoPlayer extends LightningElement {
             this.resumePercent = info.resumePercent || 0;
             this.completed = info.viewStatus === "Completed";
             this.isMandatory = info.isMandatory === true;
-            if (!this.videoUrl) {
+            this.isExternal = info.isExternal === true;
+            this.externalUrl = info.externalUrl;
+            this.preventSkipping = info.preventSkipping === true;
+            if (!this.isExternal && !this.videoUrl) {
                 this.error = "No video file has been uploaded for this record yet.";
+            } else if (this.isExternal && !this.externalUrl) {
+                this.error = "No external video link has been configured for this tutorial.";
             }
         } catch (err) {
             this.error = this.extractError(err);
@@ -79,7 +88,7 @@ export default class TrainingVideoPlayer extends LightningElement {
 
     // On a mandatory, not-yet-completed video the user can't skip past what they've watched.
     get noSkip() {
-        return this.isMandatory && !this.completed;
+        return this.preventSkipping && !this.completed;
     }
 
     // Resume from where the user left off (unless already completed) once we know the duration.
@@ -187,6 +196,24 @@ export default class TrainingVideoPlayer extends LightningElement {
         const video = this.videoElement;
         if (video) {
             video.playbackRate = speed;
+        }
+    }
+
+    handleOpenExternal() {
+        window.open(this.externalUrl, "_blank", "noopener,noreferrer");
+    }
+
+    async handleManualComplete() {
+        try {
+            await markExternalComplete({videoId: this.effectiveVideoId});
+            this.completed = true;
+            this.dispatchEvent(new ShowToastEvent({
+                title: "Tutorial complete",
+                message: `You've marked "${this.title}" complete.`,
+                variant: "success"
+            }));
+        } catch (error) {
+            this.dispatchEvent(new ShowToastEvent({title: "Could not complete", message: this.extractError(error), variant: "error"}));
         }
     }
 

@@ -4,6 +4,11 @@
     <label>Training Library Access</label>
     <hasActivationRequired>false</hasActivationRequired>
 
+    <applicationVisibilities>
+        <application>LogicLearn</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+
     <classAccesses>
         <apexClass>TrainingVideoController</apexClass>
         <enabled>true</enabled>
@@ -16,7 +21,7 @@
         <allowCreate>false</allowCreate>
         <allowEdit>false</allowEdit>
         <allowDelete>false</allowDelete>
-        <viewAllRecords>true</viewAllRecords>
+        <viewAllRecords>false</viewAllRecords>
         <modifyAllRecords>false</modifyAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -25,7 +30,7 @@
         <allowCreate>false</allowCreate>
         <allowEdit>false</allowEdit>
         <allowDelete>false</allowDelete>
-        <viewAllRecords>true</viewAllRecords>
+        <viewAllRecords>false</viewAllRecords>
         <modifyAllRecords>false</modifyAllRecords>
     </objectPermissions>
     <!-- Views: employees create/update their own tracking rows -->
@@ -69,6 +74,11 @@
         <readable>true</readable>
         <editable>false</editable>
     </fieldPermissions>
+    <fieldPermissions><field>Training_Video__c.Content_Type__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Training_Video__c.External_URL__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Training_Video__c.Completion_Threshold__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Training_Video__c.Skip_Prevention__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Training_Video__c.Due_Date__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
     <fieldPermissions>
         <field>Training_Video__c.Sort_Order__c</field>
         <readable>true</readable>
@@ -141,13 +151,10 @@
         <readable>true</readable>
         <editable>true</editable>
     </fieldPermissions>
+    <fieldPermissions><field>Training_View__c.Completion_Method__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
 
     <tabSettings>
         <tab>Training_Library</tab>
         <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Training_Video__c</tab>
-        <visibility>Available</visibility>
     </tabSettings>
 </PermissionSet>

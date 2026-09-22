@@ -1,0 +1,89 @@
+<template>
+    <div class="editor" onclick={stopPropagation}>
+        <header class="editor-head">
+            <div>
+                <div class="eyebrow">Tutorial</div>
+                <h2>{title}</h2>
+            </div>
+            <lightning-button-icon icon-name="utility:close" alternative-text="Close" title="Close" variant="bare" onclick={handleCancel}></lightning-button-icon>
+        </header>
+
+        <template lwc:if={loading}>
+            <div class="loading"><lightning-spinner alternative-text="Preparing tutorial"></lightning-spinner></div>
+        </template>
+        <template lwc:else>
+            <div class="body">
+                <section class="section">
+                    <div class="section-title"><span>1</span><div><strong>Details</strong><small>Name and organize the tutorial</small></div></div>
+                    <div class="grid two">
+                        <lightning-input data-field="title" label="Title" value={form.title} onchange={handleField} required></lightning-input>
+                        <c-logic-learn-picker data-field="folderId" label="Folder" placeholder="Search folders" options={catalog.folders} value={form.folderId} onchange={handlePicker}></c-logic-learn-picker>
+                        <lightning-combobox data-field="category" label="Category" value={form.category} options={categoryOptions} onchange={handleField}></lightning-combobox>
+                        <lightning-combobox data-field="status" label="Status" value={form.status} options={statusOptions} onchange={handleField}></lightning-combobox>
+                    </div>
+                    <lightning-textarea data-field="description" label="Description" value={form.description} onchange={handleField}></lightning-textarea>
+                </section>
+
+                <section class="section">
+                    <div class="section-title"><span>2</span><div><strong>Video</strong><small>Upload a tracked file or use an external link</small></div></div>
+                    <lightning-combobox data-field="contentType" label="Video source" value={form.contentType} options={contentOptions} onchange={handleField}></lightning-combobox>
+                    <template lwc:if={isFile}>
+                        <div class="upload-box">
+                            <template lwc:if={hasFile}><p class="file"><lightning-icon icon-name="doctype:video" size="small"></lightning-icon>{fileName}</p></template>
+                            <lightning-file-upload label="Upload video" name="video" record-id={recordId} accept=".mp4,video/mp4" onuploadfinished={handleUpload} disabled={busy}></lightning-file-upload>
+                            <p class="hint">MP4 (H.264), up to 150 MB. Uploading a replacement overwrites the tutorial's current video selection.</p>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <lightning-input data-field="externalUrl" type="url" label="External video URL" value={form.externalUrl} onchange={handleField} required></lightning-input>
+                        <div class="notice"><lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>External videos open in a new tab. Watch progress cannot be tracked, so learners mark them complete manually.</div>
+                    </template>
+                </section>
+
+                <section class="section">
+                    <div class="section-title"><span>3</span><div><strong>Completion</strong><small>Set the due date and playback rules</small></div></div>
+                    <div class="grid three">
+                        <lightning-input data-field="completionThreshold" type="number" min="1" max="100" label="Completion threshold override (%)" value={form.completionThreshold} onchange={handleField}></lightning-input>
+                        <lightning-combobox data-field="skipPrevention" label="Prevent skipping" value={form.skipPrevention} options={skipOptions} onchange={handleField}></lightning-combobox>
+                        <lightning-input data-field="dueDate" type="date" label="Due date (optional)" value={form.dueDate} onchange={handleField}></lightning-input>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="section-title"><span>4</span><div><strong>Visibility audience</strong><small>Who can find and open this tutorial</small></div></div>
+                    <div class="grid three">
+                        <c-logic-learn-picker multiple data-field="visibilityUsers" label="Users" options={catalog.users} value={form.visibilityUsers} onchange={handlePicker}></c-logic-learn-picker>
+                        <c-logic-learn-picker multiple data-field="visibilityProfiles" label="Profiles" options={catalog.profiles} value={form.visibilityProfiles} onchange={handlePicker}></c-logic-learn-picker>
+                        <c-logic-learn-picker multiple data-field="visibilityGroups" label="LogicLearn groups" options={catalog.groups} value={form.visibilityGroups} onchange={handlePicker}></c-logic-learn-picker>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="section-title"><span>5</span><div><strong>Required audience</strong><small>Who must complete this tutorial</small></div></div>
+                    <div class="grid three">
+                        <c-logic-learn-picker multiple data-field="requiredUsers" label="Users" options={catalog.users} value={form.requiredUsers} onchange={handlePicker}></c-logic-learn-picker>
+                        <c-logic-learn-picker multiple data-field="requiredProfiles" label="Profiles" options={catalog.profiles} value={form.requiredProfiles} onchange={handlePicker}></c-logic-learn-picker>
+                        <c-logic-learn-picker multiple data-field="requiredGroups" label="LogicLearn groups" options={catalog.groups} value={form.requiredGroups} onchange={handlePicker}></c-logic-learn-picker>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="section-title"><span>6</span><div><strong>Email notifications</strong><small>Choose recipients and explicitly send when saving</small></div></div>
+                    <div class="grid three">
+                        <c-logic-learn-picker multiple data-field="notificationUsers" label="Users" options={catalog.users} value={form.notificationUsers} onchange={handlePicker}></c-logic-learn-picker>
+                        <c-logic-learn-picker multiple data-field="notificationProfiles" label="Profiles" options={catalog.profiles} value={form.notificationProfiles} onchange={handlePicker}></c-logic-learn-picker>
+                        <c-logic-learn-picker multiple data-field="notificationGroups" label="LogicLearn groups" options={catalog.groups} value={form.notificationGroups} onchange={handlePicker}></c-logic-learn-picker>
+                    </div>
+                    <div class="grid two channels">
+                        <lightning-combobox data-field="newVideoChannel" label="Send new-video notice after saving" value={newVideoChannel} options={channelOptions} onchange={handleField}></lightning-combobox>
+                        <lightning-combobox data-field="assignmentChannel" label="Send required-assignment notice after saving" value={assignmentChannel} options={channelOptions} onchange={handleField}></lightning-combobox>
+                    </div>
+                </section>
+            </div>
+            <footer class="editor-foot">
+                <span>Everything is saved together from this screen.</span>
+                <div><lightning-button label="Cancel" onclick={handleCancel} disabled={saving}></lightning-button><lightning-button class="save" variant="brand" label="Save tutorial" onclick={handleSave} disabled={saving}></lightning-button></div>
+            </footer>
+        </template>
+    </div>
+</template>

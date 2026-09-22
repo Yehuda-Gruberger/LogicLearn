@@ -9,9 +9,10 @@ import isLibraryAdmin from "@salesforce/apex/TrainingVideoController.isLibraryAd
 const CATEGORY_GRADIENTS = {
     Onboarding: "linear-gradient(135deg,#0b5563,#0e8ea0)",
     Compliance: "linear-gradient(135deg,#8f1d18,#c2453c)",
+    Products: "linear-gradient(135deg,#5a3d82,#8158b0)",
+    Processes: "linear-gradient(135deg,#1f6b3c,#3a9459)",
     Systems: "linear-gradient(135deg,#274b74,#3f6fa3)",
-    Phone: "linear-gradient(135deg,#5a3d82,#8158b0)",
-    Clinical: "linear-gradient(135deg,#1f6b3c,#3a9459)",
+    "Professional Development": "linear-gradient(135deg,#8a5318,#c6802f)",
     Other: "linear-gradient(135deg,#334155,#475569)"
 };
 

@@ -103,6 +103,14 @@
     overflow: hidden;
 }
 
+.admin-tabs{display:flex;gap:.25rem;margin-bottom:.8rem;padding:.25rem;background:#edf2f5;border:1px solid #d8dee7;border-radius:.55rem;width:max-content}.admin-tab{border:0;background:transparent;color:#536276;font:inherit;font-size:.8rem;font-weight:650;padding:.4rem .8rem;border-radius:.4rem;cursor:pointer}.admin-tab.active{background:#fff;color:#075e6c;box-shadow:0 1px 3px rgba(16,32,46,.14)}
+
+.modal-editor {
+    max-width: 1120px;
+    padding: 0;
+    overflow: visible;
+}
+
 .modal-head {
     display: flex;
     align-items: center;

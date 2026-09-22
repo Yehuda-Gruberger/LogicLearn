@@ -100,6 +100,82 @@ public with sharing class TrainingNotificationService {
         return confirmed.size();
     }
 
+    /** Sends an explicit admin-requested email to a live LogicLearn audience. */
+    public static Integer notifyAudience(Id videoId, String notificationType) {
+        if (videoId == null) return 0;
+        String type = String.isBlank(notificationType) ? 'Assignment' : notificationType;
+        String purpose = type == 'New Video' ? 'Notification' : 'Required';
+        Set<Id> recipientIds = LogicLearnAudienceService.usersForVideo(videoId, purpose);
+        if (recipientIds.isEmpty()) return 0;
+
+        if (type == 'Reminder') {
+            for (Training_View__c completed : [
+                SELECT User__c FROM Training_View__c
+                WHERE Training_Video__c = :videoId AND User__c IN :recipientIds AND Status__c = 'Completed'
+            ]) recipientIds.remove(completed.User__c);
+        }
+        if (recipientIds.isEmpty()) return 0;
+
+        LogicLearn_Settings__c settings = LogicLearnAdminController.settingsRow();
+        String selectedTemplate = type == 'Reminder' ? settings.Reminder_Template_Name__c : settings.Assignment_Template_Name__c;
+        List<EmailTemplate> templates = [
+            SELECT Id FROM EmailTemplate
+            WHERE (Name = :selectedTemplate OR DeveloperName = :selectedTemplate) AND IsActive = TRUE
+            ORDER BY LastModifiedDate DESC LIMIT 1
+        ];
+        if (templates.isEmpty()) throw new AuraHandledException('Active email template not found: ' + selectedTemplate);
+
+        Training_Video__c video = [SELECT Id, Name FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
+        List<User> users = [SELECT Id, Name, Email FROM User WHERE Id IN :recipientIds AND IsActive = TRUE AND Email != null];
+        String libraryUrl = buildLibraryUrl();
+        String videoLink = libraryUrl + '?c__videoId=' + video.Id;
+        List<Messaging.SingleEmailMessage> messages = new List<Messaging.SingleEmailMessage>();
+        List<User> messageUsers = new List<User>();
+        List<Training_Notification_Log__c> logs = new List<Training_Notification_Log__c>();
+        for (User user : users) {
+            try {
+                Messaging.SingleEmailMessage message = Messaging.renderStoredEmailTemplate(templates[0].Id, user.Id, video.Id);
+                applyTokens(message, video.Name, user.Name, libraryUrl, videoLink);
+                message.setToAddresses(new List<String>{user.Email});
+                message.setSaveAsActivity(false);
+                messages.add(message);
+                messageUsers.add(user);
+            } catch (Exception error) {
+                logs.add(new Training_Notification_Log__c(
+                    Training_Video__c = videoId, User__c = user.Id, Notification_Type__c = type,
+                    Status__c = 'Failed', Sent_At__c = System.now(), Error__c = error.getMessage()
+                ));
+            }
+        }
+
+        Integer sent = 0;
+        for (Integer start = 0; start < messages.size(); start += 10) {
+            Integer finish = Math.min(start + 10, messages.size());
+            List<Messaging.SingleEmailMessage> batch = new List<Messaging.SingleEmailMessage>();
+            for (Integer i = start; i < finish; i++) batch.add(messages[i]);
+            try {
+                List<Messaging.SendEmailResult> results = Messaging.sendEmail(batch, false);
+                for (Integer offset = 0; offset < results.size(); offset++) {
+                    Integer index = start + offset;
+                    Boolean success = results[offset].isSuccess();
+                    String errorText = success || results[offset].getErrors().isEmpty() ? null : results[offset].getErrors()[0].getMessage();
+                    logs.add(new Training_Notification_Log__c(
+                        Training_Video__c = videoId, User__c = messageUsers[index].Id, Notification_Type__c = type,
+                        Status__c = success ? 'Sent' : 'Failed', Sent_At__c = System.now(), Error__c = errorText
+                    ));
+                    if (success) sent++;
+                }
+            } catch (Exception error) {
+                for (Integer i = start; i < finish; i++) logs.add(new Training_Notification_Log__c(
+                    Training_Video__c = videoId, User__c = messageUsers[i].Id, Notification_Type__c = type,
+                    Status__c = 'Failed', Sent_At__c = System.now(), Error__c = error.getMessage()
+                ));
+            }
+        }
+        if (!logs.isEmpty()) insert logs;
+        return sent;
+    }
+
     /** Replaces the literal placeholder tokens in the rendered subject/body with real values. */
     private static void applyTokens(
         Messaging.SingleEmailMessage msg,

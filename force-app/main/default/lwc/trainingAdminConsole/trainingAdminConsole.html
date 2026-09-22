@@ -1,6 +1,13 @@
 <template>
-    <div class="console">
-        <!-- ── Folders ── -->
+    <nav class="admin-tabs" aria-label="Administration">
+        <button class={tutorialsTabClass} data-section="tutorials" onclick={handleSection}>Tutorials</button>
+        <button class={groupsTabClass} data-section="groups" onclick={handleSection}>Groups</button>
+        <button class={trackingTabClass} data-section="tracking" onclick={handleSection}>Tracking</button>
+        <button class={settingsTabClass} data-section="settings" onclick={handleSection}>Settings</button>
+    </nav>
+
+    <template lwc:if={isTutorials}>
+      <div class="console">
         <div class="panel">
             <div class="panel-head">
                 <span class="panel-title">Folders</span>
@@ -20,101 +27,48 @@
                     </template>
                 </ul>
             </template>
-            <template lwc:else>
-                <p class="muted">No folders yet. Create one to organize your videos.</p>
-            </template>
+            <template lwc:else><p class="muted">No folders yet. Create one to organize your tutorials.</p></template>
         </div>
 
-        <!-- ── Videos ── -->
         <div class="panel">
             <div class="panel-head">
-                <span class="panel-title">Videos</span>
-                <lightning-button variant="brand" label="New Video" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+                <span class="panel-title">Tutorials</span>
+                <lightning-button variant="brand" label="New Tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
             </div>
             <template lwc:if={hasVideos}>
-                <lightning-datatable
-                    key-field="id"
-                    data={videos}
-                    columns={videoColumns}
-                    hide-checkbox-column
-                    onrowaction={handleVideoRowAction}
-                ></lightning-datatable>
+                <lightning-datatable key-field="id" data={videos} columns={videoColumns} hide-checkbox-column onrowaction={handleVideoRowAction}></lightning-datatable>
             </template>
-            <template lwc:else>
-                <p class="muted">No videos yet. Click New Video to add one.</p>
-            </template>
+            <template lwc:else><p class="muted">No tutorials yet. Click New Tutorial to add one.</p></template>
         </div>
-    </div>
+      </div>
+    </template>
+    <template lwc:elseif={isGroups}><c-logic-learn-group-manager></c-logic-learn-group-manager></template>
+    <template lwc:elseif={isTracking}><c-logic-learn-tracking></c-logic-learn-tracking></template>
+    <template lwc:else><c-logic-learn-settings></c-logic-learn-settings></template>
 
-    <!-- ── Folder form modal ── -->
     <template lwc:if={showFolderForm}>
         <section class="modal-backdrop" onclick={closeFolderForm}>
             <div class="modal" onclick={stopPropagation}>
-                <header class="modal-head">
-                    <span class="modal-title">{folderModalTitle}</span>
-                </header>
-                <lightning-record-edit-form
-                    object-api-name="Training_Folder__c"
-                    record-id={editingFolderId}
-                    onsuccess={handleFolderSaved}
-                >
-                    <lightning-messages></lightning-messages>
-                    <div class="form-body">
-                        <lightning-input-field field-name="Name"></lightning-input-field>
-                        <lightning-input-field field-name="Parent_Folder__c"></lightning-input-field>
-                        <lightning-input-field field-name="Sort_Order__c"></lightning-input-field>
-                        <lightning-input-field field-name="Icon__c"></lightning-input-field>
-                        <lightning-input-field field-name="Description__c"></lightning-input-field>
-                    </div>
-                    <div class="modal-foot">
-                        <lightning-button label="Cancel" onclick={closeFolderForm}></lightning-button>
-                        <lightning-button variant="brand" type="submit" label="Save" class="slds-m-left_x-small"></lightning-button>
-                    </div>
-                </lightning-record-edit-form>
+                <header class="modal-head"><span class="modal-title">{folderModalTitle}</span></header>
+                <div class="form-body">
+                    <lightning-input data-field="name" label="Name" value={folderForm.name} onchange={handleFolderField} required></lightning-input>
+                    <c-logic-learn-picker label="Parent folder" placeholder="Search folders" options={folderOptions} value={folderForm.parentId} onchange={handleFolderParent}></c-logic-learn-picker>
+                    <lightning-input data-field="sortOrder" type="number" label="Sort order" value={folderForm.sortOrder} onchange={handleFolderField}></lightning-input>
+                    <lightning-input data-field="icon" label="Icon name (optional)" value={folderForm.icon} onchange={handleFolderField}></lightning-input>
+                    <lightning-textarea data-field="description" label="Description" value={folderForm.description} onchange={handleFolderField}></lightning-textarea>
+                </div>
+                <div class="modal-foot">
+                    <lightning-button label="Cancel" onclick={closeFolderForm}></lightning-button>
+                    <lightning-button variant="brand" label="Save" onclick={handleFolderSaved} class="slds-m-left_x-small"></lightning-button>
+                </div>
             </div>
         </section>
     </template>
 
-    <!-- ── Video form modal ── -->
-    <template lwc:if={showVideoForm}>
-        <section class="modal-backdrop" onclick={closeVideoForm}>
-            <div class="modal" onclick={stopPropagation}>
-                <header class="modal-head">
-                    <span class="modal-title">{videoModalTitle}</span>
-                </header>
-                <lightning-record-edit-form
-                    object-api-name="Training_Video__c"
-                    record-id={editingVideoId}
-                    onsuccess={handleVideoSaved}
-                >
-                    <lightning-messages></lightning-messages>
-                    <div class="form-body">
-                        <lightning-input-field field-name="Name"></lightning-input-field>
-                        <lightning-input-field field-name="Folder__c"></lightning-input-field>
-                        <lightning-input-field field-name="Category__c"></lightning-input-field>
-                        <lightning-input-field field-name="Status__c"></lightning-input-field>
-                        <lightning-input-field field-name="Sort_Order__c"></lightning-input-field>
-                        <lightning-input-field field-name="Description__c"></lightning-input-field>
-                    </div>
-                    <div class="modal-foot">
-                        <lightning-button label="Cancel" onclick={closeVideoForm}></lightning-button>
-                        <lightning-button variant="brand" type="submit" label="Save" class="slds-m-left_x-small"></lightning-button>
-                    </div>
-                </lightning-record-edit-form>
-                <p class="form-hint">After saving a new video you can upload the file and assign it.</p>
-            </div>
-        </section>
-    </template>
-
-    <!-- ── Manage (upload + assign + tracking) modal ── -->
-    <template lwc:if={showManage}>
-        <section class="modal-backdrop" onclick={closeManage}>
-            <div class="modal modal-lg" onclick={stopPropagation}>
-                <header class="modal-head">
-                    <span class="modal-title">Manage video</span>
-                    <lightning-button-icon icon-name="utility:close" alternative-text="Close" variant="bare" onclick={closeManage}></lightning-button-icon>
-                </header>
-                <c-training-video-manager record-id={manageVideoId}></c-training-video-manager>
+    <template lwc:if={showTutorialEditor}>
+        <section class="modal-backdrop">
+            <div class="modal modal-editor" onclick={stopPropagation}>
+                <c-logic-learn-tutorial-editor record-id={tutorialRecordId} onsaved={handleTutorialSaved} onclose={closeTutorialEditor}></c-logic-learn-tutorial-editor>
             </div>
         </section>
     </template>

@@ -1,35 +1,35 @@
 # LogicLearn
 
-LogicLearn is a Salesforce Lightning video-training library. It supports nested folders, Salesforce Files video uploads, individual and profile-based assignments, email notifications, resume progress, completion tracking, and administration inside Lightning Experience.
+LogicLearn is a general-purpose training platform built natively for Salesforce Lightning. Administrators create a complete tutorial from one screen, and learners use a focused library with resume progress and completion tracking.
 
-## Included metadata
+## Features
 
-- Five Lightning Web Components for the library, player, administration, assignment management, and pending-training list
-- Apex controller, notification service, queueable, trigger handler, and automated test class
-- `Training_Video__c`, `Training_Folder__c`, and `Training_View__c` objects and fields
-- Lightning tabs, layouts, record page, trigger, permission set, and custom labels
-- A deployment manifest at `manifest/package.xml`
+- Salesforce Files video playback with progress, resume, configurable completion thresholds, and optional skip prevention
+- HTTPS external-video links with a clear tracking notice and irreversible manual completion
+- Separate live audiences for visibility, required completion, and notifications
+- Audiences made from individual users, Salesforce Profiles, or reusable LogicLearn groups
+- Nested LogicLearn groups whose profile and group membership is resolved live
+- Optional per-tutorial due dates and administrator-only overdue reporting
+- Explicit Salesforce in-app notifications, email notifications, or both
+- Included assignment and reminder email templates
+- Administrator tracking for opens, first/last view, watched percentage, completion, and completion method
+- CSV tracking export, manual reminders, global settings, and first-run sample drafts
+- Dedicated LogicLearn Lightning app, learner permission set, and administrator permission set
+- Server-side administration enforcement through the `LogicLearn_Admin` custom permission
 
 ## Deploy
 
-Authenticate a Salesforce org, then run:
-
 ```sh
-sf project deploy start --manifest manifest/package.xml --target-org YOUR_ORG --test-level RunSpecifiedTests --tests TrainingVideoControllerTest
+sf project deploy start --manifest manifest/package.xml --target-org YOUR_ORG --test-level RunLocalTests
+sf org assign permset --name LogicLearn_Administrator --target-org YOUR_ORG
 ```
 
-Assign the included permission set to users:
+Assign learner access to internal Salesforce users who should use the library:
 
 ```sh
 sf org assign permset --name Training_Library_Access --target-org YOUR_ORG
 ```
 
-## Post-deployment setup
+Open the LogicLearn app after deployment. The first administrator visit creates global settings and four editable sample drafts. Email template names, the default completion threshold, and skip prevention can be changed on the Admin > Settings screen.
 
-1. Create and activate an email template named `Training Video Assignment Notification`, or change the `Training_Notification_Template_Name` custom label to the template's name.
-2. The template may use `[VIDEO_NAME]`, `[USER_NAME]`, `[LIBRARY_LINK]`, and `[VIDEO_LINK]` placeholders.
-3. Adjust `Training_Max_Video_MB` if the default 150 MB upload limit is unsuitable.
-4. Give training administrators create/edit access to the training objects. Regular users can use the included permission set.
-5. Add the Training Library tab and optional components to the desired Lightning apps/pages.
-
-Video files are stored as Salesforce Files. No video binaries or organization data are included in this repository.
+Video files remain in Salesforce Files. The default upload limit is 150 MB; external links must use HTTPS.

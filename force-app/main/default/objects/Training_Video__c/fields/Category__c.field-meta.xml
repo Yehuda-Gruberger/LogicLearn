@@ -22,19 +22,24 @@
                 <label>Compliance</label>
             </value>
             <value>
+                <fullName>Products</fullName>
+                <default>false</default>
+                <label>Products</label>
+            </value>
+            <value>
+                <fullName>Processes</fullName>
+                <default>false</default>
+                <label>Processes</label>
+            </value>
+            <value>
                 <fullName>Systems</fullName>
                 <default>false</default>
                 <label>Systems</label>
             </value>
             <value>
-                <fullName>Phone</fullName>
+                <fullName>Professional Development</fullName>
                 <default>false</default>
-                <label>Phone</label>
-            </value>
-            <value>
-                <fullName>Clinical</fullName>
-                <default>false</default>
-                <label>Clinical</label>
+                <label>Professional Development</label>
             </value>
             <value>
                 <fullName>Other</fullName>

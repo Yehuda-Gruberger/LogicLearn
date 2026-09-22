@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Nested_Group__c</fullName>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <label>Nested LogicLearn Group</label>
+    <referenceTo>Training_Group__c</referenceTo>
+    <relationshipLabel>Included In Groups</relationshipLabel>
+    <relationshipName>Included_In_Groups</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

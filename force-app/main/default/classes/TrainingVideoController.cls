@@ -5,7 +5,7 @@
  * User_Video_Key__c). Mirrors the recorder shape of PageVisitLogController but tracks watch-%
  * and completion rather than a single hit.
  */
-public with sharing class TrainingVideoController {
+public without sharing class TrainingVideoController {
     // A view is considered complete once the user has watched at least this % of the video.
     @TestVisible
     private static final Decimal COMPLETION_THRESHOLD = 90;
@@ -54,6 +54,10 @@ public with sharing class TrainingVideoController {
         @AuraEnabled public String viewStatus { get; set; }
         @AuraEnabled public Decimal resumePercent { get; set; }
         @AuraEnabled public Boolean isMandatory { get; set; }
+        @AuraEnabled public Boolean isExternal { get; set; }
+        @AuraEnabled public String externalUrl { get; set; }
+        @AuraEnabled public Boolean preventSkipping { get; set; }
+        @AuraEnabled public Date dueDate { get; set; }
     }
 
     // ───────────────────────── Library ─────────────────────────
@@ -68,6 +72,14 @@ public with sharing class TrainingVideoController {
     @AuraEnabled(cacheable=true)
     public static List<FolderSection> getLibrary(String folderId, String category) {
         List<Training_Video__c> videos = queryLibraryVideos(folderId, category);
+        Set<Id> candidateIds = new Map<Id, Training_Video__c>(videos).keySet();
+        Set<Id> visibleIds = LogicLearnAudienceService.isAdmin()
+            ? candidateIds
+            : LogicLearnAudienceService.videoIdsForUser(UserInfo.getUserId(), 'Visibility', candidateIds);
+        Set<Id> requiredIds = LogicLearnAudienceService.videoIdsForUser(UserInfo.getUserId(), 'Required', candidateIds);
+        List<Training_Video__c> allowedVideos = new List<Training_Video__c>();
+        for (Training_Video__c video : videos) if (visibleIds.contains(video.Id)) allowedVideos.add(video);
+        videos = allowedVideos;
 
         // Running user's view rows for these videos, keyed by video Id.
         Map<Id, Training_View__c> viewsByVideo = new Map<Id, Training_View__c>();
@@ -110,7 +122,7 @@ public with sharing class TrainingVideoController {
 
             Training_View__c view = viewsByVideo.get(vid.Id);
             // Mandatory is per-user: only when this user was actually assigned the video.
-            info.isMandatory = (view != null && view.Assigned__c == true);
+            info.isMandatory = requiredIds.contains(vid.Id) || (view != null && view.Assigned__c == true);
             if (view != null) {
                 info.viewStatus = view.Status__c;
                 info.watchPercent = view.Watch_Percent__c;
@@ -176,8 +188,12 @@ public with sharing class TrainingVideoController {
             throw new AuraHandledException('No video specified.');
         }
 
+        if (!LogicLearnAudienceService.canUserSeeVideo(UserInfo.getUserId(), videoId)) {
+            throw new AuraHandledException('You do not have access to this training video.');
+        }
         List<Training_Video__c> videos = [
-            SELECT Id, Name, Video_Content_Version_Id__c, Status__c
+            SELECT Id, Name, Video_Content_Version_Id__c, Status__c, Content_Type__c,
+                External_URL__c, Skip_Prevention__c, Due_Date__c
             FROM Training_Video__c
             WHERE Id = :videoId
             LIMIT 1
@@ -187,7 +203,11 @@ public with sharing class TrainingVideoController {
         }
         Training_Video__c video = videos[0];
 
-        String cvId = String.isNotBlank(video.Video_Content_Version_Id__c)
+        Boolean required = LogicLearnAudienceService.videoIdsForUser(
+            UserInfo.getUserId(), 'Required', new Set<Id>{videoId}
+        ).contains(videoId);
+
+        String cvId = video.Content_Type__c == 'External Link' ? null : String.isNotBlank(video.Video_Content_Version_Id__c)
             ? video.Video_Content_Version_Id__c
             : resolveLatestVideoContentVersion(videoId);
 
@@ -208,8 +228,13 @@ public with sharing class TrainingVideoController {
         info.videoUrl = String.isNotBlank(cvId) ? '/sfc/servlet.shepherd/version/download/' + cvId : null;
         info.viewStatus = view != null ? view.Status__c : null;
         info.resumePercent = view != null ? view.Watch_Percent__c : 0;
-        // No-skip enforcement only applies to users this video was assigned to.
-        info.isMandatory = view != null && view.Assigned__c == true;
+        info.isMandatory = required;
+        info.isExternal = video.Content_Type__c == 'External Link';
+        info.externalUrl = video.External_URL__c;
+        info.dueDate = video.Due_Date__c;
+        Boolean globalSkip = LogicLearnAdminController.settingsRow().Prevent_Skipping__c;
+        info.preventSkipping = required && (video.Skip_Prevention__c == 'Enabled' ||
+            (video.Skip_Prevention__c != 'Disabled' && globalSkip));
         return info;
     }
 
@@ -301,6 +326,14 @@ public with sharing class TrainingVideoController {
         if (videoId == null) {
             return;
         }
+        if (!LogicLearnAudienceService.canUserSeeVideo(UserInfo.getUserId(), videoId)) {
+            throw new AuraHandledException('You do not have access to this training video.');
+        }
+        Training_Video__c video = [SELECT Completion_Threshold__c, Content_Type__c FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
+        if (video.Content_Type__c == 'External Link') throw new AuraHandledException('External videos use manual completion.');
+        Decimal threshold = video.Completion_Threshold__c == null
+            ? LogicLearnAdminController.settingsRow().Completion_Threshold__c
+            : video.Completion_Threshold__c;
         Decimal pct = percent == null ? 0 : percent;
         String key = buildKey(videoId);
 
@@ -331,9 +364,10 @@ public with sharing class TrainingVideoController {
         }
 
         if (view.Status__c != 'Completed') {
-            if (ended == true || view.Watch_Percent__c >= COMPLETION_THRESHOLD) {
+            if (ended == true || view.Watch_Percent__c >= threshold) {
                 view.Status__c = 'Completed';
                 view.Completed_At__c = System.now();
+                view.Completion_Method__c = 'Tracked';
             } else if (view.Watch_Percent__c > 0) {
                 view.Status__c = 'In Progress';
             } else {
@@ -346,6 +380,22 @@ public with sharing class TrainingVideoController {
         upsert view User_Video_Key__c;
     }
 
+    @AuraEnabled
+    public static void markExternalComplete(Id videoId) {
+        if (videoId == null || !LogicLearnAudienceService.canUserSeeVideo(UserInfo.getUserId(), videoId)) {
+            throw new AuraHandledException('You do not have access to this training video.');
+        }
+        Training_Video__c video = [SELECT Content_Type__c FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
+        if (video.Content_Type__c != 'External Link') throw new AuraHandledException('Only external videos can be completed manually.');
+        Training_View__c view = ensureViewOnOpen(videoId);
+        view.Status__c = 'Completed';
+        view.Watch_Percent__c = 100;
+        view.Completed_At__c = System.now();
+        view.Last_Viewed_At__c = System.now();
+        view.Completion_Method__c = 'Manual';
+        update view;
+    }
+
     // ───────────────────────── My Training ─────────────────────────
 
     /**
@@ -354,27 +404,34 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled(cacheable=true)
     public static List<VideoInfo> getMyPending() {
-        // Ordering a picklist in SOQL follows its defined order, not mandatory-first, so we
-        // query by name and partition mandatory ahead of optional in Apex.
+        List<Training_Video__c> candidates = [
+            SELECT Id, Name, Category__c FROM Training_Video__c
+            WHERE Status__c IN :VISIBLE_STATUSES ORDER BY Name
+        ];
+        Set<Id> candidateIds = new Map<Id, Training_Video__c>(candidates).keySet();
+        Set<Id> visibleIds = LogicLearnAudienceService.isAdmin() ? candidateIds :
+            LogicLearnAudienceService.videoIdsForUser(UserInfo.getUserId(), 'Visibility', candidateIds);
+        Set<Id> requiredIds = LogicLearnAudienceService.videoIdsForUser(UserInfo.getUserId(), 'Required', candidateIds);
+        Map<Id, Training_View__c> views = new Map<Id, Training_View__c>();
+        for (Training_View__c view : [
+            SELECT Training_Video__c, Status__c, Watch_Percent__c, Assigned__c
+            FROM Training_View__c WHERE User__c = :UserInfo.getUserId() AND Training_Video__c IN :visibleIds
+        ]) views.put(view.Training_Video__c, view);
         List<VideoInfo> mandatory = new List<VideoInfo>();
         List<VideoInfo> optional = new List<VideoInfo>();
-        for (Training_View__c v : [
-            SELECT Training_Video__c, Training_Video__r.Name, Training_Video__r.Category__c,
-                Training_Video__r.Status__c, Status__c, Watch_Percent__c, Assigned__c
-            FROM Training_View__c
-            WHERE User__c = :UserInfo.getUserId()
-            AND Status__c IN ('Pending', 'In Progress')
-            AND Training_Video__r.Status__c IN :VISIBLE_STATUSES
-            ORDER BY Training_Video__r.Name
-        ]) {
+        for (Training_Video__c video : candidates) {
+            if (!visibleIds.contains(video.Id)) continue;
+            Training_View__c view = views.get(video.Id);
+            Boolean isRequired = requiredIds.contains(video.Id) || (view != null && view.Assigned__c == true);
+            if (!isRequired && (view == null || view.Status__c == 'Completed')) continue;
+            if (isRequired && view != null && view.Status__c == 'Completed') continue;
             VideoInfo info = new VideoInfo();
-            info.id = v.Training_Video__c;
-            info.title = v.Training_Video__r.Name;
-            info.category = v.Training_Video__r.Category__c;
-            // Mandatory is per-user: only when the video was actually assigned to them.
-            info.isMandatory = v.Assigned__c == true;
-            info.viewStatus = v.Status__c;
-            info.watchPercent = v.Watch_Percent__c;
+            info.id = video.Id;
+            info.title = video.Name;
+            info.category = video.Category__c;
+            info.isMandatory = isRequired;
+            info.viewStatus = view == null ? 'Pending' : view.Status__c;
+            info.watchPercent = view == null ? 0 : view.Watch_Percent__c;
             if (info.isMandatory) {
                 mandatory.add(info);
             } else {
@@ -395,6 +452,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled
     public static void setVideoFile(Id videoId, Id contentVersionId) {
+        LogicLearnAudienceService.requireAdmin();
         if (videoId == null || contentVersionId == null) {
             throw new AuraHandledException('A video and an uploaded file are required.');
         }
@@ -419,12 +477,13 @@ public with sharing class TrainingVideoController {
     /** @description Whether the running user can manage the library (create Training Videos). */
     @AuraEnabled(cacheable=true)
     public static Boolean isLibraryAdmin() {
-        return Schema.sObjectType.Training_Video__c.isCreateable();
+        return LogicLearnAudienceService.isAdmin();
     }
 
     /** @description Every video (all statuses, incl. Draft) with assignment/completion counts. */
     @AuraEnabled(cacheable=true)
     public static List<VideoAdminRow> getAdminVideos() {
+        LogicLearnAudienceService.requireAdmin();
         Map<Id, Integer> assignedByVideo = new Map<Id, Integer>();
         Map<Id, Integer> completedByVideo = new Map<Id, Integer>();
         for (AggregateResult ar : [
@@ -490,6 +549,7 @@ public with sharing class TrainingVideoController {
     /** @description Profiles for the audience picker. */
     @AuraEnabled(cacheable=true)
     public static List<Option> getProfiles() {
+        LogicLearnAudienceService.requireAdmin();
         List<Option> opts = new List<Option>();
         for (Profile p : [SELECT Id, Name FROM Profile ORDER BY Name]) {
             Option o = new Option();
@@ -503,6 +563,7 @@ public with sharing class TrainingVideoController {
     /** @description Active-user search for the audience picker. */
     @AuraEnabled
     public static List<Option> searchUsers(String term) {
+        LogicLearnAudienceService.requireAdmin();
         List<Option> opts = new List<Option>();
         String pattern = '%' + (term == null ? '' : String.escapeSingleQuotes(term)) + '%';
         for (User u : [
@@ -529,6 +590,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled
     public static AssignResult assignToAudience(Id videoId, List<Id> profileIds, List<Id> userIds, Boolean notify) {
+        LogicLearnAudienceService.requireAdmin();
         if (videoId == null) {
             throw new AuraHandledException('No video specified.');
         }
@@ -611,6 +673,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled(cacheable=true)
     public static List<AssignmentRow> getAssignments(Id videoId) {
+        LogicLearnAudienceService.requireAdmin();
         List<AssignmentRow> rows = new List<AssignmentRow>();
         for (Training_View__c v : [
             SELECT Id, User__c, User__r.Name, Status__c, Watch_Percent__c, Completed_At__c,
@@ -640,6 +703,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled
     public static void removeAssignment(Id trainingViewId) {
+        LogicLearnAudienceService.requireAdmin();
         if (trainingViewId == null) {
             return;
         }
@@ -668,6 +732,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled
     public static void removeAllAssignments(Id videoId) {
+        LogicLearnAudienceService.requireAdmin();
         if (videoId == null) {
             return;
         }
@@ -698,6 +763,7 @@ public with sharing class TrainingVideoController {
     /** @description The current video file for a record (pinned or latest linked), or null. */
     @AuraEnabled(cacheable=true)
     public static Option getCurrentVideoFile(Id videoId) {
+        LogicLearnAudienceService.requireAdmin();
         if (videoId == null) {
             return null;
         }
@@ -732,6 +798,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled
     public static void replaceVideoFile(Id videoId, Id contentVersionId) {
+        LogicLearnAudienceService.requireAdmin();
         if (videoId == null || contentVersionId == null) {
             throw new AuraHandledException('A video and an uploaded file are required.');
         }
@@ -759,6 +826,7 @@ public with sharing class TrainingVideoController {
      */
     @AuraEnabled
     public static void setUploadedVideo(Id videoId, Id contentDocumentId) {
+        LogicLearnAudienceService.requireAdmin();
         if (videoId == null || contentDocumentId == null) {
             throw new AuraHandledException('A video and an uploaded file are required.');
         }

@@ -1,0 +1,23 @@
+<template>
+    <div class="panel">
+        <header><div><h2>LogicLearn groups</h2><p>Create reusable, live audiences from users, profiles, and other groups.</p></div><lightning-button variant="brand" label="New group" icon-name="utility:add" onclick={handleNew}></lightning-button></header>
+        <template lwc:if={loading}><lightning-spinner alternative-text="Loading groups" size="small"></lightning-spinner></template>
+        <template lwc:elseif={hasGroups}>
+            <div class="rows"><template for:each={groups} for:item="group"><div class="row" key={group.id}><div><strong>{group.name}</strong><small>{group.description}</small></div><span>{group.memberCount} rules</span><lightning-button-icon data-id={group.id} icon-name="utility:edit" alternative-text="Edit" onclick={handleEdit}></lightning-button-icon><lightning-button-icon data-id={group.id} icon-name="utility:delete" alternative-text="Delete" onclick={handleDelete}></lightning-button-icon></div></template></div>
+        </template>
+        <template lwc:else><p class="empty">No groups yet. Groups let membership stay current automatically as users and profiles change.</p></template>
+    </div>
+    <template lwc:if={editing}>
+        <section class="backdrop" onclick={close}><div class="modal" onclick={stop}>
+            <header><div><h2>LogicLearn group</h2><p>Membership rules are resolved live.</p></div><lightning-button-icon icon-name="utility:close" alternative-text="Close" onclick={close}></lightning-button-icon></header>
+            <lightning-input data-field="name" label="Group name" value={form.name} onchange={handleField} required></lightning-input>
+            <lightning-textarea data-field="description" label="Description" value={form.description} onchange={handleField}></lightning-textarea>
+            <div class="pickers">
+                <c-logic-learn-picker multiple data-field="users" label="Users" options={catalog.users} value={form.users} onchange={handlePicker}></c-logic-learn-picker>
+                <c-logic-learn-picker multiple data-field="profiles" label="Profiles" options={catalog.profiles} value={form.profiles} onchange={handlePicker}></c-logic-learn-picker>
+                <c-logic-learn-picker multiple data-field="groups" label="Nested LogicLearn groups" options={availableNestedGroups} value={form.groups} onchange={handlePicker}></c-logic-learn-picker>
+            </div>
+            <footer><lightning-button label="Cancel" onclick={close}></lightning-button><lightning-button class="save" variant="brand" label="Save group" onclick={handleSave} disabled={saving}></lightning-button></footer>
+        </div></section>
+    </template>
+</template>

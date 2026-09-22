@@ -31,7 +31,7 @@
         <div class="main">
             <div class="topbar">
                 <div class="titles">
-                    <div class="eyebrow">Refuah Helpline</div>
+                    <div class="eyebrow">LogicLearn</div>
                     <h1 class="h1">Training Library</h1>
                 </div>
                 <div class="topbar-spacer"></div>
@@ -41,24 +41,6 @@
                         <button class={adminBtnClass} onclick={showAdminMode}>Admin</button>
                     </div>
                 </template>
-                <template lwc:if={isAdminMode}></template>
-                <template lwc:else>
-                    <div class="search">
-                        <lightning-input
-                            type="search"
-                            variant="label-hidden"
-                            placeholder="Search training videos"
-                            value={searchTerm}
-                            onchange={handleSearch}
-                        ></lightning-input>
-                    </div>
-                    <lightning-button-icon
-                        icon-name="utility:refresh"
-                        alternative-text="Refresh"
-                        title="Refresh"
-                        onclick={handleRefresh}
-                    ></lightning-button-icon>
-                </template>
             </div>
 
             <div class="scroll">
@@ -66,15 +48,34 @@
                     <c-training-admin-console></c-training-admin-console>
                 </template>
 
-                <template lwc:elseif={error}>
-                    <div class="empty error">
-                        <lightning-icon icon-name="utility:error" variant="error"></lightning-icon>
-                        <p>{error}</p>
+                <template lwc:else>
+                    <div class="library-toolbar" role="search">
+                        <div class="search">
+                            <lightning-input
+                                type="search"
+                                variant="label-hidden"
+                                placeholder="Search training videos"
+                                value={searchTerm}
+                                onchange={handleSearch}
+                            ></lightning-input>
+                        </div>
+                        <lightning-button-icon
+                            icon-name="utility:refresh"
+                            alternative-text="Refresh"
+                            title="Refresh"
+                            onclick={handleRefresh}
+                        ></lightning-button-icon>
                     </div>
-                </template>
 
-                <template lwc:elseif={hasResults}>
-                    <template for:each={displaySections} for:item="section">
+                    <template lwc:if={error}>
+                        <div class="empty error">
+                            <lightning-icon icon-name="utility:error" variant="error"></lightning-icon>
+                            <p>{error}</p>
+                        </div>
+                    </template>
+
+                    <template lwc:elseif={hasResults}>
+                        <template for:each={displaySections} for:item="section">
                         <section key={section.key} class="section">
                             <div class="sec-head">
                                 <span class="sec-title">{section.folderName}</span>
@@ -127,15 +128,16 @@
                                     </article>
                                 </template>
                             </div>
-                        </section>
+                            </section>
+                        </template>
                     </template>
-                </template>
 
-                <template lwc:else>
-                    <div class="empty">
-                        <lightning-icon icon-name="utility:video" size="large"></lightning-icon>
-                        <p>No training videos to show yet.</p>
-                    </div>
+                    <template lwc:else>
+                        <div class="empty">
+                            <lightning-icon icon-name="utility:video" size="large"></lightning-icon>
+                            <p>No training videos to show yet.</p>
+                        </div>
+                    </template>
                 </template>
             </div>
         </div>

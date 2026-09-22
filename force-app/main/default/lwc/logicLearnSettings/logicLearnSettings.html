@@ -1,0 +1,14 @@
+<template>
+    <div class="panel">
+        <header><div><h2>Settings</h2><p>Organization-wide defaults. A tutorial can override completion and skipping.</p></div><lightning-button variant="brand" label="Save settings" onclick={handleSave} disabled={saving}></lightning-button></header>
+        <template lwc:if={loading}><lightning-spinner alternative-text="Loading settings" size="small"></lightning-spinner></template>
+        <template lwc:elseif={settings}>
+            <div class="grid">
+                <lightning-input data-field="completionThreshold" type="number" min="1" max="100" required label="Default completion threshold (%)" value={settings.completionThreshold} onchange={handleChange}></lightning-input>
+                <lightning-input data-field="preventSkipping" type="checkbox" label="Prevent assigned learners from skipping unwatched portions by default" checked={settings.preventSkipping} onchange={handleChange}></lightning-input>
+                <lightning-input data-field="assignmentTemplateName" label="Assignment/new-video email template name" value={settings.assignmentTemplateName} onchange={handleChange}></lightning-input>
+                <lightning-input data-field="reminderTemplateName" label="Reminder email template name" value={settings.reminderTemplateName} onchange={handleChange}></lightning-input>
+            </div>
+        </template>
+    </div>
+</template>
