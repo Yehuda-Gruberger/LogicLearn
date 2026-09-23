@@ -39,6 +39,9 @@ export default class LogicLearnSettings extends LightningElement {
     get reminderTemplateOptions() { return this.optionsWithCurrent(this.settings?.reminderTemplateName); }
     get firstPublishTemplateOptions() { return this.optionsWithCurrent(this.settings?.firstPublishEmailTemplate); }
     get updateTemplateOptions() { return this.optionsWithCurrent(this.settings?.updateEmailTemplate); }
+    get documentPageRequirementOptions() { return [{label: "Every page", value: "Every page"}, {label: "Final page only", value: "Final page only"}]; }
+    get documentReadingOrderOptions() { return [{label: "In order", value: "In order"}, {label: "Any order", value: "Any order"}]; }
+    get documentCompletionModeOptions() { return [{label: "Finish on last page", value: "Finish on last page"}, {label: "Automatically", value: "Automatic"}]; }
     get changeLabel() { return this.originalSettings === JSON.stringify(this.settings) ? "No changes" : "Unsaved changes"; }
     get templateModalKicker() { return this.editingTemplateId ? "Edit template" : "Create template"; }
     get templateModalTitle() { return this.editingTemplateId ? this.templateForm.name : "New LogicLearn email template"; }
@@ -73,6 +76,7 @@ export default class LogicLearnSettings extends LightningElement {
         this.templateOriginalName = null;
         this.templateForm = {name: event.detail?.query || "", subject: this.defaultTemplateSubject(this.templateTargetField), htmlBody: this.defaultTemplateBody(this.templateTargetField)};
         this.showTemplateCreator = true;
+        this.notifyTemplateModal(true);
     }
 
     async openEditTemplate(event) {
@@ -87,6 +91,7 @@ export default class LogicLearnSettings extends LightningElement {
             this.templateOriginalName = template.name;
             this.templateForm = {name: template.name, subject: template.subject, htmlBody: template.htmlBody};
             this.showTemplateCreator = true;
+            this.notifyTemplateModal(true);
         } catch (error) { this.toast("Could not open template", this.message(error), "error"); }
         finally { this.creatingTemplate = false; }
     }
@@ -105,7 +110,12 @@ export default class LogicLearnSettings extends LightningElement {
         return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>A new tutorial, <strong>[VIDEO_NAME]</strong>, is ready for you.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p>';
     }
 
-    closeTemplateCreator() { if (!this.creatingTemplate) this.showTemplateCreator = false; }
+    closeTemplateCreator() {
+        if (!this.creatingTemplate) {
+            this.showTemplateCreator = false;
+            this.notifyTemplateModal(false);
+        }
+    }
     handleTemplateField(event) { this.templateForm = {...this.templateForm, [event.currentTarget.dataset.field]: event.currentTarget.value}; }
     handleTemplateBody(event) { this.templateForm = {...this.templateForm, htmlBody: event.detail.value}; }
     handleInsertToken(event) { this.templateForm = {...this.templateForm, htmlBody: `${this.templateForm.htmlBody || ""}<p>${event.currentTarget.dataset.token}</p>`}; }
@@ -124,6 +134,7 @@ export default class LogicLearnSettings extends LightningElement {
             updatedSettings[this.templateTargetField] = created.value;
             this.settings = updatedSettings;
             this.showTemplateCreator = false;
+            this.notifyTemplateModal(false);
             this.toast(this.editingTemplateId ? "Template updated" : "Template created", `${created.label} is selected. Save settings to keep it as the default.`, "success");
         } catch (error) { this.toast("Could not save template", this.message(error), "error"); }
         finally { this.creatingTemplate = false; }
@@ -144,6 +155,9 @@ export default class LogicLearnSettings extends LightningElement {
     }
 
     stopPropagation(event) { event.stopPropagation(); }
+    notifyTemplateModal(open) {
+        this.dispatchEvent(new CustomEvent("templatemodalchange", {detail: {open}, bubbles: true, composed: true}));
+    }
     toast(title, message, variant) { this.dispatchEvent(new ShowToastEvent({title, message, variant})); }
     message(error) { return error?.body?.message || error?.message || "Something went wrong."; }
 }

@@ -35,6 +35,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public Boolean isMandatory { get; set; }
         @AuraEnabled public Integer durationSeconds { get; set; }
         @AuraEnabled public Date dueDate { get; set; }
+        @AuraEnabled public Datetime createdDate { get; set; }
         @AuraEnabled public String previewUrl { get; set; }
         @AuraEnabled public String viewStatus { get; set; } // Pending / In Progress / Completed / null
         @AuraEnabled public Decimal watchPercent { get; set; }
@@ -166,6 +167,7 @@ public without sharing class TrainingVideoController {
             info.category = vid.Category__c;
             info.durationSeconds = vid.Duration_Seconds__c != null ? Integer.valueOf(vid.Duration_Seconds__c) : null;
             info.dueDate = vid.Due_Date__c;
+            info.createdDate = vid.CreatedDate;
             info.previewUrl = vid.Content_Type__c != 'External Link' && String.isNotBlank(vid.Video_Content_Version_Id__c)
                 ? '/sfc/servlet.shepherd/version/download/' + vid.Video_Content_Version_Id__c
                 : null;
@@ -210,7 +212,7 @@ public without sharing class TrainingVideoController {
 
     private static List<Training_Video__c> queryLibraryVideos(String folderId, String category) {
         String soql =
-            'SELECT Id, Name, Description__c, Category__c, Status__c, Duration_Seconds__c, Due_Date__c, ' +
+            'SELECT Id, Name, Description__c, Category__c, Status__c, Duration_Seconds__c, Due_Date__c, CreatedDate, ' +
             'Content_Type__c, Video_Content_Version_Id__c, ' +
             'Folder__c, Folder__r.Name, Folder__r.Description__c, Folder__r.Icon__c, ' +
             'Folder__r.Sort_Order__c, Sort_Order__c ' +
@@ -247,18 +249,22 @@ public without sharing class TrainingVideoController {
         }
         result.viewStatus = view.Status__c;
         result.watchPercent = view.Watch_Percent__c == null ? 0 : view.Watch_Percent__c;
-        result.pageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? 'Every page' : video.Document_Page_Requirement__c;
-        result.readingOrder = String.isBlank(video.Document_Reading_Order__c) ? 'In order' : video.Document_Reading_Order__c;
-        result.completionMode = String.isBlank(video.Document_Completion_Mode__c) ? 'Finish on last page' : video.Document_Completion_Mode__c;
+        LogicLearn_Settings__c globalSettings = LogicLearnAdminController.settingsRow();
+        result.pageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? (String.isBlank(globalSettings.Document_Page_Requirement__c) ? 'Every page' : globalSettings.Document_Page_Requirement__c) : video.Document_Page_Requirement__c;
+        result.readingOrder = String.isBlank(video.Document_Reading_Order__c) ? (String.isBlank(globalSettings.Document_Reading_Order__c) ? 'In order' : globalSettings.Document_Reading_Order__c) : video.Document_Reading_Order__c;
+        result.completionMode = String.isBlank(video.Document_Completion_Mode__c) ? (String.isBlank(globalSettings.Document_Completion_Mode__c) ? 'Finish on last page' : globalSettings.Document_Completion_Mode__c) : video.Document_Completion_Mode__c;
         result.pagesRead = parsePagesRead(view.Document_Pages_Read__c);
         Integer pageCount = result.pages.size();
-        result.currentPage = pageCount == 0 ? 0 : Math.min(pageCount, Math.max(1,
+        Integer inferredPage = pageCount == 0 ? 0 : Math.min(pageCount, Math.max(1,
             Integer.valueOf(Math.floor((result.watchPercent / 100) * pageCount)) + 1));
+        result.currentPage = pageCount == 0 ? 0 : (view.Document_Current_Page__c == null
+            ? inferredPage
+            : Math.min(pageCount, Math.max(1, Integer.valueOf(view.Document_Current_Page__c))));
         return result;
     }
 
     @AuraEnabled
-    public static DocumentProgress recordDocumentProgress(Id videoId, Integer pageNumber, Integer totalPages, Boolean finishRequested) {
+    public static DocumentProgress recordDocumentProgress(Id videoId, Integer pageNumber, Integer totalPages, Boolean finishRequested, Integer currentPageNumber) {
         if (videoId == null || !LogicLearnAudienceService.canUserSeeVideo(UserInfo.getUserId(), videoId))
             throw new AuraHandledException('You do not have access to this tutorial.');
         Training_Video__c video = [SELECT Content_Type__c, Document_Page_Requirement__c,
@@ -268,23 +274,26 @@ public without sharing class TrainingVideoController {
         Integer reached = pageNumber == null ? 1 : Math.max(1, Math.min(pageNumber, total));
         String key = buildKey(videoId);
         List<Training_View__c> existing = [
-            SELECT Id, Status__c, Watch_Percent__c, Completed_At__c, Completion_Method__c, Document_Pages_Read__c
+            SELECT Id, Status__c, Watch_Percent__c, Completed_At__c, Completion_Method__c,
+                Document_Pages_Read__c, Document_Current_Page__c
             FROM Training_View__c WHERE User_Video_Key__c = :key LIMIT 1
         ];
         Training_View__c view = existing.isEmpty() ? ensureViewOnOpen(videoId) : existing[0];
         Set<Integer> pagesRead = new Set<Integer>(parsePagesRead(view.Document_Pages_Read__c));
-        String readingOrder = String.isBlank(video.Document_Reading_Order__c) ? 'In order' : video.Document_Reading_Order__c;
+        LogicLearn_Settings__c globalSettings = LogicLearnAdminController.settingsRow();
+        String readingOrder = String.isBlank(video.Document_Reading_Order__c) ? (String.isBlank(globalSettings.Document_Reading_Order__c) ? 'In order' : globalSettings.Document_Reading_Order__c) : video.Document_Reading_Order__c;
         Integer sequentialRead = 0;
         while (pagesRead.contains(sequentialRead + 1)) sequentialRead++;
         if (readingOrder == 'Any order' || reached <= sequentialRead + 1) pagesRead.add(reached);
         List<Integer> sortedPages = new List<Integer>(pagesRead); sortedPages.sort();
         List<String> pageTokens = new List<String>(); for (Integer numberRead : sortedPages) pageTokens.add(String.valueOf(numberRead));
         view.Document_Pages_Read__c = String.join(pageTokens, ',');
+        view.Document_Current_Page__c = Math.max(1, Math.min(currentPageNumber == null ? reached : currentPageNumber, total));
         Decimal percent = (Decimal.valueOf(String.valueOf(pagesRead.size())) / total * 100).setScale(0);
         if (view.Watch_Percent__c == null || percent > view.Watch_Percent__c) view.Watch_Percent__c = percent;
         view.Last_Viewed_At__c = System.now();
-        String pageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? 'Every page' : video.Document_Page_Requirement__c;
-        String completionMode = String.isBlank(video.Document_Completion_Mode__c) ? 'Finish on last page' : video.Document_Completion_Mode__c;
+        String pageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? (String.isBlank(globalSettings.Document_Page_Requirement__c) ? 'Every page' : globalSettings.Document_Page_Requirement__c) : video.Document_Page_Requirement__c;
+        String completionMode = String.isBlank(video.Document_Completion_Mode__c) ? (String.isBlank(globalSettings.Document_Completion_Mode__c) ? 'Finish on last page' : globalSettings.Document_Completion_Mode__c) : video.Document_Completion_Mode__c;
         Boolean requirementMet = pageRequirement == 'Final page only' ? pagesRead.contains(total) : pagesRead.size() >= total;
         Boolean shouldComplete = requirementMet && (completionMode == 'Automatic' || (finishRequested == true && reached == total));
         if (shouldComplete) {
@@ -443,7 +452,7 @@ public without sharing class TrainingVideoController {
         String key = buildKey(videoId);
         List<Training_View__c> existing = [
             SELECT Id, User_Video_Key__c, Status__c, Watch_Percent__c, View_Count__c,
-                First_Viewed_At__c, Completed_At__c, Assigned__c, Document_Pages_Read__c
+                First_Viewed_At__c, Completed_At__c, Assigned__c, Document_Pages_Read__c, Document_Current_Page__c
             FROM Training_View__c
             WHERE User_Video_Key__c = :key
             LIMIT 1

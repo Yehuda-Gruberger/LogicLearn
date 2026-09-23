@@ -62,10 +62,10 @@ export default class LogicLearnTracking extends LightningElement {
                 displayStatus: row.overdue ? "Overdue" : row.status,
                 statusClass: `person-status ${(row.overdue ? "overdue" : row.status || "not-started").toLowerCase().replaceAll(" ", "-")}`,
                 progressStyle: `width:${Math.min(100, Math.max(0, Number(row.watchPercent || 0)))}%`,
-                activityLabel: row.viewCount ? `${row.watchPercent || 0}% watched · ${row.viewCount} open${row.viewCount === 1 ? "" : "s"}` : "Not opened yet"
+                activityLabel: `${row.required ? "Required" : "Viewer"} · ${row.viewCount ? `${row.watchPercent || 0}% watched · ${row.viewCount} open${row.viewCount === 1 ? "" : "s"}` : "Not opened yet"}`
             }));
     }
-    get peopleCountLabel() { return `${this.rows.length} ${this.rows.length === 1 ? "learner" : "learners"}`; }
+    get peopleCountLabel() { return `${this.rows.length} ${this.rows.length === 1 ? "person" : "people"}`; }
 
     async handleVideo(event) {
         this.videoId = event.detail.value;

@@ -28,9 +28,9 @@ const EMPTY_FORM = {
     externalUrl: "",
     completionThreshold: null,
     skipPrevention: "Use Global Default",
-    documentPageRequirement: "Every page",
-    documentReadingOrder: "In order",
-    documentCompletionMode: "Finish on last page",
+    documentPageRequirement: "Use Global Default",
+    documentReadingOrder: "Use Global Default",
+    documentCompletionMode: "Use Global Default",
     dueDate: null,
     status: "Draft",
     visibilityUsers: [],
@@ -54,7 +54,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     @api initialContentType = "Salesforce File";
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: [], categories: []};
-    settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated."};
+    settings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page", assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated."};
     emailTemplates = [];
     completionMode = "global";
     loading = true;
@@ -75,6 +75,15 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     customizingLifecycleNotice = false;
     pages = [];
     activePageIndex = 0;
+    showRecorder = false;
+    recording = false;
+    recordingReady = false;
+    recordingSeconds = 0;
+    recordingPreviewUrl;
+    recordedBlob;
+    mediaRecorder;
+    recordingStream;
+    recordingTimer;
     richTextFormats = ["font", "size", "bold", "italic", "underline", "strike", "list", "indent", "align", "link", "image", "header", "color", "background", "clean"];
 
     async connectedCallback() {
@@ -132,6 +141,11 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         return this.fileName || "No video selected yet";
     }
     get uploadLabel() { return this.hasFile ? "Replace" : "Upload file"; }
+    get recordingTime() {
+        const minutes = Math.floor(this.recordingSeconds / 60);
+        const seconds = String(this.recordingSeconds % 60).padStart(2, "0");
+        return `${minutes}:${seconds}`;
+    }
     get uploadTrayClass() { return this.hasFile ? "upload-tray has-file" : "upload-tray empty-file"; }
 
     get contentStageClass() { return this.activeStage === "content" ? "studio-stage active" : "studio-stage"; }
@@ -279,6 +293,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get documentPageRequirementOptions() {
         return [
+            {label: `Use global default (${this.settings.documentPageRequirement})`, value: "Use Global Default"},
             {label: "Every page", value: "Every page"},
             {label: "Final page only", value: "Final page only"}
         ];
@@ -286,6 +301,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get documentReadingOrderOptions() {
         return [
+            {label: `Use global default (${this.settings.documentReadingOrder})`, value: "Use Global Default"},
             {label: "In order", value: "In order"},
             {label: "Any order", value: "Any order"}
         ];
@@ -293,6 +309,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get documentCompletionModeOptions() {
         return [
+            {label: `Use global default (${this.settings.documentCompletionMode === "Automatic" ? "Automatically" : this.settings.documentCompletionMode})`, value: "Use Global Default"},
             {label: "Finish on last page", value: "Finish on last page"},
             {label: "Automatically", value: "Automatic"}
         ];
@@ -507,6 +524,80 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         } catch (error) {
             this.toast("Upload error", this.message(error), "error");
         }
+    }
+
+    async handleRecordScreen() {
+        if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === "undefined") {
+            this.toast("Screen recording unavailable", "This browser does not support screen recording.", "error");
+            return;
+        }
+        this.discardRecording();
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
+            const mimeType = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
+                .find((type) => MediaRecorder.isTypeSupported(type));
+            const chunks = [];
+            this.recordingStream = stream;
+            this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
+            this.mediaRecorder.ondataavailable = (event) => { if (event.data?.size) chunks.push(event.data); };
+            this.mediaRecorder.onstop = () => this.finishRecording(chunks, mimeType || "video/webm");
+            stream.getVideoTracks()[0].onended = () => this.stopRecording();
+            this.showRecorder = true;
+            this.recording = true;
+            this.recordingSeconds = 0;
+            this.mediaRecorder.start(1000);
+            this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
+            requestAnimationFrame(() => {
+                const preview = this.template.querySelector(".recording-live");
+                if (preview) { preview.srcObject = stream; preview.play().catch(() => {}); }
+            });
+        } catch (error) {
+            if (error?.name !== "NotAllowedError") this.toast("Could not start recording", this.message(error), "error");
+            this.closeRecorder();
+        }
+    }
+
+    stopRecording() {
+        if (this.mediaRecorder?.state === "recording") this.mediaRecorder.stop();
+        this.recordingStream?.getTracks().forEach((track) => track.stop());
+        window.clearInterval(this.recordingTimer);
+        this.recording = false;
+    }
+
+    finishRecording(chunks, mimeType) {
+        window.clearInterval(this.recordingTimer);
+        this.recordedBlob = new Blob(chunks, {type: mimeType});
+        if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
+        this.recordingPreviewUrl = URL.createObjectURL(this.recordedBlob);
+        this.recordingReady = true;
+        this.recording = false;
+    }
+
+    downloadRecording() {
+        if (!this.recordingPreviewUrl) return;
+        const link = document.createElement("a");
+        link.href = this.recordingPreviewUrl;
+        link.download = `LogicLearn-recording-${new Date().toISOString().replaceAll(":", "-")}.webm`;
+        link.click();
+    }
+
+    recordAgain() {
+        this.closeRecorder();
+        this.handleRecordScreen();
+    }
+
+    discardRecording() {
+        if (this.recording) this.stopRecording();
+        if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
+        this.recordingPreviewUrl = undefined;
+        this.recordedBlob = undefined;
+        this.recordingReady = false;
+        if (this.showRecorder) this.showRecorder = false;
+    }
+
+    closeRecorder() {
+        if (this.recording) this.stopRecording();
+        this.showRecorder = false;
     }
 
     async handleSave() {

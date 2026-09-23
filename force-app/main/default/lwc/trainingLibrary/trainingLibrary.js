@@ -482,6 +482,12 @@ export default class TrainingLibrary extends LightningElement {
       : meta.pillLabel;
     // Highlight mandatory videos that still need attention (not yet completed).
     const emphasize = video.isMandatory && video.viewStatus !== "Completed";
+    const dueLabel = video.dueDate
+      ? `Due ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${video.dueDate}T00:00:00`))}`
+      : "";
+    const createdLabel = video.createdDate
+      ? `Added ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(video.createdDate))}`
+      : "";
     return {
       ...video,
       pillClass: meta.pillClass,
@@ -490,9 +496,8 @@ export default class TrainingLibrary extends LightningElement {
       progressBarStyle: `width:${video.watchPercent || 0}%`,
       thumbStyle: `background:${isDocument ? this.documentGradient(video.category) : (CATEGORY_GRADIENTS[video.category] || CATEGORY_GRADIENTS.Other)}`,
       durationLabel: this.formatDuration(video.durationSeconds),
-      dueLabel: video.dueDate
-        ? `Due ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${video.dueDate}T00:00:00`))}`
-        : "",
+      dueLabel,
+      dateLabel: dueLabel || createdLabel,
       cardClass: emphasize ? "card mandatory" : "card",
       cardIcon: isDocument ? "utility:knowledge_base" : "utility:play",
       isDocument,

@@ -762,6 +762,7 @@
     animation: none;
   }
 }
+.app { border-radius: 0.85rem; overflow: hidden; clip-path: inset(0 round 0.85rem); }
 
 @media (max-width: 640px) {
   .app {
@@ -1081,7 +1082,8 @@
   box-shadow: 0 2px 5px rgba(31, 40, 48, 0.22);
 }
 .document-paper.mini i { height: 1px; }
-.doc-badge {
+.doc-badge,
+.video-badge {
   position: absolute;
   z-index: 2;
   top: 0.38rem;
@@ -1094,6 +1096,7 @@
   font-weight: 800;
   letter-spacing: 0.04em;
 }
+.video-badge { background: rgba(5, 76, 94, 0.88); }
 .required-card > div:last-child {
   min-width: 0;
   display: flex;
@@ -1151,6 +1154,7 @@
 .library-grid .card-title {
   font-size: 0.68rem;
 }
+.library-grid .card-date { color: #8794a2; font-size: 0.52rem; }
 .library-grid .card-meta {
   margin: 0;
   color: #718096;

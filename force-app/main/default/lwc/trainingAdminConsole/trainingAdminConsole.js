@@ -38,7 +38,7 @@ export default class TrainingAdminConsole extends LightningElement {
 
     folders = [];
     catalog = {users: [], profiles: [], groups: []};
-    globalSettings = {completionThreshold: 90, preventSkipping: true};
+    globalSettings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page"};
     @track videos = [];
     _wiredFolders;
     _wiredVideos;
@@ -77,6 +77,7 @@ export default class TrainingAdminConsole extends LightningElement {
     engagementMetricTotal = 0;
     engagementLoading = false;
     showSettingsModal = false;
+    templateEditorOpen = false;
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
     folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
@@ -256,7 +257,11 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     get selectedRow() {
-        return this.tutorialRows.find((video) => video.id === this.selectedVideoId);
+        return this.tutorialRows.find((video) => video.id === this.selectedVideoId) || {
+            title: this.selectedTutorial?.title || "Tutorial",
+            statusClass: `status-pill ${(this.selectedTutorial?.status || "Draft").toLowerCase()}`,
+            createdLabel: ""
+        };
     }
 
     get folderOptions() {
@@ -389,6 +394,9 @@ export default class TrainingAdminConsole extends LightningElement {
                 notificationSummary: this.notificationSummary(detail),
                 completionLabel: detail.completionThreshold == null ? `Watch ${this.globalSettings.completionThreshold}% of video` : `Watch ${detail.completionThreshold}% of video`,
                 skipLabel: !detail.skipPrevention || detail.skipPrevention === "Use Global Default" ? (this.globalSettings.preventSkipping ? "Enabled" : "Disabled") : detail.skipPrevention,
+                documentPageRequirementLabel: !detail.documentPageRequirement || detail.documentPageRequirement === "Use Global Default" ? this.globalSettings.documentPageRequirement : detail.documentPageRequirement,
+                documentReadingOrderLabel: !detail.documentReadingOrder || detail.documentReadingOrder === "Use Global Default" ? this.globalSettings.documentReadingOrder : detail.documentReadingOrder,
+                documentCompletionModeLabel: !detail.documentCompletionMode || detail.documentCompletionMode === "Use Global Default" ? this.globalSettings.documentCompletionMode : detail.documentCompletionMode,
                 dueDateLabel: this.formatDate(detail.dueDate),
                 requiredPeopleLabel: `${row.assignedCount || 0} ${(row.assignedCount || 0) === 1 ? "person" : "people"}`
             };
@@ -612,8 +620,10 @@ export default class TrainingAdminConsole extends LightningElement {
         this.dispatchEvent(new CustomEvent("library"));
     }
 
+    get settingsModalClass() { return this.templateEditorOpen ? "settings-modal template-open" : "settings-modal"; }
     openSettings() { this.showSettingsModal = true; }
-    closeSettings() { this.showSettingsModal = false; }
+    closeSettings() { this.showSettingsModal = false; this.templateEditorOpen = false; }
+    handleTemplateModalChange(event) { this.templateEditorOpen = event.detail?.open === true; }
     openTutorials() { this.activeSection = "tutorials"; }
 
     handleDeleteTutorial(event) {

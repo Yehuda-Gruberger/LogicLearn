@@ -122,8 +122,8 @@ private class LogicLearnPlatformTest {
         LogicLearnAudienceService.adminOverride = false;
         TrainingVideoController.DocumentInfo document = TrainingVideoController.getDocument(videoId);
         System.assertEquals(2, document.pages.size()); System.assertEquals(1, document.currentPage);
-        TrainingVideoController.recordDocumentProgress(videoId, 1, 2, false);
-        TrainingVideoController.recordDocumentProgress(videoId, 2, 2, true);
+        TrainingVideoController.recordDocumentProgress(videoId, 1, 2, false, 2);
+        TrainingVideoController.recordDocumentProgress(videoId, 2, 2, true, 2);
         Training_View__c view = [SELECT Status__c, Watch_Percent__c, View_Count__c FROM Training_View__c WHERE Training_Video__c = :videoId AND User__c = :UserInfo.getUserId()];
         System.assertEquals('Completed', view.Status__c); System.assertEquals(100, view.Watch_Percent__c); System.assertEquals(1, view.View_Count__c);
 

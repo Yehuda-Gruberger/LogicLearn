@@ -8,6 +8,11 @@
                 <div class="setting-row"><div><strong>Prevent skipping</strong><p>Assigned learners cannot skip ahead past portions they have not watched.</p></div><lightning-input variant="label-hidden" data-field="preventSkipping" type="toggle" label="Prevent skipping" checked={settings.preventSkipping} onchange={handleChange}></lightning-input></div>
             </section>
             <section>
+                <h3>Reading defaults</h3>
+                <p class="section-intro">Default completion rules for document tutorials. Editors can override each setting on an individual document.</p>
+                <div class="reading-default-grid"><lightning-combobox data-field="documentPageRequirement" label="Pages required" value={settings.documentPageRequirement} options={documentPageRequirementOptions} onchange={handleChange}></lightning-combobox><lightning-combobox data-field="documentReadingOrder" label="Reading order" value={settings.documentReadingOrder} options={documentReadingOrderOptions} onchange={handleChange}></lightning-combobox><lightning-combobox data-field="documentCompletionMode" label="Completion" value={settings.documentCompletionMode} options={documentCompletionModeOptions} onchange={handleChange}></lightning-combobox></div>
+            </section>
+            <section>
                 <h3>Publication notifications</h3>
                 <p class="section-intro">Defaults are selected automatically when a tutorial is first published or an existing tutorial is updated. Editors can override them for a single notification.</p>
                 <div class="lifecycle-grid">

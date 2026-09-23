@@ -14,7 +14,7 @@
                     </template>
                 </div>
             </template>
-            <template lwc:else><div class="people-empty"><lightning-icon icon-name="utility:people" size="medium"></lightning-icon><p>No required learners yet.</p></div></template>
+            <template lwc:else><div class="people-empty"><lightning-icon icon-name="utility:people" size="medium"></lightning-icon><p>No learner activity yet.</p></div></template>
             <footer class="people-actions"><button class="primary" onclick={handleAssignPeople}>Assign people</button></footer>
         </div>
     </template>
@@ -29,7 +29,7 @@
             </div>
             <template lwc:if={loading}><div class="loading"><lightning-spinner alternative-text="Loading tracking" size="small"></lightning-spinner></div></template>
             <template lwc:elseif={hasRows}><lightning-datatable key-field="userId" data={rows} columns={columns} hide-checkbox-column></lightning-datatable></template>
-            <template lwc:else><p class="empty">No required learners have activity for this tutorial yet.</p></template>
+            <template lwc:else><p class="empty">No learners have opened this tutorial yet.</p></template>
         </div>
     </template>
 </template>

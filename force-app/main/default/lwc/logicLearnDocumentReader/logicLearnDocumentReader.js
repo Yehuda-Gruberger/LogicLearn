@@ -60,16 +60,19 @@ export default class LogicLearnDocumentReader extends LightningElement {
     get nextLabel() { return this.isLast ? (this.completed ? "Completed" : "Finish tutorial") : "Next page"; }
     get nextDisabled() { return this.saving || !this.hasPages || (this.isLast && this.completed) || this.previewOnly && this.isLast; }
 
-    async handlePrevious() {
+    async handlePrevious(event) {
+        event?.stopPropagation();
         if (this.isFirst || this.saving) return;
-        if (!this.previewOnly) await this.savePage(this.currentIndex + 1, false);
+        if (!this.previewOnly) await this.savePage(this.currentIndex + 1, false, this.currentIndex);
         if (!this.error) this.currentIndex -= 1;
     }
 
-    async handleNext() {
+    async handleNext(event) {
+        event?.stopPropagation();
         if (!this.hasPages || this.saving) return;
         const wasLast = this.isLast;
-        const result = this.previewOnly ? null : await this.savePage(this.currentIndex + 1, wasLast);
+        const destinationPage = wasLast ? this.currentIndex + 1 : this.currentIndex + 2;
+        const result = this.previewOnly ? null : await this.savePage(this.currentIndex + 1, wasLast, destinationPage);
         if (this.error) return;
         if (!wasLast) this.currentIndex += 1;
         if (result?.completed) this.notifyCompleted();
@@ -78,17 +81,17 @@ export default class LogicLearnDocumentReader extends LightningElement {
     async handlePageJump(event) {
         const destination = Number(event.detail.value);
         if (destination === this.currentIndex || this.saving) return;
-        const result = await this.savePage(this.currentIndex + 1, false);
+        const result = await this.savePage(this.currentIndex + 1, false, destination + 1);
         if (this.error) return;
         this.currentIndex = destination;
         if (result?.completed) this.notifyCompleted();
     }
 
-    async savePage(pageNumber, finishRequested) {
+    async savePage(pageNumber, finishRequested, currentPageNumber) {
         this.saving = true;
         this.error = null;
         try {
-            const result = await recordDocumentProgress({videoId: this.videoId, pageNumber, totalPages: this.pages.length, finishRequested});
+            const result = await recordDocumentProgress({videoId: this.videoId, pageNumber, totalPages: this.pages.length, finishRequested, currentPageNumber});
             this.pagesRead = result?.pagesRead || this.pagesRead;
             this.completed = result?.completed === true;
             return result;

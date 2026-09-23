@@ -8,6 +8,7 @@ public without sharing class LogicLearnAdminController {
         @AuraEnabled public String assignmentTemplateName; @AuraEnabled public String reminderTemplateName;
         @AuraEnabled public String firstPublishEmailTemplate; @AuraEnabled public String updateEmailTemplate;
         @AuraEnabled public String firstPublishInAppMessage; @AuraEnabled public String updateInAppMessage;
+        @AuraEnabled public String documentPageRequirement; @AuraEnabled public String documentReadingOrder; @AuraEnabled public String documentCompletionMode;
     }
     public class TutorialInput {
         @AuraEnabled public Id videoId { get; set; } @AuraEnabled public String title { get; set; } @AuraEnabled public String description { get; set; }
@@ -30,7 +31,7 @@ public without sharing class LogicLearnAdminController {
     }
     public class GroupInput { @AuraEnabled public Id groupId { get; set; } @AuraEnabled public String name { get; set; } @AuraEnabled public String description { get; set; } @AuraEnabled public List<String> users { get; set; } @AuraEnabled public List<String> profiles { get; set; } @AuraEnabled public List<String> groups { get; set; } }
     public class GroupRow { @AuraEnabled public Id id; @AuraEnabled public String name; @AuraEnabled public String description; @AuraEnabled public Integer memberCount; }
-    public class TrackingRow { @AuraEnabled public Id userId; @AuraEnabled public String userName; @AuraEnabled public String status; @AuraEnabled public Decimal watchPercent; @AuraEnabled public Decimal viewCount; @AuraEnabled public Datetime firstViewedAt; @AuraEnabled public Datetime lastViewedAt; @AuraEnabled public Datetime completedAt; @AuraEnabled public String completionMethod; @AuraEnabled public Date dueDate; @AuraEnabled public Boolean overdue; }
+    public class TrackingRow { @AuraEnabled public Id userId; @AuraEnabled public String userName; @AuraEnabled public String status; @AuraEnabled public Decimal watchPercent; @AuraEnabled public Decimal viewCount; @AuraEnabled public Datetime firstViewedAt; @AuraEnabled public Datetime lastViewedAt; @AuraEnabled public Datetime completedAt; @AuraEnabled public String completionMethod; @AuraEnabled public Date dueDate; @AuraEnabled public Boolean overdue; @AuraEnabled public Boolean required; }
     public class EngagementPage { @AuraEnabled public List<TrackingRow> rows; @AuraEnabled public Integer total; @AuraEnabled public Decimal metricTotal; @AuraEnabled public Integer pageNumber; @AuraEnabled public Integer pageSize; }
     public class EngagementSummary { @AuraEnabled public Decimal totalOpens; @AuraEnabled public Integer started; @AuraEnabled public Integer completed; @AuraEnabled public Decimal averageWatch; }
     public class FolderInput { @AuraEnabled public Id folderId; @AuraEnabled public String name; @AuraEnabled public Id parentId; @AuraEnabled public Decimal sortOrder; @AuraEnabled public String icon; @AuraEnabled public String description; }
@@ -42,7 +43,8 @@ public without sharing class LogicLearnAdminController {
             insert new LogicLearn_Settings__c(Name='Global', Completion_Threshold__c=90, Prevent_Skipping__c=true,
                 Assignment_Template_Name__c='LogicLearn Assignment', Reminder_Template_Name__c='LogicLearn Reminder',
                 First_Publish_Email_Template__c='LogicLearn Assignment', Update_Email_Template__c='LogicLearn Assignment',
-                First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.', Update_In_App_Message__c='[VIDEO_NAME] has been updated.');
+                First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.', Update_In_App_Message__c='[VIDEO_NAME] has been updated.',
+                Document_Page_Requirement__c='Every page', Document_Reading_Order__c='In order', Document_Completion_Mode__c='Finish on last page');
         }
         if ([SELECT COUNT() FROM Training_Folder__c] == 0 && [SELECT COUNT() FROM Training_Video__c] == 0) {
             List<Training_Folder__c> folders = new List<Training_Folder__c>{
@@ -76,6 +78,9 @@ public without sharing class LogicLearnAdminController {
         dto.updateEmailTemplate=String.isBlank(row.Update_Email_Template__c)?row.Assignment_Template_Name__c:row.Update_Email_Template__c;
         dto.firstPublishInAppMessage=String.isBlank(row.First_Publish_In_App_Message__c)?'[VIDEO_NAME] is now available.':row.First_Publish_In_App_Message__c;
         dto.updateInAppMessage=String.isBlank(row.Update_In_App_Message__c)?'[VIDEO_NAME] has been updated.':row.Update_In_App_Message__c;
+        dto.documentPageRequirement=String.isBlank(row.Document_Page_Requirement__c)?'Every page':row.Document_Page_Requirement__c;
+        dto.documentReadingOrder=String.isBlank(row.Document_Reading_Order__c)?'In order':row.Document_Reading_Order__c;
+        dto.documentCompletionMode=String.isBlank(row.Document_Completion_Mode__c)?'Finish on last page':row.Document_Completion_Mode__c;
         return dto;
     }
 
@@ -89,6 +94,8 @@ public without sharing class LogicLearnAdminController {
         row.Assignment_Template_Name__c=input.assignmentTemplateName; row.Reminder_Template_Name__c=input.reminderTemplateName;
         row.First_Publish_Email_Template__c=input.firstPublishEmailTemplate; row.Update_Email_Template__c=input.updateEmailTemplate;
         row.First_Publish_In_App_Message__c=input.firstPublishInAppMessage; row.Update_In_App_Message__c=input.updateInAppMessage;
+        row.Document_Page_Requirement__c=input.documentPageRequirement; row.Document_Reading_Order__c=input.documentReadingOrder;
+        row.Document_Completion_Mode__c=input.documentCompletionMode;
         upsert row;
     }
 
@@ -170,8 +177,8 @@ public without sharing class LogicLearnAdminController {
     }
 
     public static LogicLearn_Settings__c settingsRow() {
-        List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
-        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.') : rows[0];
+        List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c,Document_Page_Requirement__c,Document_Reading_Order__c,Document_Completion_Mode__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
+        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
     }
 
     @AuraEnabled(cacheable=true)
@@ -251,9 +258,9 @@ public without sharing class LogicLearnAdminController {
         result.externalUrl = video.External_URL__c;
         result.completionThreshold = video.Completion_Threshold__c;
         result.skipPrevention = String.isBlank(video.Skip_Prevention__c) ? 'Use Global Default' : video.Skip_Prevention__c;
-        result.documentPageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? 'Every page' : video.Document_Page_Requirement__c;
-        result.documentReadingOrder = String.isBlank(video.Document_Reading_Order__c) ? 'In order' : video.Document_Reading_Order__c;
-        result.documentCompletionMode = String.isBlank(video.Document_Completion_Mode__c) ? 'Finish on last page' : video.Document_Completion_Mode__c;
+        result.documentPageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? 'Use Global Default' : video.Document_Page_Requirement__c;
+        result.documentReadingOrder = String.isBlank(video.Document_Reading_Order__c) ? 'Use Global Default' : video.Document_Reading_Order__c;
+        result.documentCompletionMode = String.isBlank(video.Document_Completion_Mode__c) ? 'Use Global Default' : video.Document_Completion_Mode__c;
         result.dueDate = video.Due_Date__c;
         result.status = video.Status__c;
         result.publishNotificationChannel = String.isBlank(video.Publish_Notification_Channel__c) ? 'None' : video.Publish_Notification_Channel__c;
@@ -356,9 +363,9 @@ public without sharing class LogicLearnAdminController {
         video.Name=input.title;video.Description__c=input.description;video.Folder__c=input.folderId;video.Category__c=input.category;
         video.Content_Type__c=String.isBlank(input.contentType)?'Salesforce File':input.contentType;video.External_URL__c=input.externalUrl;
         video.Completion_Threshold__c=input.completionThreshold;video.Skip_Prevention__c=String.isBlank(input.skipPrevention)?'Use Global Default':input.skipPrevention;
-        video.Document_Page_Requirement__c=String.isBlank(input.documentPageRequirement)?'Every page':input.documentPageRequirement;
-        video.Document_Reading_Order__c=String.isBlank(input.documentReadingOrder)?'In order':input.documentReadingOrder;
-        video.Document_Completion_Mode__c=String.isBlank(input.documentCompletionMode)?'Finish on last page':input.documentCompletionMode;
+        video.Document_Page_Requirement__c=String.isBlank(input.documentPageRequirement)||input.documentPageRequirement=='Use Global Default'?null:input.documentPageRequirement;
+        video.Document_Reading_Order__c=String.isBlank(input.documentReadingOrder)||input.documentReadingOrder=='Use Global Default'?null:input.documentReadingOrder;
+        video.Document_Completion_Mode__c=String.isBlank(input.documentCompletionMode)||input.documentCompletionMode=='Use Global Default'?null:input.documentCompletionMode;
         video.Due_Date__c=input.dueDate;
         video.Publish_Notification_Channel__c=String.isBlank(input.publishNotificationChannel)?'None':input.publishNotificationChannel;
         video.Assignment_Notification_Channel__c=String.isBlank(input.assignmentNotificationChannel)?'None':input.assignmentNotificationChannel;
@@ -442,10 +449,37 @@ public without sharing class LogicLearnAdminController {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<TrackingRow> getTracking(Id videoId){LogicLearnAudienceService.requireAdmin();if(videoId==null)return new List<TrackingRow>();Set<Id> required=LogicLearnAudienceService.usersForVideo(videoId,'Required');
-        Date dueDate=[SELECT Due_Date__c FROM Training_Video__c WHERE Id=:videoId LIMIT 1].Due_Date__c;
-        Map<Id,Training_View__c> views=new Map<Id,Training_View__c>();for(Training_View__c v:[SELECT User__c,Status__c,Watch_Percent__c,View_Count__c,First_Viewed_At__c,Last_Viewed_At__c,Completed_At__c,Completion_Method__c FROM Training_View__c WHERE Training_Video__c=:videoId AND User__c IN:required])views.put(v.User__c,v);
-        List<TrackingRow> out=new List<TrackingRow>();for(User u:[SELECT Id,Name FROM User WHERE Id IN:required ORDER BY Name]){Training_View__c v=views.get(u.Id);TrackingRow r=new TrackingRow();r.userId=u.Id;r.userName=u.Name;r.status=v==null?'Not Started':v.Status__c;r.watchPercent=v==null?0:v.Watch_Percent__c;r.viewCount=v==null?0:v.View_Count__c;r.firstViewedAt=v==null?null:v.First_Viewed_At__c;r.lastViewedAt=v==null?null:v.Last_Viewed_At__c;r.completedAt=v==null?null:v.Completed_At__c;r.completionMethod=v==null?null:v.Completion_Method__c;r.dueDate=dueDate;r.overdue=dueDate!=null&&dueDate<Date.today()&&r.status!='Completed';out.add(r);}return out;}
+    public static List<TrackingRow> getTracking(Id videoId) {
+        LogicLearnAudienceService.requireAdmin();
+        if (videoId == null) return new List<TrackingRow>();
+        Set<Id> requiredUsers = LogicLearnAudienceService.usersForVideo(videoId, 'Required');
+        Date dueDate = [SELECT Due_Date__c FROM Training_Video__c WHERE Id = :videoId LIMIT 1].Due_Date__c;
+        Map<Id, Training_View__c> views = new Map<Id, Training_View__c>();
+        Set<Id> people = new Set<Id>();
+        people.addAll(requiredUsers);
+        for (Training_View__c view : [
+            SELECT User__c, Status__c, Watch_Percent__c, View_Count__c, First_Viewed_At__c,
+                Last_Viewed_At__c, Completed_At__c, Completion_Method__c
+            FROM Training_View__c WHERE Training_Video__c = :videoId
+        ]) {
+            views.put(view.User__c, view);
+            people.add(view.User__c);
+        }
+        List<TrackingRow> result = new List<TrackingRow>();
+        for (User userRow : [SELECT Id, Name FROM User WHERE Id IN :people ORDER BY Name]) {
+            Training_View__c view = views.get(userRow.Id);
+            TrackingRow row = new TrackingRow();
+            row.userId = userRow.Id; row.userName = userRow.Name; row.required = requiredUsers.contains(userRow.Id);
+            row.status = view == null ? 'Not Started' : view.Status__c;
+            row.watchPercent = view == null ? 0 : view.Watch_Percent__c; row.viewCount = view == null ? 0 : view.View_Count__c;
+            row.firstViewedAt = view == null ? null : view.First_Viewed_At__c; row.lastViewedAt = view == null ? null : view.Last_Viewed_At__c;
+            row.completedAt = view == null ? null : view.Completed_At__c; row.completionMethod = view == null ? null : view.Completion_Method__c;
+            row.dueDate = row.required ? dueDate : null;
+            row.overdue = row.required && dueDate != null && dueDate < Date.today() && row.status != 'Completed';
+            result.add(row);
+        }
+        return result;
+    }
 
     @AuraEnabled
     public static EngagementPage getEngagementDetails(Id videoId, String metric, Integer pageNumber, Integer pageSize) {
