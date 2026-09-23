@@ -58,7 +58,7 @@ export default class LogicLearnPicker extends LightningElement {
     get showCreateOption() {
         if (!this.createLabel) return false;
         const query = this.query.trim().toLowerCase();
-        return !query || !this._options.some((item) => item.label.toLowerCase() === query);
+        return !!query && !this._options.some((item) => item.label.toLowerCase() === query);
     }
 
     get createActionLabel() {
@@ -88,8 +88,8 @@ export default class LogicLearnPicker extends LightningElement {
         } else {
             this._value = [selected];
             this.open = false;
-            this.query = "";
         }
+        this.query = "";
         this.emitChange();
     }
 

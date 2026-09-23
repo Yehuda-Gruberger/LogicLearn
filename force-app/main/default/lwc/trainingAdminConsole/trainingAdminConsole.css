@@ -297,13 +297,22 @@
 .video-dashboard {
   min-width: 0;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  display: block;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
   padding: 0.85rem 1.2rem 1rem;
   background: #eef2f5;
+}
+.video-dashboard::-webkit-scrollbar {
+  width: 8px;
+}
+.video-dashboard::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #b8c5ce;
+}
+.video-dashboard::-webkit-scrollbar-track {
+  background: transparent;
 }
 .dashboard-loading {
   position: relative;
