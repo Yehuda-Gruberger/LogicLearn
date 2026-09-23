@@ -26,7 +26,7 @@
     width: 100%;
     max-height: var(--logic-learn-player-max-height, none);
     background: #000;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: var(--logic-learn-player-aspect, 16 / 9);
 }
 
 .video-el {

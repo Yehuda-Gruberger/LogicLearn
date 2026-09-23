@@ -19,6 +19,7 @@ const CATEGORY_GRADIENTS = {
 export default class TrainingLibrary extends LightningElement {
     @track searchTerm = "";
     @track selectedFolderId = "all";
+    @track libraryFilter = "all";
     @track showPlayer = false;
     @track mode = "library";
     @track adminSection = "tutorials";
@@ -307,6 +308,37 @@ export default class TrainingLibrary extends LightningElement {
         return this.displaySections.length > 0;
     }
 
+    get selectedFolderName() {
+        return this.folderItems.find((item) => item.id === this.selectedFolderId)?.name || "All Training";
+    }
+
+    get allVideoCards() {
+        return this.displaySections.flatMap((section) => section.videos);
+    }
+
+    get requiredVideoCards() {
+        return this.allVideoCards.filter((video) => video.isMandatory && video.viewStatus !== "Completed");
+    }
+
+    get visibleVideoCards() {
+        if (this.libraryFilter === "required") return this.allVideoCards.filter((video) => video.isMandatory && video.viewStatus !== "Completed");
+        if (this.libraryFilter === "progress") return this.allVideoCards.filter((video) => video.viewStatus === "In Progress");
+        if (this.libraryFilter === "completed") return this.allVideoCards.filter((video) => video.viewStatus === "Completed");
+        return this.allVideoCards;
+    }
+
+    get hasRequiredVideos() { return this.requiredVideoCards.length > 0; }
+    get hasVisibleVideos() { return this.visibleVideoCards.length > 0; }
+    get requiredFinishLabel() { return `${this.requiredVideoCards.length} to finish`; }
+    get allFilterClass() { return this.libraryFilter === "all" ? "filter-chip active" : "filter-chip"; }
+    get requiredFilterClass() { return this.libraryFilter === "required" ? "filter-chip active" : "filter-chip"; }
+    get progressFilterClass() { return this.libraryFilter === "progress" ? "filter-chip active" : "filter-chip"; }
+    get completedFilterClass() { return this.libraryFilter === "completed" ? "filter-chip active" : "filter-chip"; }
+    get requiredCount() { return this.allVideoCards.filter((video) => video.isMandatory && video.viewStatus !== "Completed").length; }
+    get allVideoCount() { return this.allVideoCards.length; }
+    get inProgressCount() { return this.allVideoCards.filter((video) => video.viewStatus === "In Progress").length; }
+    get completedVideoCount() { return this.allVideoCards.filter((video) => video.viewStatus === "Completed").length; }
+
     get isLibraryEmpty() {
         return this.totalVideoCount === 0;
     }
@@ -338,6 +370,7 @@ export default class TrainingLibrary extends LightningElement {
             progressBarStyle: `width:${video.watchPercent || 0}%`,
             thumbStyle: `background:${CATEGORY_GRADIENTS[video.category] || CATEGORY_GRADIENTS.Other}`,
             durationLabel: this.formatDuration(video.durationSeconds),
+            dueLabel: video.dueDate ? `Due ${new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric"}).format(new Date(`${video.dueDate}T00:00:00`))}` : "",
             cardClass: emphasize ? "card mandatory" : "card"
         };
     }
@@ -390,6 +423,10 @@ export default class TrainingLibrary extends LightningElement {
 
     handleRefresh() {
         return refreshApex(this._wired);
+    }
+
+    handleLibraryFilter(event) {
+        this.libraryFilter = event.currentTarget.dataset.filter;
     }
 
     handleCreateFirstTutorial() {

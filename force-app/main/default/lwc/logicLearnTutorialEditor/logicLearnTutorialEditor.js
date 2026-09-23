@@ -5,7 +5,7 @@ import discardTutorialDraft from "@salesforce/apex/LogicLearnAdminController.dis
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
-import saveTutorial from "@salesforce/apex/LogicLearnAdminController.saveTutorial";
+import saveTutorialWithTitle from "@salesforce/apex/LogicLearnAdminController.saveTutorialWithTitle";
 import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
 import sendInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
@@ -125,6 +125,30 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             .map((value) => ({label: value, value}));
     }
 
+    get audienceOptions() {
+        const typed = (items, type, meta) => (items || []).map((item) => ({...item, value: `${type}:${item.value}`, meta}));
+        return [
+            ...typed(this.catalog.groups, "Group", "Group"),
+            ...typed(this.catalog.profiles, "Profile", "Profile"),
+            ...typed(this.catalog.users, "User", "User")
+        ];
+    }
+
+    combinedAudience(prefix) {
+        return [
+            ...(this.form[`${prefix}Groups`] || []).map((value) => `Group:${value}`),
+            ...(this.form[`${prefix}Profiles`] || []).map((value) => `Profile:${value}`),
+            ...(this.form[`${prefix}Users`] || []).map((value) => `User:${value}`)
+        ];
+    }
+
+    get visibilityAudience() { return this.combinedAudience("visibility"); }
+    get requiredAudience() { return this.combinedAudience("required"); }
+    get notificationAudience() { return this.combinedAudience("notification"); }
+    get draftStatusClass() { return this.form.status === "Draft" ? "status-option active" : "status-option"; }
+    get publishedStatusClass() { return this.form.status === "Published" ? "status-option active" : "status-option"; }
+    get archivedStatusClass() { return this.form.status === "Archived" ? "status-option active" : "status-option"; }
+
     get contentOptions() {
         return [
             {label: "Salesforce File (tracked)", value: "Salesforce File"},
@@ -187,8 +211,24 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.form = {...this.form, [field]: event.detail.value};
     }
 
+    handleAudiencePicker(event) {
+        const prefix = event.currentTarget.dataset.purpose;
+        const selected = event.detail.value || [];
+        const valuesFor = (type) => selected.filter((value) => value.startsWith(`${type}:`)).map((value) => value.slice(type.length + 1));
+        this.form = {
+            ...this.form,
+            [`${prefix}Users`]: valuesFor("User"),
+            [`${prefix}Profiles`]: valuesFor("Profile"),
+            [`${prefix}Groups`]: valuesFor("Group")
+        };
+    }
+
+    handleStatusSelect(event) {
+        this.form = {...this.form, status: event.currentTarget.dataset.value};
+    }
+
     handleCreateGroup(event) {
-        this.groupTargetField = event.currentTarget.dataset.field;
+        this.groupTargetField = event.currentTarget.dataset.field || `${event.currentTarget.dataset.purpose}Groups`;
         this.groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
         this.showGroupCreator = true;
     }
@@ -285,7 +325,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.saving = true;
         try {
             const payload = {...this.form, videoId: this.recordId, fileName: null, title: currentTitle};
-            const videoId = await saveTutorial({input: payload});
+            const videoId = await saveTutorialWithTitle({input: payload, title: currentTitle});
             const notices = [];
             if (["Email", "Both"].includes(this.newVideoChannel)) notices.push(sendNotification({videoId, notificationType: "New Video"}));
             if (["In-app", "Both"].includes(this.newVideoChannel)) notices.push(sendInAppNotification({videoId, notificationType: "New Video"}));

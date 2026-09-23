@@ -33,7 +33,7 @@
                 <template lwc:elseif={selectedTutorial}>
                     <header class="dashboard-header">
                         <div class="dashboard-heading"><div class="breadcrumb">{selectedTutorial.folderName} <span>/</span> {selectedTutorial.category}</div><div class="title-row"><h1>{selectedRow.title}</h1><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div><small>Created {selectedRow.createdLabel}</small></div>
-                        <div class="dashboard-actions"><button class="edit-action" onclick={handleEditSelected}><lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon><span>Edit</span></button><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="border" onclick={handleDeleteSelected}></lightning-button-icon></div>
+                        <div class="dashboard-actions"><button class="edit-action" onclick={handleEditSelected}><lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon><span>Edit</span></button><button class="delete-action" title="Delete tutorial" onclick={handleDeleteSelected}><lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon></button></div>
                     </header>
 
                     <div class="dashboard-media">
@@ -66,8 +66,7 @@
         <section class="settings-backdrop" onclick={closeSettings}>
             <div class="settings-modal" onclick={stopPropagation}>
                 <header><div><span class="eyebrow">LogicLearn</span><h2>Global settings</h2><p>Default behavior for tutorials and notifications</p></div><lightning-button-icon icon-name="utility:close" alternative-text="Close settings" title="Close" variant="bare" onclick={closeSettings}></lightning-button-icon></header>
-                <div class="settings-modal-body"><c-logic-learn-settings></c-logic-learn-settings></div>
-                <footer><lightning-button label="Close" onclick={closeSettings}></lightning-button></footer>
+                <div class="settings-modal-body"><c-logic-learn-settings onclose={closeSettings}></c-logic-learn-settings></div>
             </div>
         </section>
     </template>

@@ -1,11 +1,13 @@
 <template>
     <div class="picker" onfocusout={handleFocusOut}>
-        <label class="label">{label}<template lwc:if={required}><span class="required"> *</span></template></label>
+        <template lwc:if={hideLabel}><span class="assistive-label">{label}</span></template>
+        <template lwc:else><label class="label">{label}<template lwc:if={required}><span class="required"> *</span></template></label></template>
         <div class={inputClass} onclick={handleOpen}>
             <template lwc:if={hasSelected}>
                 <div class="chips">
                     <template for:each={selectedItems} for:item="item">
                         <span class="chip" key={item.value}>
+                            <template lwc:if={showMetaInChip}><small>{item.meta}</small></template>
                             {item.label}
                             <button type="button" data-value={item.value} onclick={handleRemove} title="Remove">×</button>
                         </span>

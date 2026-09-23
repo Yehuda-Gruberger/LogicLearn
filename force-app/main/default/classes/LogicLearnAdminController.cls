@@ -4,16 +4,16 @@ public without sharing class LogicLearnAdminController {
     public class Catalog { @AuraEnabled public List<Option> users; @AuraEnabled public List<Option> profiles; @AuraEnabled public List<Option> groups; @AuraEnabled public List<Option> folders; }
     public class SettingsDto { @AuraEnabled public Decimal completionThreshold; @AuraEnabled public Boolean preventSkipping; @AuraEnabled public String assignmentTemplateName; @AuraEnabled public String reminderTemplateName; }
     public class TutorialInput {
-        @AuraEnabled public Id videoId; @AuraEnabled public String title; @AuraEnabled public String description;
-        @AuraEnabled public Id folderId; @AuraEnabled public String category; @AuraEnabled public String contentType;
-        @AuraEnabled public String externalUrl; @AuraEnabled public Decimal completionThreshold; @AuraEnabled public String skipPrevention;
-        @AuraEnabled public Date dueDate; @AuraEnabled public String status;
-        @AuraEnabled public List<String> visibilityUsers; @AuraEnabled public List<String> visibilityProfiles; @AuraEnabled public List<String> visibilityGroups;
-        @AuraEnabled public List<String> requiredUsers; @AuraEnabled public List<String> requiredProfiles; @AuraEnabled public List<String> requiredGroups;
-        @AuraEnabled public List<String> notificationUsers; @AuraEnabled public List<String> notificationProfiles; @AuraEnabled public List<String> notificationGroups;
-        @AuraEnabled public String fileName;
+        @AuraEnabled public Id videoId { get; set; } @AuraEnabled public String title { get; set; } @AuraEnabled public String description { get; set; }
+        @AuraEnabled public Id folderId { get; set; } @AuraEnabled public String category { get; set; } @AuraEnabled public String contentType { get; set; }
+        @AuraEnabled public String externalUrl { get; set; } @AuraEnabled public Decimal completionThreshold { get; set; } @AuraEnabled public String skipPrevention { get; set; }
+        @AuraEnabled public Date dueDate { get; set; } @AuraEnabled public String status { get; set; }
+        @AuraEnabled public List<String> visibilityUsers { get; set; } @AuraEnabled public List<String> visibilityProfiles { get; set; } @AuraEnabled public List<String> visibilityGroups { get; set; }
+        @AuraEnabled public List<String> requiredUsers { get; set; } @AuraEnabled public List<String> requiredProfiles { get; set; } @AuraEnabled public List<String> requiredGroups { get; set; }
+        @AuraEnabled public List<String> notificationUsers { get; set; } @AuraEnabled public List<String> notificationProfiles { get; set; } @AuraEnabled public List<String> notificationGroups { get; set; }
+        @AuraEnabled public String fileName { get; set; }
     }
-    public class GroupInput { @AuraEnabled public Id groupId; @AuraEnabled public String name; @AuraEnabled public String description; @AuraEnabled public List<String> users; @AuraEnabled public List<String> profiles; @AuraEnabled public List<String> groups; }
+    public class GroupInput { @AuraEnabled public Id groupId { get; set; } @AuraEnabled public String name { get; set; } @AuraEnabled public String description { get; set; } @AuraEnabled public List<String> users { get; set; } @AuraEnabled public List<String> profiles { get; set; } @AuraEnabled public List<String> groups { get; set; } }
     public class GroupRow { @AuraEnabled public Id id; @AuraEnabled public String name; @AuraEnabled public String description; @AuraEnabled public Integer memberCount; }
     public class TrackingRow { @AuraEnabled public Id userId; @AuraEnabled public String userName; @AuraEnabled public String status; @AuraEnabled public Decimal watchPercent; @AuraEnabled public Decimal viewCount; @AuraEnabled public Datetime firstViewedAt; @AuraEnabled public Datetime lastViewedAt; @AuraEnabled public Datetime completedAt; @AuraEnabled public String completionMethod; @AuraEnabled public Date dueDate; @AuraEnabled public Boolean overdue; }
     public class FolderInput { @AuraEnabled public Id folderId; @AuraEnabled public String name; @AuraEnabled public Id parentId; @AuraEnabled public Decimal sortOrder; @AuraEnabled public String icon; @AuraEnabled public String description; }
@@ -65,6 +65,38 @@ public without sharing class LogicLearnAdminController {
         row.Completion_Threshold__c=input.completionThreshold; row.Prevent_Skipping__c=input.preventSkipping;
         row.Assignment_Template_Name__c=input.assignmentTemplateName; row.Reminder_Template_Name__c=input.reminderTemplateName;
         upsert row;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<Option> getEmailTemplates() {
+        LogicLearnAudienceService.requireAdmin();
+        List<Option> result = new List<Option>();
+        for (EmailTemplate templateRow : [SELECT Name, Subject FROM EmailTemplate WHERE IsActive = TRUE ORDER BY Name LIMIT 500]) {
+            Option item = new Option(); item.value = templateRow.Name; item.label = templateRow.Name; item.meta = templateRow.Subject;
+            result.add(item);
+        }
+        return result;
+    }
+
+    @AuraEnabled
+    public static Option createEmailTemplate(String name, String subject, String htmlBody) {
+        LogicLearnAudienceService.requireAdmin();
+        if (String.isBlank(name) || String.isBlank(subject) || String.isBlank(htmlBody))
+            throw new AuraHandledException('Template name, subject, and message are required.');
+        List<Folder> folders = [SELECT Id FROM Folder WHERE Type = 'Email' AND DeveloperName = 'unfiled$public' LIMIT 1];
+        if (folders.isEmpty()) throw new AuraHandledException('The public email template folder is unavailable.');
+        String developerName = name.trim().replaceAll('[^A-Za-z0-9_]', '_').replaceAll('_+', '_');
+        if (String.isBlank(developerName)) developerName = 'LogicLearn_Template';
+        if ([SELECT COUNT() FROM EmailTemplate WHERE DeveloperName = :developerName] > 0)
+            developerName += '_' + String.valueOf(Datetime.now().getTime());
+        EmailTemplate templateRow = new EmailTemplate(
+            Name = name.trim(), DeveloperName = developerName, FolderId = folders[0].Id,
+            TemplateType = 'custom', Subject = subject.trim(), HtmlValue = htmlBody,
+            Body = htmlBody.replaceAll('<[^>]+>', ''), IsActive = true, Encoding = 'UTF-8'
+        );
+        insert templateRow;
+        Option result = new Option(); result.value = templateRow.Name; result.label = templateRow.Name; result.meta = templateRow.Subject;
+        return result;
     }
 
     public static LogicLearn_Settings__c settingsRow() {
@@ -203,6 +235,13 @@ public without sharing class LogicLearnAdminController {
         if(!rules.isEmpty()) insert rules;
         if(requestedStatus=='Published') update new Training_Video__c(Id=video.Id,Status__c='Published');
         return video.Id;
+    }
+
+    @AuraEnabled
+    public static Id saveTutorialWithTitle(TutorialInput input, String title) {
+        if (input == null) input = new TutorialInput();
+        input.title = title;
+        return saveTutorial(input);
     }
     private static Integer size(List<String> values){return values==null?0:values.size();}
     private static void addRules(List<Training_Audience__c> out,Id videoId,String purpose,String type,List<String> ids){

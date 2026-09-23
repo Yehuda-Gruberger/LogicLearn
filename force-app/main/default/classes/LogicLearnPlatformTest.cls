@@ -59,7 +59,9 @@ private class LogicLearnPlatformTest {
         input.externalUrl='https://example.com'; input.category='Products'; input.skipPrevention='Enabled';
         String userId=String.valueOf(UserInfo.getUserId());
         input.visibilityUsers=new List<String>{userId}; input.requiredUsers=new List<String>{userId}; input.notificationUsers=new List<String>{userId};
-        Test.startTest(); Id videoId=LogicLearnAdminController.saveTutorial(input); Test.stopTest();
+        input.title=null;
+        Test.startTest(); Id videoId=LogicLearnAdminController.saveTutorialWithTitle(input, 'Saved tutorial'); Test.stopTest();
+        System.assertEquals('Saved tutorial', [SELECT Name FROM Training_Video__c WHERE Id=:videoId].Name);
         System.assertEquals('Published',[SELECT Status__c FROM Training_Video__c WHERE Id=:videoId].Status__c);
         Map<String,Integer> counts=new Map<String,Integer>();
         for(AggregateResult row:[SELECT Purpose__c purpose,COUNT(Id) total FROM Training_Audience__c WHERE Training_Video__c=:videoId GROUP BY Purpose__c])counts.put((String)row.get('purpose'),(Integer)row.get('total'));

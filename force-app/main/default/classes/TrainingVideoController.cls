@@ -34,6 +34,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String category { get; set; }
         @AuraEnabled public Boolean isMandatory { get; set; }
         @AuraEnabled public Integer durationSeconds { get; set; }
+        @AuraEnabled public Date dueDate { get; set; }
         @AuraEnabled public String viewStatus { get; set; } // Pending / In Progress / Completed / null
         @AuraEnabled public Decimal watchPercent { get; set; }
         @AuraEnabled public Datetime completedAt { get; set; }
@@ -119,6 +120,7 @@ public without sharing class TrainingVideoController {
             info.description = vid.Description__c;
             info.category = vid.Category__c;
             info.durationSeconds = vid.Duration_Seconds__c != null ? Integer.valueOf(vid.Duration_Seconds__c) : null;
+            info.dueDate = vid.Due_Date__c;
 
             Training_View__c view = viewsByVideo.get(vid.Id);
             // Mandatory is per-user: only when this user was actually assigned the video.
@@ -158,7 +160,7 @@ public without sharing class TrainingVideoController {
 
     private static List<Training_Video__c> queryLibraryVideos(String folderId, String category) {
         String soql =
-            'SELECT Id, Name, Description__c, Category__c, Status__c, Duration_Seconds__c, ' +
+            'SELECT Id, Name, Description__c, Category__c, Status__c, Duration_Seconds__c, Due_Date__c, ' +
             'Folder__c, Folder__r.Name, Folder__r.Description__c, Folder__r.Icon__c, ' +
             'Folder__r.Sort_Order__c, Sort_Order__c ' +
             'FROM Training_Video__c ' +

@@ -7,6 +7,8 @@ export default class LogicLearnPicker extends LightningElement {
     @api required = false;
     @api disabled = false;
     @api createLabel;
+    @api hideLabel = false;
+    @api showMetaInChip = false;
     _options = [];
     _value = [];
     query = "";
