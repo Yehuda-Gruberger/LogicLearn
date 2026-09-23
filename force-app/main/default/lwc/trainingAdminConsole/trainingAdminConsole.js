@@ -45,6 +45,11 @@ export default class TrainingAdminConsole extends LightningElement {
     showTutorialDetails = false;
     selectedTutorial;
     detailLoading = false;
+    selectedVideoId;
+    videoSearch = "";
+    folderFilter;
+    categoryFilter;
+    activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
     folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
@@ -81,6 +86,12 @@ export default class TrainingAdminConsole extends LightningElement {
         this._wiredVideos = result;
         if (result.data) {
             this.videos = result.data;
+            if (!this.selectedVideoId && this.videos.length) this.selectTutorial(this.videos[0].id);
+            else if (this.selectedVideoId && !this.videos.some((video) => video.id === this.selectedVideoId)) {
+                this.selectedVideoId = undefined;
+                this.selectedTutorial = undefined;
+                if (this.videos.length) this.selectTutorial(this.videos[0].id);
+            }
         }
     }
 
@@ -139,8 +150,33 @@ export default class TrainingAdminConsole extends LightningElement {
             completedCount: video.completedCount || 0,
             meta: [video.folderName, video.category].filter(Boolean).join(" / ") || "Uncategorized",
             statusClass: `status-pill ${(video.status || "Draft").toLowerCase()}`,
-            thumbStyle: `background:${gradients[video.category] || "linear-gradient(135deg,#334155,#08798a)"}`
+            thumbStyle: `background:${gradients[video.category] || "linear-gradient(135deg,#334155,#08798a)"}`,
+            rowClass: video.id === this.selectedVideoId ? "browser-item active" : "browser-item"
         }));
+    }
+
+    get filteredTutorialRows() {
+        const search = this.videoSearch.trim().toLowerCase();
+        return this.tutorialRows.filter((video) =>
+            (!search || video.title?.toLowerCase().includes(search)) &&
+            (!this.folderFilter || video.folderId === this.folderFilter) &&
+            (!this.categoryFilter || video.category === this.categoryFilter)
+        );
+    }
+
+    get hasFilteredVideos() { return this.filteredTutorialRows.length > 0; }
+
+    get browserFolderOptions() {
+        return [{value: "", label: "All folders", meta: "Filter"}, ...this.folders.map((folder) => ({value: folder.id, label: folder.name, meta: "Folder"}))];
+    }
+
+    get browserCategoryOptions() {
+        return [{value: "", label: "All categories", meta: "Filter"}, ...["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
+            .map((value) => ({value, label: value, meta: "Category"}))];
+    }
+
+    get selectedRow() {
+        return this.tutorialRows.find((video) => video.id === this.selectedVideoId);
     }
 
     get folderOptions() {
@@ -240,15 +276,23 @@ export default class TrainingAdminConsole extends LightningElement {
         this.showTutorialEditor = true;
     }
 
-    async handleViewTutorial(event) {
-        const videoId = event.currentTarget.dataset.id;
-        this.showTutorialDetails = true;
+    handleVideoSelect(event) {
+        this.selectTutorial(event.currentTarget.dataset.id);
+    }
+
+    async selectTutorial(videoId) {
+        this.selectedVideoId = videoId;
+        this.activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
         this.detailLoading = true;
         try {
             const detail = await getTutorial({videoId});
+            if (this.selectedVideoId !== videoId) return;
+            const row = this.videos.find((video) => video.id === videoId) || {};
             this.selectedTutorial = {
                 ...detail,
-                folderName: this.videos.find((video) => video.id === videoId)?.folderName || "Ungrouped",
+                folderName: row.folderName || "Ungrouped",
+                assignedCount: row.assignedCount || 0,
+                completedCount: row.completedCount || 0,
                 visibilitySummary: this.audienceSummary(detail, "visibility"),
                 requiredSummary: this.audienceSummary(detail, "required"),
                 notificationSummary: this.audienceSummary(detail, "notification"),
@@ -257,9 +301,8 @@ export default class TrainingAdminConsole extends LightningElement {
             };
         } catch (error) {
             this.showToast("Could not load tutorial", this.extractError(error), "error");
-            this.showTutorialDetails = false;
         } finally {
-            this.detailLoading = false;
+            if (this.selectedVideoId === videoId) this.detailLoading = false;
         }
     }
 
@@ -268,9 +311,31 @@ export default class TrainingAdminConsole extends LightningElement {
         return `${count} ${count === 1 ? "selection" : "selections"}`;
     }
 
-    closeTutorialDetails() {
-        this.showTutorialDetails = false;
-        this.selectedTutorial = undefined;
+    handleVideoSearch(event) {
+        this.videoSearch = event.target.value;
+    }
+
+    handleFolderFilter(event) {
+        this.folderFilter = event.detail.value || undefined;
+    }
+
+    handleCategoryFilter(event) {
+        this.categoryFilter = event.detail.value || undefined;
+    }
+
+    handleEditSelected() {
+        if (!this.selectedVideoId) return;
+        this.tutorialRecordId = this.selectedVideoId;
+        this.showTutorialEditor = true;
+    }
+
+    handleDeleteSelected() {
+        const row = this.videos.find((video) => video.id === this.selectedVideoId);
+        if (row) this.confirmAndDeleteTutorial(row);
+    }
+
+    handleTrackingLoaded(event) {
+        this.activitySummary = event.detail;
     }
 
     handleDeleteTutorial(event) {
@@ -299,9 +364,10 @@ export default class TrainingAdminConsole extends LightningElement {
         this.tutorialRecordId = null;
     }
 
-    handleTutorialSaved() {
+    async handleTutorialSaved() {
         this.closeTutorialEditor();
-        refreshApex(this._wiredVideos);
+        await refreshApex(this._wiredVideos);
+        if (this.selectedVideoId) await this.selectTutorial(this.selectedVideoId);
     }
 
     stopPropagation(event) {

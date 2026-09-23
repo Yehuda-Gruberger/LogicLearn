@@ -1,5 +1,5 @@
 <template>
-    <div class="app">
+    <div class={appClass}>
         <!-- ===== Contextual rail ===== -->
         <aside class="rail">
             <template lwc:if={isAdminMode}>
@@ -58,7 +58,7 @@
 
             <div class="scroll">
                 <template lwc:if={isAdminMode}>
-                    <c-training-admin-console active-section={adminSection}></c-training-admin-console>
+                    <c-training-admin-console></c-training-admin-console>
                 </template>
 
                 <template lwc:else>

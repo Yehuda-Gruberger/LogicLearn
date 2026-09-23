@@ -77,6 +77,10 @@ export default class TrainingLibrary extends LightningElement {
         return this.isAdminMode ? "Admin Studio" : "Training Library";
     }
 
+    get appClass() {
+        return this.isAdminMode ? "app admin-view" : "app";
+    }
+
     get libraryBtnClass() {
         return this.mode === "library" ? "seg-btn on" : "seg-btn";
     }

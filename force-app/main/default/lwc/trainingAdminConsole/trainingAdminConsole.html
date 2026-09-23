@@ -1,90 +1,84 @@
 <template>
+    <nav class="studio-nav" aria-label="Admin workspace">
+        <button class={tutorialsTabClass} data-section="tutorials" onclick={handleSection}><lightning-icon icon-name="utility:video" size="xx-small"></lightning-icon>Tutorials</button>
+        <button class={groupsTabClass} data-section="groups" onclick={handleSection}><lightning-icon icon-name="utility:groups" size="xx-small"></lightning-icon>Groups</button>
+        <button class={settingsTabClass} data-section="settings" onclick={handleSection}><lightning-icon icon-name="utility:settings" size="xx-small"></lightning-icon>Settings</button>
+    </nav>
+
     <template lwc:if={isTutorials}>
-        <div class="studio-page">
-            <header class="studio-hero">
-                <div>
-                    <span class="eyebrow">Content management</span>
-                    <h2>Tutorials</h2>
-                    <p>Create, publish, and monitor every training experience.</p>
+        <div class="master-detail">
+            <aside class="video-browser">
+                <header class="browser-head"><div><span class="eyebrow">Content</span><h2>Tutorials</h2></div><lightning-button-icon icon-name="utility:add" alternative-text="Create tutorial" title="Create tutorial" variant="brand" onclick={handleNewVideo}></lightning-button-icon></header>
+                <lightning-input class="video-search" type="search" variant="label-hidden" label="Search tutorials" placeholder="Search tutorials" value={videoSearch} onchange={handleVideoSearch}></lightning-input>
+                <div class="browser-filters">
+                    <c-logic-learn-picker label="Folder" placeholder="All folders" options={browserFolderOptions} value={folderFilter} onchange={handleFolderFilter}></c-logic-learn-picker>
+                    <c-logic-learn-picker label="Category" placeholder="All categories" options={browserCategoryOptions} value={categoryFilter} onchange={handleCategoryFilter}></c-logic-learn-picker>
                 </div>
-                <lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
-            </header>
-
-            <div class="stats-grid">
-                <article class="stat-card"><span class="stat-icon teal"><lightning-icon icon-name="utility:video" size="small"></lightning-icon></span><div><strong>{videoCount}</strong><small>Total tutorials</small></div></article>
-                <article class="stat-card"><span class="stat-icon green"><lightning-icon icon-name="utility:success" size="small"></lightning-icon></span><div><strong>{publishedCount}</strong><small>Published</small></div></article>
-                <article class="stat-card"><span class="stat-icon slate"><lightning-icon icon-name="utility:edit" size="small"></lightning-icon></span><div><strong>{draftCount}</strong><small>Drafts</small></div></article>
-                <article class="stat-card"><span class="stat-icon blue"><lightning-icon icon-name="utility:check" size="small"></lightning-icon></span><div><strong>{completionCount}</strong><small>Completions</small></div></article>
-            </div>
-
-            <template lwc:if={hasVideos}>
-                <section class="content-panel">
-                    <div class="content-head"><div><h3>Your tutorials</h3><p>Manage content without leaving the studio.</p></div><span>{videoCountLabel}</span></div>
-                    <div class="list-head"><span>Video</span><span>Status</span><span>Assigned</span><span>Completed</span><span></span></div>
-                    <div class="video-list">
-                        <template for:each={tutorialRows} for:item="video">
-                            <article key={video.id} class="video-row">
-                                <div class="video-primary">
-                                    <div class="video-thumb" style={video.thumbStyle}><lightning-icon icon-name="utility:play" size="x-small" variant="inverse"></lightning-icon></div>
-                                    <div class="video-info"><strong>{video.title}</strong><span>{video.meta}</span></div>
-                                </div>
-                                <span class={video.statusClass}>{video.status}</span>
-                                <span class="metric"><strong>{video.assignedCount}</strong><small>Learners</small></span>
-                                <span class="metric"><strong>{video.completedCount}</strong><small>Finished</small></span>
-                                <div class="row-actions">
-                                    <lightning-button-icon icon-name="utility:preview" alternative-text="View details" title="View details and tracking" variant="bare" data-id={video.id} onclick={handleViewTutorial}></lightning-button-icon>
-                                    <lightning-button-icon icon-name="utility:edit" alternative-text="Edit tutorial" title="Edit tutorial" variant="bare" data-id={video.id} onclick={handleEditTutorial}></lightning-button-icon>
-                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare" data-id={video.id} onclick={handleDeleteTutorial}></lightning-button-icon>
-                                </div>
-                            </article>
+                <div class="browser-label"><span>Your videos</span><span>{videoCount}</span></div>
+                <div class="browser-list">
+                    <template lwc:if={hasFilteredVideos}>
+                        <template for:each={filteredTutorialRows} for:item="video">
+                            <button key={video.id} class={video.rowClass} data-id={video.id} onclick={handleVideoSelect}>
+                                <span class="browser-thumb" style={video.thumbStyle}><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span>
+                                <span class="browser-copy"><strong>{video.title}</strong><small>{video.meta}</small><span class={video.statusClass}>{video.status}</span></span>
+                            </button>
                         </template>
-                    </div>
-                </section>
-            </template>
-            <template lwc:else>
-                <section class="empty-studio"><span><lightning-icon icon-name="utility:video" size="large" variant="inverse"></lightning-icon></span><h3>Create your first tutorial</h3><p>Add a video, configure its audience, and publish it from one polished workspace.</p><lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button></section>
-            </template>
+                    </template>
+                    <template lwc:else><div class="browser-empty">No tutorials match these filters.</div></template>
+                </div>
+                <lightning-button class="create-wide" variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+            </aside>
+
+            <main class="video-dashboard">
+                <template lwc:if={detailLoading}><div class="dashboard-loading"><lightning-spinner alternative-text="Loading tutorial dashboard"></lightning-spinner></div></template>
+                <template lwc:elseif={selectedTutorial}>
+                    <header class="dashboard-head">
+                        <div><span class="eyebrow">Tutorial dashboard</span><h2>{selectedTutorial.title}</h2><p>{selectedTutorial.folderName} / {selectedTutorial.category}</p></div>
+                        <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button variant="brand" label="Edit tutorial" icon-name="utility:edit" onclick={handleEditSelected}></lightning-button></div>
+                    </header>
+
+                    <section class="overview-grid">
+                        <div class="video-hero" style={selectedRow.thumbStyle}>
+                            <span class="hero-play"><lightning-icon icon-name="utility:play" size="medium" variant="inverse"></lightning-icon></span>
+                            <div class="hero-caption"><span>{selectedTutorial.contentType}</span><strong>{selectedTutorial.fileName}</strong></div>
+                        </div>
+                        <div class="tutorial-info">
+                            <div class="info-top"><span class={selectedRow.statusClass}>{selectedTutorial.status}</span><small>{selectedTutorial.contentType}</small></div>
+                            <p>{selectedTutorial.description}</p>
+                            <dl>
+                                <div><dt>Completion</dt><dd>{selectedTutorial.completionLabel}</dd></div>
+                                <div><dt>Skipping</dt><dd>{selectedTutorial.skipLabel}</dd></div>
+                                <div><dt>Due date</dt><dd>{selectedTutorial.dueDate}</dd></div>
+                                <div><dt>Required audience</dt><dd>{selectedTutorial.requiredSummary}</dd></div>
+                            </dl>
+                        </div>
+                    </section>
+
+                    <section class="activity-stats">
+                        <article><span class="stat-icon teal"><lightning-icon icon-name="utility:preview" size="small"></lightning-icon></span><div><strong>{activitySummary.totalOpens}</strong><small>Total opens</small></div></article>
+                        <article><span class="stat-icon blue"><lightning-icon icon-name="utility:play" size="small"></lightning-icon></span><div><strong>{activitySummary.started}</strong><small>Started</small></div></article>
+                        <article><span class="stat-icon green"><lightning-icon icon-name="utility:check" size="small"></lightning-icon></span><div><strong>{activitySummary.completed}</strong><small>Completed</small></div></article>
+                        <article><span class="stat-icon purple"><lightning-icon icon-name="utility:chart" size="small"></lightning-icon></span><div><strong>{activitySummary.averageWatch}%</strong><small>Average watched</small></div></article>
+                    </section>
+
+                    <section class="audience-strip">
+                        <div><small>Can view</small><strong>{selectedTutorial.visibilitySummary}</strong></div>
+                        <div><small>Required</small><strong>{selectedTutorial.requiredSummary}</strong></div>
+                        <div><small>Notifications</small><strong>{selectedTutorial.notificationSummary}</strong></div>
+                    </section>
+
+                    <c-logic-learn-tracking compact video-id={selectedVideoId} ontrackingloaded={handleTrackingLoaded}></c-logic-learn-tracking>
+                </template>
+                <template lwc:else>
+                    <div class="dashboard-empty"><span><lightning-icon icon-name="utility:video" size="large" variant="inverse"></lightning-icon></span><h2>Create your first tutorial</h2><p>Add a video, choose its audience, and track engagement from this workspace.</p><lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button></div>
+                </template>
+            </main>
         </div>
     </template>
     <template lwc:elseif={isGroups}><c-logic-learn-group-manager></c-logic-learn-group-manager></template>
-    <template lwc:elseif={isTracking}><c-logic-learn-tracking></c-logic-learn-tracking></template>
     <template lwc:else><c-logic-learn-settings></c-logic-learn-settings></template>
 
     <template lwc:if={showTutorialEditor}>
-        <section class="modal-backdrop">
-            <div class="modal modal-editor" onclick={stopPropagation}>
-                <c-logic-learn-tutorial-editor record-id={tutorialRecordId} onsaved={handleTutorialSaved} onclose={closeTutorialEditor}></c-logic-learn-tutorial-editor>
-            </div>
-        </section>
-    </template>
-
-    <template lwc:if={showTutorialDetails}>
-        <section class="modal-backdrop detail-backdrop" onclick={closeTutorialDetails}>
-            <div class="detail-modal" onclick={stopPropagation}>
-                <template lwc:if={detailLoading}><div class="detail-loading"><lightning-spinner alternative-text="Loading tutorial details"></lightning-spinner></div></template>
-                <template lwc:elseif={selectedTutorial}>
-                    <header class="detail-head">
-                        <div><span class="eyebrow">Tutorial dashboard</span><h2>{selectedTutorial.title}</h2><p>{selectedTutorial.folderName} / {selectedTutorial.category}</p></div>
-                        <lightning-button-icon icon-name="utility:close" alternative-text="Close" title="Close" variant="bare" onclick={closeTutorialDetails}></lightning-button-icon>
-                    </header>
-                    <div class="detail-body">
-                        <section class="detail-overview">
-                            <div><small>Status</small><strong>{selectedTutorial.status}</strong></div>
-                            <div><small>Video source</small><strong>{selectedTutorial.contentType}</strong></div>
-                            <div><small>Completion</small><strong>{selectedTutorial.completionLabel}</strong></div>
-                            <div><small>Due date</small><strong>{selectedTutorial.dueDate}</strong></div>
-                        </section>
-                        <template lwc:if={selectedTutorial.description}><p class="detail-description">{selectedTutorial.description}</p></template>
-                        <section class="audience-summary">
-                            <article><lightning-icon icon-name="utility:preview" size="small"></lightning-icon><div><small>Can view</small><strong>{selectedTutorial.visibilitySummary}</strong></div></article>
-                            <article><lightning-icon icon-name="utility:check" size="small"></lightning-icon><div><small>Required</small><strong>{selectedTutorial.requiredSummary}</strong></div></article>
-                            <article><lightning-icon icon-name="utility:notification" size="small"></lightning-icon><div><small>Notifications</small><strong>{selectedTutorial.notificationSummary}</strong></div></article>
-                            <article><lightning-icon icon-name="utility:lock" size="small"></lightning-icon><div><small>Skipping</small><strong>{selectedTutorial.skipLabel}</strong></div></article>
-                        </section>
-                        <c-logic-learn-tracking compact video-id={selectedTutorial.videoId}></c-logic-learn-tracking>
-                    </div>
-                </template>
-            </div>
-        </section>
+        <section class="modal-backdrop"><div class="modal-editor" onclick={stopPropagation}><c-logic-learn-tutorial-editor record-id={tutorialRecordId} onsaved={handleTutorialSaved} onclose={closeTutorialEditor}></c-logic-learn-tutorial-editor></div></section>
     </template>
 </template>

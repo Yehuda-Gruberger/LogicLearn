@@ -467,6 +467,7 @@ public without sharing class TrainingVideoController {
     public class VideoAdminRow {
         @AuraEnabled public Id id { get; set; }
         @AuraEnabled public String title { get; set; }
+        @AuraEnabled public Id folderId { get; set; }
         @AuraEnabled public String folderName { get; set; }
         @AuraEnabled public String category { get; set; }
         @AuraEnabled public String status { get; set; }
@@ -505,13 +506,14 @@ public without sharing class TrainingVideoController {
 
         List<VideoAdminRow> rows = new List<VideoAdminRow>();
         for (Training_Video__c v : [
-            SELECT Id, Name, Folder__r.Name, Category__c, Status__c
+            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c
             FROM Training_Video__c
             ORDER BY Folder__r.Name NULLS FIRST, Name
         ]) {
             VideoAdminRow r = new VideoAdminRow();
             r.id = v.Id;
             r.title = v.Name;
+            r.folderId = v.Folder__c;
             r.folderName = v.Folder__r.Name;
             r.category = v.Category__c;
             r.status = v.Status__c;

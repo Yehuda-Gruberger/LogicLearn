@@ -16,14 +16,23 @@ const COLUMNS = [
 export default class LogicLearnTracking extends LightningElement {
     columns = COLUMNS;
     videos = [];
-    @api videoId;
+    _videoId;
+    _connected = false;
     @api compact = false;
     rows = [];
     loading = true;
     reminderChannel = "In-app";
     sending = false;
 
-    connectedCallback() { this.loadVideos(); }
+    @api
+    get videoId() { return this._videoId; }
+    set videoId(value) {
+        if (value === this._videoId) return;
+        this._videoId = value;
+        if (this._connected && value) this.loadTracking();
+    }
+
+    connectedCallback() { this._connected = true; this.loadVideos(); }
 
     async loadVideos() {
         try {
@@ -48,7 +57,16 @@ export default class LogicLearnTracking extends LightningElement {
 
     async loadTracking() {
         this.loading = true;
-        try { this.rows = await getTracking({videoId: this.videoId}); }
+        try {
+            this.rows = await getTracking({videoId: this.videoId});
+            const totalWatch = this.rows.reduce((sum, row) => sum + Number(row.watchPercent || 0), 0);
+            this.dispatchEvent(new CustomEvent("trackingloaded", {detail: {
+                totalOpens: this.rows.reduce((sum, row) => sum + Number(row.viewCount || 0), 0),
+                started: this.rows.filter((row) => Number(row.viewCount || 0) > 0).length,
+                completed: this.rows.filter((row) => row.status === "Completed").length,
+                averageWatch: this.rows.length ? Math.round(totalWatch / this.rows.length) : 0
+            }}));
+        }
         catch (error) { this.toast("Could not load tracking", this.message(error), "error"); }
         finally { this.loading = false; }
     }

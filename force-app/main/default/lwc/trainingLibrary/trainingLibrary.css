@@ -37,6 +37,10 @@
     padding: 1rem 0.75rem;
 }
 
+.app.admin-view { grid-template-columns: 1fr; background: #f4f7f9; }
+.admin-view > .rail { display: none; }
+.admin-view .scroll { padding: 0; }
+
 .admin-rail-head {
     display: flex;
     align-items: center;
