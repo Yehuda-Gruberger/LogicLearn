@@ -6,7 +6,7 @@ import getEmailTemplates from "@salesforce/apex/LogicLearnAdminController.getEma
 import getEmailTemplate from "@salesforce/apex/LogicLearnAdminController.getEmailTemplate";
 import saveEmailTemplate from "@salesforce/apex/LogicLearnAdminController.saveEmailTemplate";
 
-const TEMPLATE_FIELDS = ["assignmentTemplateName", "reminderTemplateName", "firstPublishEmailTemplate", "updateEmailTemplate"];
+const TEMPLATE_FIELDS = ["assignmentTemplateName", "reminderTemplateName", "firstPublishEmailTemplate", "updateEmailTemplate", "requiredUpdateEmailTemplate"];
 
 export default class LogicLearnSettings extends LightningElement {
     settings;
@@ -39,6 +39,7 @@ export default class LogicLearnSettings extends LightningElement {
     get reminderTemplateOptions() { return this.optionsWithCurrent(this.settings?.reminderTemplateName); }
     get firstPublishTemplateOptions() { return this.optionsWithCurrent(this.settings?.firstPublishEmailTemplate); }
     get updateTemplateOptions() { return this.optionsWithCurrent(this.settings?.updateEmailTemplate); }
+    get requiredUpdateTemplateOptions() { return this.optionsWithCurrent(this.settings?.requiredUpdateEmailTemplate); }
     get documentPageRequirementOptions() { return [{label: "Every page", value: "Every page"}, {label: "Final page only", value: "Final page only"}]; }
     get documentReadingOrderOptions() { return [{label: "In order", value: "In order"}, {label: "Any order", value: "Any order"}]; }
     get documentCompletionModeOptions() { return [{label: "Finish on last page", value: "Finish on last page"}, {label: "Automatically", value: "Automatic"}]; }
@@ -98,14 +99,14 @@ export default class LogicLearnSettings extends LightningElement {
 
     defaultTemplateSubject(field) {
         if (field === "reminderTemplateName") return "Reminder: [VIDEO_NAME]";
-        if (field === "updateEmailTemplate") return "Updated training: [VIDEO_NAME]";
+        if (field === "updateEmailTemplate" || field === "requiredUpdateEmailTemplate") return "Updated training: [VIDEO_NAME]";
         if (field === "assignmentTemplateName") return "You have been assigned [VIDEO_NAME]";
         return "New training: [VIDEO_NAME]";
     }
 
     defaultTemplateBody(field) {
         if (field === "reminderTemplateName") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>This is a reminder to complete <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p><p>You can also visit your <a href="[LIBRARY_LINK]">training library</a>.</p>';
-        if (field === "updateEmailTemplate") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p><strong>[VIDEO_NAME]</strong> has been updated.</p><p><a href="[VIDEO_LINK]">Review the updated tutorial</a></p>';
+        if (field === "updateEmailTemplate" || field === "requiredUpdateEmailTemplate") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p><strong>[VIDEO_NAME]</strong> has been updated.</p><p><a href="[VIDEO_LINK]">Review the updated tutorial</a></p>';
         if (field === "assignmentTemplateName") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>You have been assigned <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Start the tutorial</a></p><p>View all assignments in your <a href="[LIBRARY_LINK]">training library</a>.</p>';
         return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>A new tutorial, <strong>[VIDEO_NAME]</strong>, is ready for you.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p>';
     }

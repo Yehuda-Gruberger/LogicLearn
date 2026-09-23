@@ -10,6 +10,7 @@ public without sharing class LogicLearnAdminController {
         @AuraEnabled public String firstPublishEmailTemplate; @AuraEnabled public String updateEmailTemplate;
         @AuraEnabled public String firstPublishInAppMessage; @AuraEnabled public String updateInAppMessage;
         @AuraEnabled public String assignmentInAppMessage; @AuraEnabled public String reminderInAppMessage;
+        @AuraEnabled public String requiredUpdateEmailTemplate; @AuraEnabled public String requiredUpdateInAppMessage;
         @AuraEnabled public String documentPageRequirement; @AuraEnabled public String documentReadingOrder; @AuraEnabled public String documentCompletionMode;
     }
     public class TutorialInput {
@@ -48,6 +49,7 @@ public without sharing class LogicLearnAdminController {
                 First_Publish_Email_Template__c='LogicLearn Assignment', Update_Email_Template__c='LogicLearn Assignment',
                 First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.', Update_In_App_Message__c='[VIDEO_NAME] has been updated.',
                 Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.', Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',
+                Required_Update_Email_Template__c='LogicLearn Assignment', Required_Update_In_App_Message__c='[VIDEO_NAME] has been updated.',
                 Document_Page_Requirement__c='Every page', Document_Reading_Order__c='In order', Document_Completion_Mode__c='Finish on last page');
         }
         if ([SELECT COUNT() FROM Training_Folder__c] == 0 && [SELECT COUNT() FROM Training_Video__c] == 0) {
@@ -106,7 +108,8 @@ public without sharing class LogicLearnAdminController {
         LogicLearn_Settings__c settings = settingsRow();
         Set<String> configuredNames = new Set<String>{
             settings.Assignment_Template_Name__c, settings.Reminder_Template_Name__c,
-            settings.First_Publish_Email_Template__c, settings.Update_Email_Template__c
+            settings.First_Publish_Email_Template__c, settings.Update_Email_Template__c,
+            settings.Required_Update_Email_Template__c
         };
         configuredNames.remove(null);
         configuredNames.remove('');
@@ -138,6 +141,8 @@ public without sharing class LogicLearnAdminController {
         dto.updateInAppMessage=String.isBlank(row.Update_In_App_Message__c)?'[VIDEO_NAME] has been updated.':row.Update_In_App_Message__c;
         dto.assignmentInAppMessage=String.isBlank(row.Assignment_In_App_Message__c)?'[VIDEO_NAME] has been assigned to you.':row.Assignment_In_App_Message__c;
         dto.reminderInAppMessage=String.isBlank(row.Reminder_In_App_Message__c)?'Reminder: complete [VIDEO_NAME].':row.Reminder_In_App_Message__c;
+        dto.requiredUpdateEmailTemplate=String.isBlank(row.Required_Update_Email_Template__c)?dto.updateEmailTemplate:row.Required_Update_Email_Template__c;
+        dto.requiredUpdateInAppMessage=String.isBlank(row.Required_Update_In_App_Message__c)?'[VIDEO_NAME] has been updated.':row.Required_Update_In_App_Message__c;
         dto.documentPageRequirement=String.isBlank(row.Document_Page_Requirement__c)?'Every page':row.Document_Page_Requirement__c;
         dto.documentReadingOrder=String.isBlank(row.Document_Reading_Order__c)?'In order':row.Document_Reading_Order__c;
         dto.documentCompletionMode=String.isBlank(row.Document_Completion_Mode__c)?'Finish on last page':row.Document_Completion_Mode__c;
@@ -155,6 +160,8 @@ public without sharing class LogicLearnAdminController {
         row.First_Publish_Email_Template__c=input.firstPublishEmailTemplate; row.Update_Email_Template__c=input.updateEmailTemplate;
         row.First_Publish_In_App_Message__c=input.firstPublishInAppMessage; row.Update_In_App_Message__c=input.updateInAppMessage;
         row.Assignment_In_App_Message__c=input.assignmentInAppMessage; row.Reminder_In_App_Message__c=input.reminderInAppMessage;
+        row.Required_Update_Email_Template__c=input.requiredUpdateEmailTemplate;
+        row.Required_Update_In_App_Message__c=input.requiredUpdateInAppMessage;
         row.Document_Page_Requirement__c=input.documentPageRequirement; row.Document_Reading_Order__c=input.documentReadingOrder;
         row.Document_Completion_Mode__c=input.documentCompletionMode;
         upsert row;
@@ -242,8 +249,8 @@ public without sharing class LogicLearnAdminController {
     }
 
     public static LogicLearn_Settings__c settingsRow() {
-        List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c,Assignment_In_App_Message__c,Reminder_In_App_Message__c,Document_Page_Requirement__c,Document_Reading_Order__c,Document_Completion_Mode__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
-        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.',Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
+        List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c,Assignment_In_App_Message__c,Reminder_In_App_Message__c,Required_Update_Email_Template__c,Required_Update_In_App_Message__c,Document_Page_Requirement__c,Document_Reading_Order__c,Document_Completion_Mode__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
+        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.',Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',Required_Update_Email_Template__c='LogicLearn Assignment',Required_Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
     }
 
     @AuraEnabled(cacheable=true)
@@ -701,8 +708,12 @@ public without sharing class LogicLearnAdminController {
             TrainingNotificationService.libraryTabApiName() + '"},"state":{"c__videoId":"' + video.Id + '"}}');
         notice.setTitle(notificationType == 'Reminder' ? 'LogicLearn reminder' : notificationType == 'Assignment' ? 'New required tutorial' : notificationType == 'Update' || notificationType == 'Required Update' ? 'Tutorial updated' : 'New LogicLearn tutorial');
         LogicLearn_Settings__c settings = settingsRow();
+        String requiredUpdateMessage = String.isBlank(settings.Required_Update_In_App_Message__c)
+            ? settings.Update_In_App_Message__c
+            : settings.Required_Update_In_App_Message__c;
         String configuredMessage = String.isNotBlank(messageTemplate) ? messageTemplate :
-            notificationType == 'Update' || notificationType == 'Required Update' ? settings.Update_In_App_Message__c :
+            notificationType == 'Required Update' ? requiredUpdateMessage :
+            notificationType == 'Update' ? settings.Update_In_App_Message__c :
             notificationType == 'First Publish' || notificationType == 'New Video' ? settings.First_Publish_In_App_Message__c :
             notificationType == 'Assignment' ? settings.Assignment_In_App_Message__c :
             notificationType == 'Reminder' ? settings.Reminder_In_App_Message__c : null;

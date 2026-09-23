@@ -130,9 +130,13 @@ public with sharing class TrainingNotificationService {
         if (recipientIds.isEmpty()) return 0;
 
         LogicLearn_Settings__c settings = LogicLearnAdminController.settingsRow();
+        String requiredUpdateTemplate = String.isBlank(settings.Required_Update_Email_Template__c)
+            ? settings.Update_Email_Template__c
+            : settings.Required_Update_Email_Template__c;
         String selectedTemplate = String.isNotBlank(templateOverride) ? templateOverride :
             type == 'Reminder' ? settings.Reminder_Template_Name__c :
-            type == 'Update' || type == 'Required Update' ? settings.Update_Email_Template__c :
+            type == 'Required Update' ? requiredUpdateTemplate :
+            type == 'Update' ? settings.Update_Email_Template__c :
             type == 'First Publish' || type == 'New Video' ? settings.First_Publish_Email_Template__c :
             settings.Assignment_Template_Name__c;
         List<EmailTemplate> templates = [

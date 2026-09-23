@@ -26,6 +26,8 @@
     <fieldPermissions><field>LogicLearn_Settings__c.Prevent_Skipping__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Reminder_Template_Name__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Reminder_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.Required_Update_Email_Template__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.Required_Update_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Update_Email_Template__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Update_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Audience__c.LogicLearn_Group__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
