@@ -21,15 +21,15 @@
             <div class="menu">
                 <template for:each={filteredOptions} for:item="item">
                     <button type="button" key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}>
-                        <lightning-icon icon-name={item.icon} size="xx-small"></lightning-icon>
+                        <template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template>
                         <span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span>
                     </button>
                 </template>
                 <template lwc:if={hasOptions}></template>
                 <template lwc:else>
                     <div class="no-options">No matches</div>
-                    <template lwc:if={createLabel}><button type="button" class="create-option" onclick={handleCreate}><lightning-icon icon-name="utility:add" size="xx-small"></lightning-icon><span>{createLabel}</span></button></template>
                 </template>
+                <template lwc:if={showCreateOption}><button type="button" class="create-option" onclick={handleCreate}><lightning-icon icon-name="utility:add" size="xx-small"></lightning-icon><span>{createActionLabel}</span></button></template>
             </div>
         </template>
     </div>

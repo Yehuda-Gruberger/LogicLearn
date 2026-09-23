@@ -1,4 +1,5 @@
 .player-card {
+    height: var(--logic-learn-player-height, auto);
     background: #000;
     border-radius: 0.5rem;
     overflow: hidden;
@@ -25,6 +26,7 @@
     position: relative;
     width: 100%;
     max-height: var(--logic-learn-player-max-height, none);
+    height: var(--logic-learn-player-height, auto);
     background: #000;
     aspect-ratio: var(--logic-learn-player-aspect, 16 / 9);
 }

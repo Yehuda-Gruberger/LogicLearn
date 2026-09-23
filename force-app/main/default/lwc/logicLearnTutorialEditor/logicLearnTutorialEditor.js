@@ -228,7 +228,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     handleCreateGroup(event) {
         this.groupTargetField = event.currentTarget.dataset.field || `${event.currentTarget.dataset.purpose}Groups`;
-        this.groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
+        this.groupForm = {groupId: null, name: event.detail?.query || "", description: "", users: [], profiles: [], groups: []};
         this.showGroupCreator = true;
     }
 

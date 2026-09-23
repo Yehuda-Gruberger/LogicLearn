@@ -38,7 +38,7 @@ export default class LogicLearnPicker extends LightningElement {
             .map((item) => ({
                 ...item,
                 rowClass: this._value.includes(item.value) ? "option selected" : "option",
-                icon: this._value.includes(item.value) ? "utility:check" : "utility:add"
+                selected: this._value.includes(item.value)
             }));
     }
 
@@ -53,6 +53,17 @@ export default class LogicLearnPicker extends LightningElement {
 
     get hasOptions() {
         return this.filteredOptions.length > 0;
+    }
+
+    get showCreateOption() {
+        if (!this.createLabel) return false;
+        const query = this.query.trim().toLowerCase();
+        return !query || !this._options.some((item) => item.label.toLowerCase() === query);
+    }
+
+    get createActionLabel() {
+        const query = this.query.trim();
+        return query ? `${this.createLabel}: “${query}”` : this.createLabel;
     }
 
     get inputClass() {
@@ -104,7 +115,8 @@ export default class LogicLearnPicker extends LightningElement {
     handleCreate(event) {
         event.stopPropagation();
         this.open = false;
-        this.dispatchEvent(new CustomEvent("create"));
+        this.dispatchEvent(new CustomEvent("create", {detail: {query: this.query.trim()}}));
+        this.query = "";
     }
 
     emitChange() {

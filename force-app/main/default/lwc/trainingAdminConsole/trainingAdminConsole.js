@@ -9,6 +9,7 @@ import initializeLogicLearn from "@salesforce/apex/LogicLearnAdminController.ini
 import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
 import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
+import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 
 const VIDEO_COLUMNS = [
     {label: "Title", fieldName: "title", type: "text"},
@@ -33,6 +34,7 @@ export default class TrainingAdminConsole extends LightningElement {
     @api activeSection = "tutorials";
 
     folders = [];
+    catalog = {users: [], profiles: [], groups: []};
     @track videos = [];
     _wiredFolders;
     _wiredVideos;
@@ -95,6 +97,20 @@ export default class TrainingAdminConsole extends LightningElement {
                 this.selectedTutorial = undefined;
                 if (this.videos.length) this.selectTutorial(this.videos[0].id);
             }
+        }
+    }
+
+    @wire(getCatalog)
+    wiredCatalog({data}) {
+        if (!data) return;
+        this.catalog = data;
+        if (this.selectedTutorial) {
+            this.selectedTutorial = {
+                ...this.selectedTutorial,
+                visibilitySummary: this.audienceSummary(this.selectedTutorial, "visibility"),
+                requiredSummary: this.audienceSummary(this.selectedTutorial, "required"),
+                notificationSummary: this.audienceSummary(this.selectedTutorial, "notification")
+            };
         }
     }
 
@@ -173,16 +189,16 @@ export default class TrainingAdminConsole extends LightningElement {
     get filteredVideoCount() { return this.filteredTutorialRows.length; }
 
     get browserFolderOptions() {
-        return this.folders.map((folder) => ({value: folder.id, label: folder.name, meta: "Folder"}));
+        return this.folders.map((folder) => ({value: folder.id, label: folder.name}));
     }
 
     get browserCategoryOptions() {
         return ["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
-            .map((value) => ({value, label: value, meta: "Category"}));
+            .map((value) => ({value, label: value}));
     }
 
     get browserStatusOptions() {
-        return ["Draft", "Published", "Archived"].map((value) => ({value, label: value, meta: "Status"}));
+        return ["Draft", "Published", "Archived"].map((value) => ({value, label: value}));
     }
 
     get selectedRow() {
@@ -320,8 +336,16 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     audienceSummary(detail, prefix) {
-        const count = ["Users", "Profiles", "Groups"].reduce((total, suffix) => total + (detail[`${prefix}${suffix}`]?.length || 0), 0);
-        return `${count} ${count === 1 ? "selection" : "selections"}`;
+        const sources = [
+            ["Groups", this.catalog.groups],
+            ["Profiles", this.catalog.profiles],
+            ["Users", this.catalog.users]
+        ];
+        const labels = sources.flatMap(([suffix, options]) => {
+            const lookup = new Map((options || []).map((item) => [String(item.value), item.label]));
+            return (detail[`${prefix}${suffix}`] || []).map((id) => lookup.get(String(id)) || String(id));
+        });
+        return labels.length ? labels.join(", ") : "None";
     }
 
     handleVideoSearch(event) {
