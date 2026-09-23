@@ -1,10 +1,11 @@
 :host { display: block; min-width: 0; }
 .picker { position: relative; min-width: 0; }
-.label { display: block; margin-bottom: .3rem; color: var(--logic-learn-picker-label-color, #344256); font-size: .75rem; font-weight: 650; }
+.label { display: block; margin-bottom: .3rem; color: var(--logic-learn-picker-label-color, #344256); font-size:var(--logic-learn-picker-label-size,.75rem); font-weight: 650; }
 .required { color: #ba0517; }
-.picker-input { min-width: 0; min-height: 2.4rem; display: flex; align-items: center; gap: .4rem; padding: .25rem .55rem; border: 1px solid #a8b3c2; border-radius: .5rem; background: #fff; cursor: text; }
+.picker-input { min-width: 0; min-height:var(--logic-learn-picker-height,2.4rem); display: flex; align-items: center; gap: .4rem; padding: .25rem .55rem; border:1px solid var(--logic-learn-picker-border,#a8b3c2); border-radius: .5rem; background:var(--logic-learn-picker-background,#fff); color:var(--logic-learn-picker-text,inherit); cursor: text; }
 .picker-input.open { border-color: #0b6e7f; box-shadow: 0 0 0 1px #0b6e7f; }
-.picker-input input { min-width: 0; flex: 1; padding: .25rem; border: 0; outline: 0; background: transparent; }
+.picker-input input { min-width: 0; flex: 1; padding: .25rem; border: 0; outline: 0; background: transparent; color:var(--logic-learn-picker-text,inherit); font-size:var(--logic-learn-picker-font-size,.75rem); }
+.picker-input input::placeholder { color:var(--logic-learn-picker-placeholder,#6c7c90); opacity:1; }
 .chips { display: flex; flex-wrap: wrap; gap: .25rem; }
 .chip { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .45rem; border-radius: 1rem; background: #e2f0f2; color: #095563; font-size: .72rem; }
 .chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 1rem; line-height: .7; }

@@ -10,6 +10,7 @@
                     <c-logic-learn-picker multiple label="Category" placeholder="All categories" options={browserCategoryOptions} value={categoryFilter} onchange={handleCategoryFilter}></c-logic-learn-picker>
                     <c-logic-learn-picker multiple class="status-filter" label="Status" placeholder="All statuses" options={browserStatusOptions} value={statusFilter} onchange={handleStatusFilter}></c-logic-learn-picker>
                 </div>
+                <div class="browser-label"><span>Tutorials</span><span>{filteredVideoCount}</span></div>
                 <div class="browser-list">
                     <template lwc:if={hasFilteredVideos}>
                         <template for:each={filteredTutorialRows} for:item="video">
@@ -18,7 +19,7 @@
                                     <template lwc:if={video.previewUrl}><video src={video.previewUrl} muted loop playsinline preload="metadata" onmouseenter={handleThumbnailEnter} onmouseleave={handleThumbnailLeave}></video></template>
                                     <span class="thumb-play"><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span>
                                 </span>
-                                <span class="browser-copy"><strong>{video.title}</strong><small>{video.meta}</small><small class="created-date">Created {video.createdLabel}</small><span class={video.statusClass}>{video.status}</span></span>
+                                <span class="browser-copy"><span class="browser-copy-title"><strong>{video.title}</strong><span class={video.statusClass}>{video.status}</span></span><small>{video.meta} · {video.createdLabel}</small></span>
                             </button>
                         </template>
                     </template>

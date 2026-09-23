@@ -170,6 +170,7 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     get hasFilteredVideos() { return this.filteredTutorialRows.length > 0; }
+    get filteredVideoCount() { return this.filteredTutorialRows.length; }
 
     get browserFolderOptions() {
         return this.folders.map((folder) => ({value: folder.id, label: folder.name, meta: "Folder"}));
