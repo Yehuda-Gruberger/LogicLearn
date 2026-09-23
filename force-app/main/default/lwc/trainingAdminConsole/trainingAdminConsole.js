@@ -75,14 +75,23 @@ export default class TrainingAdminConsole extends LightningElement {
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
     folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
+    outsideCreateMenuHandler;
 
     connectedCallback() {
+        this.outsideCreateMenuHandler = () => {
+            if (this.showCreateMenu) this.showCreateMenu = false;
+        };
+        document.addEventListener("click", this.outsideCreateMenuHandler);
         initializeLogicLearn()
             .then(() => Promise.all([
                 this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
                 this._wiredVideos ? refreshApex(this._wiredVideos) : Promise.resolve()
             ]))
             .catch((error) => this.showToast("Setup error", this.extractError(error), "error"));
+    }
+
+    disconnectedCallback() {
+        document.removeEventListener("click", this.outsideCreateMenuHandler);
     }
 
     get isTutorials() { return this.activeSection === "tutorials"; }
@@ -315,7 +324,8 @@ export default class TrainingAdminConsole extends LightningElement {
 
     // ── Video CRUD ──
 
-    handleNewVideo() {
+    handleNewVideo(event) {
+        event?.stopPropagation();
         this.showCreateMenu = !this.showCreateMenu;
     }
 
