@@ -14,16 +14,23 @@
                     </template>
                 </div>
             </template>
+            <template lwc:if={hasExcluded}>
+                <div class="chips">
+                    <template for:each={excludedItems} for:item="item">
+                        <span class="chip excluded" key={item.value}><small>Excluded</small>{item.label}<button type="button" data-kind="exclusion" data-value={item.value} onclick={handleRemove} title="Remove exclusion">×</button></span>
+                    </template>
+                </div>
+            </template>
             <input type="search" placeholder={placeholder} value={query} onfocus={handleFocus} oninput={handleSearch} disabled={disabled}/>
             <lightning-icon icon-name="utility:chevrondown" size="xx-small"></lightning-icon>
         </div>
         <template lwc:if={open}>
             <div class="menu">
                 <template for:each={filteredOptions} for:item="item">
-                    <button type="button" key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}>
-                        <template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template>
-                        <span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span>
-                    </button>
+                    <template lwc:if={actionMode}>
+                        <div key={item.value} class={item.rowClass}><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span><span class="option-actions"><button type="button" class={item.addClass} data-value={item.value} onclick={handleAdd} title="Add"><lightning-icon icon-name={item.addIcon} size="xx-small"></lightning-icon></button><template lwc:if={item.canExclude}><button type="button" class={item.excludeClass} data-value={item.value} onclick={handleExclude} title="Exclude"><lightning-icon icon-name={item.excludeIcon} size="xx-small"></lightning-icon></button></template></span></div>
+                    </template>
+                    <template lwc:else><button type="button" key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}><template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span></button></template>
                 </template>
                 <template lwc:if={hasOptions}></template>
                 <template lwc:else>

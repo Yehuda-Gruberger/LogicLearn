@@ -5,11 +5,13 @@ import discardTutorialDraft from "@salesforce/apex/LogicLearnAdminController.dis
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
+import getAudienceMembers from "@salesforce/apex/LogicLearnAdminController.getAudienceMembers";
 import saveTutorialWithTitle from "@salesforce/apex/LogicLearnAdminController.saveTutorialWithTitle";
 import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
 import sendInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
 import saveGroup from "@salesforce/apex/LogicLearnAdminController.saveGroup";
+import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
 
 const EMPTY_FORM = {
     videoId: null,
@@ -29,29 +31,33 @@ const EMPTY_FORM = {
     requiredUsers: [],
     requiredProfiles: [],
     requiredGroups: [],
+    visibilityExcludedUsers: [],
+    requiredExcludedUsers: [],
     notificationUsers: [],
     notificationProfiles: [],
-    notificationGroups: []
+    notificationGroups: [],
+    publishNotificationChannel: "None",
+    assignmentNotificationChannel: "None"
 };
 
 export default class LogicLearnTutorialEditor extends LightningElement {
     @api recordId;
     @api highlightSection;
     form = {...EMPTY_FORM};
-    catalog = {users: [], profiles: [], groups: [], folders: []};
+    catalog = {users: [], profiles: [], groups: [], folders: [], categories: []};
     settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: ""};
     completionMode = "global";
     loading = true;
     saving = false;
     createdDraft = false;
     fileName;
-    newVideoChannel = "None";
-    assignmentChannel = "None";
+    inheritedAudienceUsers = {visibility: [], required: []};
     activeStage = "content";
     showGroupCreator = false;
     groupSaving = false;
     groupTargetField;
     groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
+    creatingFolder = false;
     draftTitle = "";
 
     async connectedCallback() {
@@ -70,6 +76,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.form = this.normalize({...EMPTY_FORM, ...tutorial, videoId: id});
             this.draftTitle = this.form.title || "";
             this.completionMode = tutorial.completionThreshold == null ? "global" : "custom";
+            await Promise.all([this.refreshInheritedAudience("visibility"), this.refreshInheritedAudience("required")]);
         } catch (error) {
             this.toast("Unable to open tutorial", this.message(error), "error");
             this.dispatchEvent(new CustomEvent("close"));
@@ -81,7 +88,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     normalize(value) {
         const result = {...value};
         ["visibilityUsers", "visibilityProfiles", "visibilityGroups", "requiredUsers", "requiredProfiles",
-            "requiredGroups", "notificationUsers", "notificationProfiles", "notificationGroups"].forEach((key) => {
+            "requiredGroups", "visibilityExcludedUsers", "requiredExcludedUsers",
+            "notificationUsers", "notificationProfiles", "notificationGroups"].forEach((key) => {
             result[key] = Array.isArray(result[key]) ? result[key] : [];
         });
         return result;
@@ -121,8 +129,10 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     get categoryOptions() {
-        return ["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
-            .map((value) => ({label: value, value}));
+        return this.catalog.categories?.length
+            ? this.catalog.categories
+            : ["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
+                .map((value) => ({label: value, value}));
     }
 
     get audienceOptions() {
@@ -144,7 +154,10 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get visibilityAudience() { return this.combinedAudience("visibility"); }
     get requiredAudience() { return this.combinedAudience("required"); }
-    get notificationAudience() { return this.combinedAudience("notification"); }
+    get visibilityExcludedAudience() { return (this.form.visibilityExcludedUsers || []).map((value) => `User:${value}`); }
+    get requiredExcludedAudience() { return (this.form.requiredExcludedUsers || []).map((value) => `User:${value}`); }
+    get visibilityExcludableAudience() { return (this.inheritedAudienceUsers.visibility || []).map((value) => `User:${value}`); }
+    get requiredExcludableAudience() { return (this.inheritedAudienceUsers.required || []).map((value) => `User:${value}`); }
     get hasVisibilityAudience() { return this.visibilityAudience.length > 0; }
     get hasRequiredAudience() { return this.requiredAudience.length > 0; }
     get videoCardClass() { return this.cardClass("video", "panel-card video-card"); }
@@ -198,23 +211,26 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         ];
     }
 
-    get channelOptions() {
+    channelChoices(field) {
         return [
             {label: "Don’t notify", value: "None"},
             {label: "In-app", value: "In-app"},
             {label: "Email", value: "Email"},
             {label: "Both", value: "Both"}
-        ];
+        ].map((option) => ({...option, className: this.form[field] === option.value ? "channel-option active" : "channel-option"}));
     }
+
+    get publishChannelOptions() { return this.channelChoices("publishNotificationChannel"); }
+    get assignmentChannelOptions() { return this.channelChoices("assignmentNotificationChannel"); }
 
     handleField(event) {
         const field = event.currentTarget.dataset.field;
         const value = event.target.type === "checkbox" ? event.target.checked : event.detail?.value ?? event.target.value;
-        if (field === "newVideoChannel" || field === "assignmentChannel") {
-            this[field] = value;
-            return;
-        }
         this.form = {...this.form, [field]: value === "" ? null : value};
+    }
+
+    handleChannelSelect(event) {
+        this.form = {...this.form, [event.currentTarget.dataset.field]: event.currentTarget.dataset.value};
     }
 
     handleTitleInput(event) {
@@ -226,28 +242,72 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.form = {...this.form, [field]: event.detail.value};
     }
 
-    handleAudiencePicker(event) {
+    async handleAudiencePicker(event) {
         const prefix = event.currentTarget.dataset.purpose;
         const selected = event.detail.value || [];
+        const excluded = event.detail.exclusions || [];
         const valuesFor = (type) => selected.filter((value) => value.startsWith(`${type}:`)).map((value) => value.slice(type.length + 1));
         this.form = {
             ...this.form,
             [`${prefix}Users`]: valuesFor("User"),
             [`${prefix}Profiles`]: valuesFor("Profile"),
-            [`${prefix}Groups`]: valuesFor("Group")
+            [`${prefix}Groups`]: valuesFor("Group"),
+            [`${prefix}ExcludedUsers`]: excluded.filter((value) => value.startsWith("User:")).map((value) => value.slice(5))
         };
+        await this.refreshInheritedAudience(prefix);
     }
 
-    handleCopyAudience(event) {
+    async refreshInheritedAudience(prefix) {
+        const users = await getAudienceMembers({
+            profileIds: this.form[`${prefix}Profiles`] || [],
+            groupIds: this.form[`${prefix}Groups`] || []
+        });
+        const eligible = users || [];
+        const eligibleSet = new Set(eligible);
+        this.inheritedAudienceUsers = {...this.inheritedAudienceUsers, [prefix]: eligible};
+        this.form = {...this.form, [`${prefix}ExcludedUsers`]:
+            (this.form[`${prefix}ExcludedUsers`] || []).filter((id) => eligibleSet.has(id))};
+    }
+
+    async handleCreateFolder(event) {
+        const name = event.detail?.query?.trim();
+        if (!name || this.creatingFolder) return;
+        this.creatingFolder = true;
+        try {
+            const folderId = await saveFolder({input: {name}});
+            this.catalog = await getCatalog();
+            this.form = {...this.form, folderId};
+            this.toast("Folder created", `${name} is ready and selected.`, "success");
+        } catch (error) {
+            this.toast("Could not create folder", this.message(error), "error");
+        } finally {
+            this.creatingFolder = false;
+        }
+    }
+
+    handleCreateCategory(event) {
+        const category = event.detail?.query?.trim();
+        if (!category) return;
+        const categories = [...(this.catalog.categories || [])];
+        if (!categories.some((item) => item.label.toLowerCase() === category.toLowerCase())) {
+            categories.push({label: category, value: category});
+            categories.sort((left, right) => left.label.localeCompare(right.label));
+        }
+        this.catalog = {...this.catalog, categories};
+        this.form = {...this.form, category};
+    }
+
+    async handleCopyAudience(event) {
         const source = event.currentTarget.dataset.source;
         const target = event.currentTarget.dataset.target;
         const additions = {};
-        ["Users", "Profiles", "Groups"].forEach((suffix) => {
+        ["Users", "Profiles", "Groups", "ExcludedUsers"].forEach((suffix) => {
             additions[`${target}${suffix}`] = [
                 ...new Set([...(this.form[`${target}${suffix}`] || []), ...(this.form[`${source}${suffix}`] || [])])
             ];
         });
         this.form = {...this.form, ...additions};
+        await this.refreshInheritedAudience(target);
     }
 
     handleStatusSelect(event) {
@@ -354,10 +414,10 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             const payload = {...this.form, videoId: this.recordId, fileName: null, title: currentTitle};
             const videoId = await saveTutorialWithTitle({input: payload, title: currentTitle});
             const notices = [];
-            if (["Email", "Both"].includes(this.newVideoChannel)) notices.push(sendNotification({videoId, notificationType: "New Video"}));
-            if (["In-app", "Both"].includes(this.newVideoChannel)) notices.push(sendInAppNotification({videoId, notificationType: "New Video"}));
-            if (["Email", "Both"].includes(this.assignmentChannel)) notices.push(sendNotification({videoId, notificationType: "Assignment"}));
-            if (["In-app", "Both"].includes(this.assignmentChannel)) notices.push(sendInAppNotification({videoId, notificationType: "Assignment"}));
+            if (["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendNotification({videoId, notificationType: "New Video"}));
+            if (["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: "New Video"}));
+            if (["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendNotification({videoId, notificationType: "Assignment"}));
+            if (["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: "Assignment"}));
             const counts = notices.length ? await Promise.all(notices) : [];
             const emailed = counts.reduce((sum, count) => sum + count, 0);
             this.createdDraft = false;

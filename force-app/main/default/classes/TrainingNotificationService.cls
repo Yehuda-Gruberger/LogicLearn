@@ -104,7 +104,7 @@ public with sharing class TrainingNotificationService {
     public static Integer notifyAudience(Id videoId, String notificationType) {
         if (videoId == null) return 0;
         String type = String.isBlank(notificationType) ? 'Assignment' : notificationType;
-        String purpose = type == 'New Video' ? 'Notification' : 'Required';
+        String purpose = type == 'New Video' ? 'Visibility' : 'Required';
         Set<Id> recipientIds = LogicLearnAudienceService.usersForVideo(videoId, purpose);
         if (recipientIds.isEmpty()) return 0;
 

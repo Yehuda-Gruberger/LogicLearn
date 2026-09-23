@@ -113,7 +113,7 @@
   box-shadow: 0 2px 7px rgba(20, 43, 61, 0.04);
 }
 .panel-card.section-highlight {
-  animation: sectionFocus 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: sectionFocus 1.85s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes sectionFocus {
   0% {
@@ -153,9 +153,12 @@
   align-items: center;
   gap: 0.2rem;
 }
-.panel-title lightning-helptext,
-.audience-label lightning-helptext {
+.help-icon {
   display: inline-flex;
+  align-items: center;
+  color: #8796a7;
+  cursor: help;
+  --slds-c-icon-color-foreground-default: #8796a7;
 }
 .panel-head p {
   margin: 0.1rem 0 0;
@@ -369,8 +372,44 @@
   --logic-learn-picker-border: #c7d3dc;
   --logic-learn-picker-font-size: 0.62rem;
 }
-.notification-channels {
-  padding: 0.72rem 0.85rem;
+.channel-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
+}
+.channel-setting > span {
+  flex: 0 0 auto;
+  color: #526477;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+.channel-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1;
+  max-width: 20rem;
+  padding: 0.14rem;
+  border-radius: 0.43rem;
+  background: #edf2f5;
+}
+.channel-option {
+  min-width: 0;
+  padding: 0.34rem 0.2rem;
+  border: 0;
+  border-radius: 0.32rem;
+  background: transparent;
+  color: #647488;
+  font: inherit;
+  font-size: 0.55rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.channel-option.active {
+  background: #fff;
+  color: #075e6c;
+  box-shadow: 0 1px 4px rgba(20, 43, 61, 0.14);
 }
 .editor-foot {
   flex: 0 0 auto;
@@ -498,11 +537,12 @@
 @media (max-width: 600px) {
   .details-grid,
   .publishing-grid,
-  .notification-channels,
   .quick-group-grid {
     grid-template-columns: 1fr;
   }
   .source-control {
     width: 12rem;
   }
+  .channel-setting { align-items: stretch; flex-direction: column; }
+  .channel-selector { max-width: none; }
 }

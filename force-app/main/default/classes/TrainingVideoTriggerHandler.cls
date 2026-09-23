@@ -19,7 +19,7 @@ public with sharing class TrainingVideoTriggerHandler {
         Set<Id> withVisibility = new Set<Id>();
         for (Training_Audience__c audience : [
             SELECT Training_Video__c FROM Training_Audience__c
-            WHERE Training_Video__c IN :publishedIds AND Purpose__c = 'Visibility'
+            WHERE Training_Video__c IN :publishedIds AND Purpose__c = 'Visibility' AND Excluded__c = FALSE
         ]) withVisibility.add(audience.Training_Video__c);
         for (Training_Video__c video : newList) {
             if (video.Status__c == 'Published' && !withVisibility.contains(video.Id)) {

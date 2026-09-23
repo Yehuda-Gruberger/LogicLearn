@@ -57,15 +57,40 @@ private class LogicLearnPlatformTest {
         LogicLearnAdminController.TutorialInput input = new LogicLearnAdminController.TutorialInput();
         input.title='One-screen Tutorial'; input.status='Published'; input.contentType='External Link';
         input.externalUrl='https://example.com'; input.category='Products'; input.skipPrevention='Enabled';
+        input.publishNotificationChannel='Email'; input.assignmentNotificationChannel='In-app';
         String userId=String.valueOf(UserInfo.getUserId());
         input.visibilityUsers=new List<String>{userId}; input.requiredUsers=new List<String>{userId}; input.notificationUsers=new List<String>{userId};
         input.title=null;
         Test.startTest(); Id videoId=LogicLearnAdminController.saveTutorialWithTitle(input, 'Saved tutorial'); Test.stopTest();
         System.assertEquals('Saved tutorial', [SELECT Name FROM Training_Video__c WHERE Id=:videoId].Name);
-        System.assertEquals('Published',[SELECT Status__c FROM Training_Video__c WHERE Id=:videoId].Status__c);
+        Training_Video__c savedVideo=[SELECT Status__c,Publish_Notification_Channel__c,Assignment_Notification_Channel__c FROM Training_Video__c WHERE Id=:videoId];
+        System.assertEquals('Published',savedVideo.Status__c);
+        System.assertEquals('Email',savedVideo.Publish_Notification_Channel__c);
+        System.assertEquals('In-app',savedVideo.Assignment_Notification_Channel__c);
         Map<String,Integer> counts=new Map<String,Integer>();
         for(AggregateResult row:[SELECT Purpose__c purpose,COUNT(Id) total FROM Training_Audience__c WHERE Training_Video__c=:videoId GROUP BY Purpose__c])counts.put((String)row.get('purpose'),(Integer)row.get('total'));
         System.assertEquals(1,counts.get('Visibility'));System.assertEquals(1,counts.get('Required'));System.assertEquals(1,counts.get('Notification'));
+    }
+
+    @IsTest
+    static void explicitAudienceExclusionAlwaysWins() {
+        LogicLearnAudienceService.adminOverride = true;
+        String userId=String.valueOf(UserInfo.getUserId());
+        LogicLearnAdminController.TutorialInput input = new LogicLearnAdminController.TutorialInput();
+        input.title='Excluded tutorial'; input.status='Published'; input.contentType='External Link';
+        input.externalUrl='https://example.com/excluded'; input.category='Custom Category';
+        input.visibilityProfiles=new List<String>{String.valueOf(UserInfo.getProfileId())};
+        input.visibilityUsers=new List<String>{userId};
+        input.visibilityExcludedUsers=new List<String>{userId};
+        Id videoId=LogicLearnAdminController.saveTutorial(input);
+
+        System.assertEquals(false, LogicLearnAudienceService.videoIdsForUser(
+            UserInfo.getUserId(),'Visibility',new Set<Id>{videoId}).contains(videoId));
+        System.assertEquals(0,LogicLearnAudienceService.usersForVideo(videoId,'Visibility').size());
+        LogicLearnAdminController.TutorialInput loaded=LogicLearnAdminController.getTutorial(videoId);
+        System.assertEquals(new List<String>{userId},loaded.visibilityExcludedUsers);
+        System.assert(LogicLearnAdminController.getAudienceMembers(
+            new List<String>{String.valueOf(UserInfo.getProfileId())},new List<String>()).contains(userId));
     }
 
     @IsTest

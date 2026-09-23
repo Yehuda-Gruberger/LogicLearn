@@ -10,6 +10,7 @@ import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
 import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
+import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 
 const VIDEO_COLUMNS = [
     {label: "Title", fieldName: "title", type: "text"},
@@ -35,6 +36,7 @@ export default class TrainingAdminConsole extends LightningElement {
 
     folders = [];
     catalog = {users: [], profiles: [], groups: []};
+    globalSettings = {completionThreshold: 90, preventSkipping: true};
     @track videos = [];
     _wiredFolders;
     _wiredVideos;
@@ -91,7 +93,8 @@ export default class TrainingAdminConsole extends LightningElement {
     wiredVideos(result) {
         this._wiredVideos = result;
         if (result.data) {
-            this.videos = result.data;
+            this.videos = [...result.data].sort((left, right) =>
+                new Date(right.createdDate || 0).getTime() - new Date(left.createdDate || 0).getTime());
             if (!this.selectedVideoId && this.videos.length) this.selectTutorial(this.videos[0].id);
             else if (this.selectedVideoId && !this.videos.some((video) => video.id === this.selectedVideoId)) {
                 this.selectedVideoId = undefined;
@@ -110,9 +113,16 @@ export default class TrainingAdminConsole extends LightningElement {
                 ...this.selectedTutorial,
                 visibilitySummary: this.audienceSummary(this.selectedTutorial, "visibility"),
                 requiredSummary: this.audienceSummary(this.selectedTutorial, "required"),
-                notificationSummary: this.audienceSummary(this.selectedTutorial, "notification")
+                notificationSummary: this.notificationSummary(this.selectedTutorial)
             };
         }
+    }
+
+    @wire(getSettings)
+    wiredSettings({data}) {
+        if (!data) return;
+        this.globalSettings = data;
+        if (this.selectedTutorial) this.applyResolvedSettingLabels();
     }
 
     // Hierarchical, indented folder list.
@@ -326,9 +336,9 @@ export default class TrainingAdminConsole extends LightningElement {
                 completedCount: row.completedCount || 0,
                 visibilitySummary: this.audienceSummary(detail, "visibility"),
                 requiredSummary: this.audienceSummary(detail, "required"),
-                notificationSummary: this.audienceSummary(detail, "notification"),
-                completionLabel: detail.completionThreshold == null ? "Global default" : `Watch ${detail.completionThreshold}% of video`,
-                skipLabel: detail.skipPrevention || "Use global default",
+                notificationSummary: this.notificationSummary(detail),
+                completionLabel: detail.completionThreshold == null ? `Watch ${this.globalSettings.completionThreshold}% of video` : `Watch ${detail.completionThreshold}% of video`,
+                skipLabel: !detail.skipPrevention || detail.skipPrevention === "Use Global Default" ? (this.globalSettings.preventSkipping ? "Enabled" : "Disabled") : detail.skipPrevention,
                 dueDateLabel: this.formatDate(detail.dueDate),
                 requiredPeopleLabel: `${row.assignedCount || 0} ${(row.assignedCount || 0) === 1 ? "person" : "people"}`
             };
@@ -350,6 +360,23 @@ export default class TrainingAdminConsole extends LightningElement {
             return (detail[`${prefix}${suffix}`] || []).map((id) => lookup.get(String(id)) || String(id));
         });
         return labels.length ? labels.join(", ") : "None";
+    }
+
+    notificationSummary(detail) {
+        const label = (value) => value === "None" || !value ? "Don’t notify" : value;
+        return `Viewers: ${label(detail.publishNotificationChannel)} · Required: ${label(detail.assignmentNotificationChannel)}`;
+    }
+
+    applyResolvedSettingLabels() {
+        this.selectedTutorial = {
+            ...this.selectedTutorial,
+            completionLabel: this.selectedTutorial.completionThreshold == null
+                ? `Watch ${this.globalSettings.completionThreshold}% of video`
+                : `Watch ${this.selectedTutorial.completionThreshold}% of video`,
+            skipLabel: !this.selectedTutorial.skipPrevention || this.selectedTutorial.skipPrevention === "Use Global Default"
+                ? (this.globalSettings.preventSkipping ? "Enabled" : "Disabled")
+                : this.selectedTutorial.skipPrevention
+        };
     }
 
     handleVideoSearch(event) {

@@ -18,19 +18,22 @@ public without sharing class LogicLearnAudienceService {
         if (candidateVideoIds == null || candidateVideoIds.isEmpty()) return result;
         User target = [SELECT Id, ProfileId FROM User WHERE Id = :userId LIMIT 1];
         List<Training_Audience__c> rules = [
-            SELECT Training_Video__c, Audience_Type__c, User__c, Profile_Id__c, LogicLearn_Group__c
+            SELECT Training_Video__c, Audience_Type__c, User__c, Profile_Id__c, LogicLearn_Group__c, Excluded__c
             FROM Training_Audience__c
             WHERE Training_Video__c IN :candidateVideoIds AND Purpose__c = :purpose
         ];
         Set<Id> relevantGroups = new Set<Id>();
         for (Training_Audience__c rule : rules) if (rule.LogicLearn_Group__c != null) relevantGroups.add(rule.LogicLearn_Group__c);
         Map<Id, List<Training_Group_Member__c>> membersByGroup = loadGroupTree(relevantGroups);
+        Set<Id> excluded = new Set<Id>();
         for (Training_Audience__c rule : rules) {
             if (matches(target.Id, target.ProfileId, rule.Audience_Type__c, rule.User__c, rule.Profile_Id__c,
                 rule.LogicLearn_Group__c, membersByGroup, new Set<Id>())) {
-                result.add(rule.Training_Video__c);
+                if (rule.Excluded__c == true) excluded.add(rule.Training_Video__c);
+                else result.add(rule.Training_Video__c);
             }
         }
+        result.removeAll(excluded);
         return result;
     }
 
@@ -41,14 +44,16 @@ public without sharing class LogicLearnAudienceService {
 
     public static Set<Id> usersForVideo(Id videoId, String purpose) {
         List<Training_Audience__c> rules = [
-            SELECT Audience_Type__c, User__c, Profile_Id__c, LogicLearn_Group__c
+            SELECT Audience_Type__c, User__c, Profile_Id__c, LogicLearn_Group__c, Excluded__c
             FROM Training_Audience__c WHERE Training_Video__c = :videoId AND Purpose__c = :purpose
         ];
         Set<Id> directUsers = new Set<Id>();
         Set<Id> profileIds = new Set<Id>();
         Set<Id> groupIds = new Set<Id>();
+        Set<Id> excludedUsers = new Set<Id>();
         for (Training_Audience__c rule : rules) {
-            if (rule.Audience_Type__c == 'User' && rule.User__c != null) directUsers.add(rule.User__c);
+            if (rule.Excluded__c == true && rule.Audience_Type__c == 'User' && rule.User__c != null) excludedUsers.add(rule.User__c);
+            else if (rule.Audience_Type__c == 'User' && rule.User__c != null) directUsers.add(rule.User__c);
             else if (rule.Audience_Type__c == 'Profile' && String.isNotBlank(rule.Profile_Id__c)) profileIds.add((Id)rule.Profile_Id__c);
             else if (rule.Audience_Type__c == 'LogicLearn Group' && rule.LogicLearn_Group__c != null) groupIds.add(rule.LogicLearn_Group__c);
         }
@@ -57,10 +62,21 @@ public without sharing class LogicLearnAudienceService {
         }
         Map<Id, List<Training_Group_Member__c>> tree = loadGroupTree(groupIds);
         for (Id groupId : groupIds) directUsers.addAll(expandGroup(groupId, tree, new Set<Id>()));
+        directUsers.removeAll(excludedUsers);
         if (directUsers.isEmpty()) return directUsers;
         Set<Id> active = new Set<Id>();
         for (User u : [SELECT Id FROM User WHERE Id IN :directUsers AND IsActive = TRUE]) active.add(u.Id);
         return active;
+    }
+
+    public static Set<Id> usersForSelections(List<String> profileValues, List<String> groupValues) {
+        Set<Id> users = new Set<Id>(); Set<Id> profileIds = new Set<Id>(); Set<Id> groupIds = new Set<Id>();
+        if (profileValues != null) for (String value : profileValues) if (String.isNotBlank(value)) profileIds.add((Id)value);
+        if (groupValues != null) for (String value : groupValues) if (String.isNotBlank(value)) groupIds.add((Id)value);
+        if (!profileIds.isEmpty()) for (User userRow : [SELECT Id FROM User WHERE IsActive = TRUE AND ProfileId IN :profileIds]) users.add(userRow.Id);
+        Map<Id, List<Training_Group_Member__c>> tree = loadGroupTree(groupIds);
+        for (Id groupId : groupIds) users.addAll(expandGroup(groupId, tree, new Set<Id>()));
+        return users;
     }
 
     private static Boolean matches(Id userId, Id profileId, String audienceType, Id directUserId,

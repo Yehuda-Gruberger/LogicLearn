@@ -1,15 +1,17 @@
 /** Administrative API for setup, groups, the tutorial wizard, settings, and tracking. */
 public without sharing class LogicLearnAdminController {
     public class Option { @AuraEnabled public String value; @AuraEnabled public String label; @AuraEnabled public String meta; }
-    public class Catalog { @AuraEnabled public List<Option> users; @AuraEnabled public List<Option> profiles; @AuraEnabled public List<Option> groups; @AuraEnabled public List<Option> folders; }
+    public class Catalog { @AuraEnabled public List<Option> users; @AuraEnabled public List<Option> profiles; @AuraEnabled public List<Option> groups; @AuraEnabled public List<Option> folders; @AuraEnabled public List<Option> categories; }
     public class SettingsDto { @AuraEnabled public Decimal completionThreshold; @AuraEnabled public Boolean preventSkipping; @AuraEnabled public String assignmentTemplateName; @AuraEnabled public String reminderTemplateName; }
     public class TutorialInput {
         @AuraEnabled public Id videoId { get; set; } @AuraEnabled public String title { get; set; } @AuraEnabled public String description { get; set; }
         @AuraEnabled public Id folderId { get; set; } @AuraEnabled public String category { get; set; } @AuraEnabled public String contentType { get; set; }
         @AuraEnabled public String externalUrl { get; set; } @AuraEnabled public Decimal completionThreshold { get; set; } @AuraEnabled public String skipPrevention { get; set; }
         @AuraEnabled public Date dueDate { get; set; } @AuraEnabled public String status { get; set; }
+        @AuraEnabled public String publishNotificationChannel { get; set; } @AuraEnabled public String assignmentNotificationChannel { get; set; }
         @AuraEnabled public List<String> visibilityUsers { get; set; } @AuraEnabled public List<String> visibilityProfiles { get; set; } @AuraEnabled public List<String> visibilityGroups { get; set; }
         @AuraEnabled public List<String> requiredUsers { get; set; } @AuraEnabled public List<String> requiredProfiles { get; set; } @AuraEnabled public List<String> requiredGroups { get; set; }
+        @AuraEnabled public List<String> visibilityExcludedUsers { get; set; } @AuraEnabled public List<String> requiredExcludedUsers { get; set; }
         @AuraEnabled public List<String> notificationUsers { get; set; } @AuraEnabled public List<String> notificationProfiles { get; set; } @AuraEnabled public List<String> notificationGroups { get; set; }
         @AuraEnabled public String fileName { get; set; }
     }
@@ -108,14 +110,27 @@ public without sharing class LogicLearnAdminController {
 
     @AuraEnabled(cacheable=true)
     public static Catalog getCatalog() {
-        LogicLearnAudienceService.requireAdmin(); Catalog c=new Catalog(); c.users=new List<Option>(); c.profiles=new List<Option>(); c.groups=new List<Option>(); c.folders=new List<Option>();
+        LogicLearnAudienceService.requireAdmin(); Catalog c=new Catalog(); c.users=new List<Option>(); c.profiles=new List<Option>(); c.groups=new List<Option>(); c.folders=new List<Option>(); c.categories=new List<Option>();
         for(User u:[SELECT Id,Name,Profile.Name FROM User WHERE IsActive=TRUE ORDER BY Name LIMIT 2000]) c.users.add(opt(u.Id,u.Name,u.Profile.Name));
         for(Profile p:[SELECT Id,Name FROM Profile ORDER BY Name]) c.profiles.add(opt(p.Id,p.Name,'Profile'));
         for(Training_Group__c g:[SELECT Id,Name,Description__c FROM Training_Group__c ORDER BY Name]) c.groups.add(opt(g.Id,g.Name,g.Description__c));
         for(Training_Folder__c f:[SELECT Id,Name,Parent_Folder__r.Name FROM Training_Folder__c ORDER BY Sort_Order__c,Name]) c.folders.add(opt(f.Id,f.Name,f.Parent_Folder__r==null?'Folder':f.Parent_Folder__r.Name));
+        Set<String> categoryNames = new Set<String>();
+        for (Schema.PicklistEntry entry : Training_Video__c.Category__c.getDescribe().getPicklistValues()) categoryNames.add(entry.getValue());
+        for (AggregateResult row : [SELECT Category__c category FROM Training_Video__c WHERE Category__c != null GROUP BY Category__c]) categoryNames.add((String)row.get('category'));
+        List<String> sortedCategories = new List<String>(categoryNames); sortedCategories.sort();
+        for (String categoryName : sortedCategories) { Option categoryOption = new Option(); categoryOption.value = categoryName; categoryOption.label = categoryName; c.categories.add(categoryOption); }
         return c;
     }
     private static Option opt(Id value,String label,String meta){Option o=new Option();o.value=value;o.label=label;o.meta=meta;return o;}
+
+    @AuraEnabled(cacheable=true)
+    public static List<String> getAudienceMembers(List<String> profileIds, List<String> groupIds) {
+        LogicLearnAudienceService.requireAdmin();
+        List<String> result = new List<String>();
+        for (Id userId : LogicLearnAudienceService.usersForSelections(profileIds, groupIds)) result.add(String.valueOf(userId));
+        return result;
+    }
 
     @AuraEnabled(cacheable=true)
     public static FolderInput getFolder(Id folderId) {
@@ -155,7 +170,8 @@ public without sharing class LogicLearnAdminController {
         Training_Video__c video = [
             SELECT Id, Name, Description__c, Folder__c, Category__c, Content_Type__c,
                 External_URL__c, Completion_Threshold__c, Skip_Prevention__c, Due_Date__c,
-                Status__c, Video_Content_Version_Id__c
+                Status__c, Video_Content_Version_Id__c, Publish_Notification_Channel__c,
+                Assignment_Notification_Channel__c
             FROM Training_Video__c WHERE Id = :videoId LIMIT 1
         ];
         TutorialInput result = new TutorialInput();
@@ -170,6 +186,8 @@ public without sharing class LogicLearnAdminController {
         result.skipPrevention = String.isBlank(video.Skip_Prevention__c) ? 'Use Global Default' : video.Skip_Prevention__c;
         result.dueDate = video.Due_Date__c;
         result.status = video.Status__c;
+        result.publishNotificationChannel = String.isBlank(video.Publish_Notification_Channel__c) ? 'None' : video.Publish_Notification_Channel__c;
+        result.assignmentNotificationChannel = String.isBlank(video.Assignment_Notification_Channel__c) ? 'None' : video.Assignment_Notification_Channel__c;
         if (String.isNotBlank(video.Video_Content_Version_Id__c)) {
             List<ContentVersion> files = [
                 SELECT Title, FileExtension FROM ContentVersion
@@ -179,16 +197,19 @@ public without sharing class LogicLearnAdminController {
         }
         result.visibilityUsers = new List<String>(); result.visibilityProfiles = new List<String>(); result.visibilityGroups = new List<String>();
         result.requiredUsers = new List<String>(); result.requiredProfiles = new List<String>(); result.requiredGroups = new List<String>();
+        result.visibilityExcludedUsers = new List<String>(); result.requiredExcludedUsers = new List<String>();
         result.notificationUsers = new List<String>(); result.notificationProfiles = new List<String>(); result.notificationGroups = new List<String>();
         for (Training_Audience__c rule : [
-            SELECT Purpose__c, Audience_Type__c, User__c, Profile_Id__c, LogicLearn_Group__c
+            SELECT Purpose__c, Audience_Type__c, User__c, Profile_Id__c, LogicLearn_Group__c, Excluded__c
             FROM Training_Audience__c WHERE Training_Video__c = :videoId
         ]) {
             String value = rule.Audience_Type__c == 'User' ? String.valueOf(rule.User__c) :
                 rule.Audience_Type__c == 'Profile' ? rule.Profile_Id__c : String.valueOf(rule.LogicLearn_Group__c);
             if (String.isBlank(value) || value == 'null') continue;
             List<String> target;
-            if (rule.Purpose__c == 'Visibility') target = rule.Audience_Type__c == 'User' ? result.visibilityUsers : rule.Audience_Type__c == 'Profile' ? result.visibilityProfiles : result.visibilityGroups;
+            if (rule.Purpose__c == 'Visibility' && rule.Excluded__c == true) target = result.visibilityExcludedUsers;
+            else if (rule.Purpose__c == 'Required' && rule.Excluded__c == true) target = result.requiredExcludedUsers;
+            else if (rule.Purpose__c == 'Visibility') target = rule.Audience_Type__c == 'User' ? result.visibilityUsers : rule.Audience_Type__c == 'Profile' ? result.visibilityProfiles : result.visibilityGroups;
             else if (rule.Purpose__c == 'Required') target = rule.Audience_Type__c == 'User' ? result.requiredUsers : rule.Audience_Type__c == 'Profile' ? result.requiredProfiles : result.requiredGroups;
             else target = rule.Audience_Type__c == 'User' ? result.notificationUsers : rule.Audience_Type__c == 'Profile' ? result.notificationProfiles : result.notificationGroups;
             target.add(value);
@@ -226,6 +247,8 @@ public without sharing class LogicLearnAdminController {
         video.Content_Type__c=String.isBlank(input.contentType)?'Salesforce File':input.contentType;video.External_URL__c=input.externalUrl;
         video.Completion_Threshold__c=input.completionThreshold;video.Skip_Prevention__c=String.isBlank(input.skipPrevention)?'Use Global Default':input.skipPrevention;
         video.Due_Date__c=input.dueDate;
+        video.Publish_Notification_Channel__c=String.isBlank(input.publishNotificationChannel)?'None':input.publishNotificationChannel;
+        video.Assignment_Notification_Channel__c=String.isBlank(input.assignmentNotificationChannel)?'None':input.assignmentNotificationChannel;
         // Publishing is finalized after audience rows exist. This keeps the UI one-step while
         // allowing the publication trigger to enforce the audience requirement everywhere.
         video.Status__c=requestedStatus=='Published'?'Draft':requestedStatus;upsert video;
@@ -233,6 +256,7 @@ public without sharing class LogicLearnAdminController {
         List<Training_Audience__c> rules=new List<Training_Audience__c>();
         addRules(rules,video.Id,'Visibility','User',input.visibilityUsers);addRules(rules,video.Id,'Visibility','Profile',input.visibilityProfiles);addRules(rules,video.Id,'Visibility','LogicLearn Group',input.visibilityGroups);
         addRules(rules,video.Id,'Required','User',input.requiredUsers);addRules(rules,video.Id,'Required','Profile',input.requiredProfiles);addRules(rules,video.Id,'Required','LogicLearn Group',input.requiredGroups);
+        addExcludedUserRules(rules,video.Id,'Visibility',input.visibilityExcludedUsers);addExcludedUserRules(rules,video.Id,'Required',input.requiredExcludedUsers);
         addRules(rules,video.Id,'Notification','User',input.notificationUsers);addRules(rules,video.Id,'Notification','Profile',input.notificationProfiles);addRules(rules,video.Id,'Notification','LogicLearn Group',input.notificationGroups);
         if(!rules.isEmpty()) insert rules;
         if(requestedStatus=='Published') update new Training_Video__c(Id=video.Id,Status__c='Published');
@@ -249,6 +273,9 @@ public without sharing class LogicLearnAdminController {
     private static void addRules(List<Training_Audience__c> out,Id videoId,String purpose,String type,List<String> ids){
         if(ids==null)return;for(String raw:ids){if(String.isBlank(raw))continue;Training_Audience__c r=new Training_Audience__c(Training_Video__c=videoId,Purpose__c=purpose,Audience_Type__c=type);
             if(type=='User')r.User__c=(Id)raw;else if(type=='Profile')r.Profile_Id__c=raw;else r.LogicLearn_Group__c=(Id)raw;out.add(r);}
+    }
+    private static void addExcludedUserRules(List<Training_Audience__c> out,Id videoId,String purpose,List<String> ids){
+        if(ids==null)return;for(String raw:ids)if(String.isNotBlank(raw))out.add(new Training_Audience__c(Training_Video__c=videoId,Purpose__c=purpose,Audience_Type__c='User',User__c=(Id)raw,Excluded__c=true));
     }
 
     @AuraEnabled(cacheable=true)
@@ -314,7 +341,7 @@ public without sharing class LogicLearnAdminController {
     public static Integer sendInAppNotification(Id videoId, String notificationType) {
         LogicLearnAudienceService.requireAdmin();
         if (videoId == null) throw new AuraHandledException('A tutorial is required.');
-        String purpose = notificationType == 'New Video' ? 'Notification' : 'Required';
+        String purpose = notificationType == 'New Video' ? 'Visibility' : 'Required';
         Set<Id> recipients = LogicLearnAudienceService.usersForVideo(videoId, purpose);
         if (notificationType == 'Reminder' && !recipients.isEmpty()) {
             for (Training_View__c completed : [

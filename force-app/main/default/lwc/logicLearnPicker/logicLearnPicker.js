@@ -9,8 +9,11 @@ export default class LogicLearnPicker extends LightningElement {
     @api createLabel;
     @api hideLabel = false;
     @api showMetaInChip = false;
+    @api actionMode = false;
     _options = [];
     _value = [];
+    _exclusions = [];
+    _excludableValues = [];
     query = "";
     open = false;
     openUp = false;
@@ -31,16 +34,34 @@ export default class LogicLearnPicker extends LightningElement {
         this._value = Array.isArray(value) ? [...value] : value ? [value] : [];
     }
 
+    @api
+    get exclusions() { return this._exclusions; }
+    set exclusions(value) { this._exclusions = Array.isArray(value) ? [...value] : []; }
+
+    @api
+    get excludableValues() { return this._excludableValues; }
+    set excludableValues(value) { this._excludableValues = Array.isArray(value) ? [...value] : []; }
+
     get filteredOptions() {
         const q = this.query.trim().toLowerCase();
         return this._options
             .filter((item) => !q || item.label.toLowerCase().includes(q) || (item.meta || "").toLowerCase().includes(q))
             .slice(0, 100)
-            .map((item) => ({
-                ...item,
-                rowClass: this._value.includes(item.value) ? "option selected" : "option",
-                selected: this._value.includes(item.value)
-            }));
+            .map((item) => {
+                const selected = this._value.includes(item.value);
+                const excluded = this._exclusions.includes(item.value);
+                return {
+                    ...item,
+                    rowClass: selected || excluded ? "option selected" : "option",
+                    selected,
+                    excluded,
+                    canExclude: this.actionMode && this._excludableValues.includes(item.value),
+                    addIcon: selected ? "utility:check" : "utility:add",
+                    excludeIcon: excluded ? "utility:check" : "utility:dash",
+                    addClass: selected ? "option-action active" : "option-action",
+                    excludeClass: excluded ? "option-action exclude active" : "option-action exclude"
+                };
+            });
     }
 
     get selectedItems() {
@@ -51,6 +72,13 @@ export default class LogicLearnPicker extends LightningElement {
     get hasSelected() {
         return this.selectedItems.length > 0;
     }
+
+    get excludedItems() {
+        const excluded = new Set(this._exclusions);
+        return this._options.filter((item) => excluded.has(item.value));
+    }
+
+    get hasExcluded() { return this.excludedItems.length > 0; }
 
     get hasOptions() {
         return this.filteredOptions.length > 0;
@@ -102,10 +130,34 @@ export default class LogicLearnPicker extends LightningElement {
         this.emitChange();
     }
 
+    handleAdd(event) {
+        event.stopPropagation();
+        const selected = event.currentTarget.dataset.value;
+        this._value = this._value.includes(selected)
+            ? this._value.filter((value) => value !== selected)
+            : [...this._value, selected];
+        this.query = "";
+        this.emitChange();
+    }
+
+    handleExclude(event) {
+        event.stopPropagation();
+        const selected = event.currentTarget.dataset.value;
+        this._exclusions = this._exclusions.includes(selected)
+            ? this._exclusions.filter((value) => value !== selected)
+            : [...this._exclusions, selected];
+        this.query = "";
+        this.emitChange();
+    }
+
     handleRemove(event) {
         event.stopPropagation();
         const selected = event.currentTarget.dataset.value;
-        this._value = this._value.filter((value) => value !== selected);
+        if (event.currentTarget.dataset.kind === "exclusion") {
+            this._exclusions = this._exclusions.filter((value) => value !== selected);
+        } else {
+            this._value = this._value.filter((value) => value !== selected);
+        }
         this.emitChange();
     }
 
@@ -138,7 +190,7 @@ export default class LogicLearnPicker extends LightningElement {
     }
 
     emitChange() {
-        this.dispatchEvent(new CustomEvent("change", {detail: {value: this.value}}));
+        this.dispatchEvent(new CustomEvent("change", {detail: {value: this.value, exclusions: [...this._exclusions]}}));
     }
 
     @api
