@@ -20,6 +20,7 @@ export default class TrainingLibrary extends LightningElement {
   @track searchTerm = "";
   @track selectedFolderId = "all";
   @track libraryFilter = "all";
+  @track contentFilter = "all";
   @track showPlayer = false;
   @track mode = "library";
   @track adminSection = "tutorials";
@@ -362,26 +363,37 @@ export default class TrainingLibrary extends LightningElement {
     return this.displaySections.flatMap((section) => section.videos);
   }
 
-  get requiredVideoCards() {
+  get allRequiredVideoCards() {
     return this.allVideoCards.filter(
       (video) => video.isMandatory && video.viewStatus !== "Completed",
     );
   }
 
+  get requiredVideoCards() {
+    return this.allRequiredVideoCards.filter((video) => this.matchesContentFilter(video));
+  }
+
   get visibleVideoCards() {
+    let videos = this.allVideoCards;
     if (this.libraryFilter === "required")
-      return this.allVideoCards.filter(
+      videos = videos.filter(
         (video) => video.isMandatory && video.viewStatus !== "Completed",
       );
     if (this.libraryFilter === "progress")
-      return this.allVideoCards.filter(
+      videos = videos.filter(
         (video) => video.viewStatus === "In Progress",
       );
     if (this.libraryFilter === "completed")
-      return this.allVideoCards.filter(
+      videos = videos.filter(
         (video) => video.viewStatus === "Completed",
       );
-    return this.allVideoCards;
+    return videos.filter((video) => this.matchesContentFilter(video));
+  }
+
+  matchesContentFilter(video) {
+    if (this.contentFilter === "documents") return video.contentType === "Document";
+    if (this.contentFilter === "videos") return video.contentType !== "Document";
+    return true;
   }
 
   get hasRequiredVideos() {
@@ -411,10 +423,17 @@ export default class TrainingLibrary extends LightningElement {
       ? "filter-chip active"
       : "filter-chip";
   }
+  get allTypesClass() {
+    return this.contentFilter === "all" ? "type-option active" : "type-option";
+  }
+  get videosTypeClass() {
+    return this.contentFilter === "videos" ? "type-option active" : "type-option";
+  }
+  get documentsTypeClass() {
+    return this.contentFilter === "documents" ? "type-option active" : "type-option";
+  }
   get requiredCount() {
-    return this.allVideoCards.filter(
-      (video) => video.isMandatory && video.viewStatus !== "Completed",
-    ).length;
+    return this.allRequiredVideoCards.length;
   }
   get allVideoCount() {
     return this.allVideoCards.length;
@@ -452,24 +471,41 @@ export default class TrainingLibrary extends LightningElement {
 
   decorate(video) {
     const meta = this.statusMeta(video);
+    const isDocument = video.contentType === "Document";
+    const pageCount = video.pageCount || 0;
+    const currentPage = pageCount
+      ? Math.min(pageCount, Math.max(1, Math.ceil(((video.watchPercent || 0) / 100) * pageCount)))
+      : 0;
+    const documentProgressLabel = video.viewStatus === "In Progress" && pageCount
+      ? `Page ${currentPage} of ${pageCount}`
+      : meta.pillLabel;
     // Highlight mandatory videos that still need attention (not yet completed).
     const emphasize = video.isMandatory && video.viewStatus !== "Completed";
     return {
       ...video,
       pillClass: meta.pillClass,
-      pillLabel: meta.pillLabel,
       footNote: meta.footNote,
       showProgressBar: meta.showProgressBar,
       progressBarStyle: `width:${video.watchPercent || 0}%`,
-      thumbStyle: `background:${CATEGORY_GRADIENTS[video.category] || CATEGORY_GRADIENTS.Other}`,
+      thumbStyle: `background:${isDocument ? this.documentGradient(video.category) : (CATEGORY_GRADIENTS[video.category] || CATEGORY_GRADIENTS.Other)}`,
       durationLabel: this.formatDuration(video.durationSeconds),
       dueLabel: video.dueDate
         ? `Due ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${video.dueDate}T00:00:00`))}`
         : "",
       cardClass: emphasize ? "card mandatory" : "card",
-      cardIcon: video.contentType === "Document" ? "utility:knowledge_base" : "utility:play",
-      typeMeta: video.contentType === "Document" ? "Read tutorial" : this.formatDuration(video.durationSeconds),
+      cardIcon: isDocument ? "utility:knowledge_base" : "utility:play",
+      isDocument,
+      pageCount,
+      pillLabel: isDocument ? documentProgressLabel : meta.pillLabel,
+      typeMeta: isDocument ? `${pageCount} ${pageCount === 1 ? "page" : "pages"}` : this.formatDuration(video.durationSeconds),
+      cornerLabel: isDocument ? `${pageCount} ${pageCount === 1 ? "page" : "pages"}` : this.formatDuration(video.durationSeconds),
     };
+  }
+
+  documentGradient(category) {
+    if (category === "Products" || category === "Systems") return "linear-gradient(135deg,#647f99,#8fa4b8)";
+    if (category === "Compliance") return "linear-gradient(135deg,#9c793a,#c39a55)";
+    return "linear-gradient(135deg,#8e7838,#b7a15c)";
   }
 
   statusMeta(video) {
@@ -549,6 +585,10 @@ export default class TrainingLibrary extends LightningElement {
 
   handleLibraryFilter(event) {
     this.libraryFilter = event.currentTarget.dataset.filter;
+  }
+
+  handleContentFilter(event) {
+    this.contentFilter = event.currentTarget.dataset.type;
   }
 
   handleCreateFirstTutorial() {

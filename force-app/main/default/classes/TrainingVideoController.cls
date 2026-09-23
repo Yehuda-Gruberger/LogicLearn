@@ -40,6 +40,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public Decimal watchPercent { get; set; }
         @AuraEnabled public Datetime completedAt { get; set; }
         @AuraEnabled public String contentType { get; set; }
+        @AuraEnabled public Integer pageCount { get; set; }
     }
 
     public class FolderInfo {
@@ -100,6 +101,22 @@ public without sharing class TrainingVideoController {
         for (Training_Video__c video : videos) if (visibleIds.contains(video.Id)) allowedVideos.add(video);
         videos = allowedVideos;
 
+        Map<Id, Integer> pageCountsByVideo = new Map<Id, Integer>();
+        Set<Id> documentIds = new Set<Id>();
+        for (Training_Video__c video : videos) {
+            if (video.Content_Type__c == 'Document') documentIds.add(video.Id);
+        }
+        if (!documentIds.isEmpty()) {
+            for (AggregateResult row : [
+                SELECT Training_Video__c videoId, COUNT(Id) pageCount
+                FROM Training_Tutorial_Page__c
+                WHERE Training_Video__c IN :documentIds
+                GROUP BY Training_Video__c
+            ]) {
+                pageCountsByVideo.put((Id) row.get('videoId'), (Integer) row.get('pageCount'));
+            }
+        }
+
         // Running user's view rows for these videos, keyed by video Id.
         Map<Id, Training_View__c> viewsByVideo = new Map<Id, Training_View__c>();
         for (Training_View__c v : [
@@ -143,6 +160,7 @@ public without sharing class TrainingVideoController {
                 ? '/sfc/servlet.shepherd/version/download/' + vid.Video_Content_Version_Id__c
                 : null;
             info.contentType = vid.Content_Type__c;
+            info.pageCount = pageCountsByVideo.containsKey(vid.Id) ? pageCountsByVideo.get(vid.Id) : 0;
 
             Training_View__c view = viewsByVideo.get(vid.Id);
             // Mandatory is per-user: only when this user was actually assigned the video.

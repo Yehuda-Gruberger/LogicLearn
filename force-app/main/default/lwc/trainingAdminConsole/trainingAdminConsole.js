@@ -445,6 +445,10 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     get showEngagementPopover() { return Boolean(this.engagementMetric); }
+    get engagementAverageLabel() { return this.selectedIsDocument ? "Average read" : "Average watched"; }
+    get engagementMetricLabel() {
+        return this.engagementMetric === "Average watched" ? this.engagementAverageLabel : this.engagementMetric;
+    }
     get hasEngagementRows() { return this.engagementRows.length > 0; }
     get engagementPageCount() { return Math.max(1, Math.ceil(this.engagementTotal / this.engagementPageSize)); }
     get engagementPageLabel() { return `${this.engagementPage} / ${this.engagementPageCount}`; }
@@ -462,7 +466,7 @@ export default class TrainingAdminConsole extends LightningElement {
     }
     get engagementSummary() {
         if (this.engagementMetric === "Total opens") return `${Math.round(this.engagementMetricTotal || 0)} opens from ${this.engagementTotal} ${this.engagementTotal === 1 ? "person" : "people"}. Most recent first.`;
-        if (this.engagementMetric === "Average watched") return `${this.engagementTotal} active ${this.engagementTotal === 1 ? "learner" : "learners"}. Most recent first.`;
+        if (this.engagementMetric === "Average watched") return `${this.engagementTotal} active ${this.engagementTotal === 1 ? (this.selectedIsDocument ? "reader" : "learner") : (this.selectedIsDocument ? "readers" : "learners")}. Most recent first.`;
         return `${this.engagementTotal} ${this.engagementTotal === 1 ? "learner" : "learners"}. Most recent first.`;
     }
 
@@ -494,7 +498,7 @@ export default class TrainingAdminConsole extends LightningElement {
             this.engagementMetricTotal = result.metricTotal;
             this.engagementRows = (result.rows || []).map((row) => ({
                 ...row,
-                detailLabel: `${metric === "Total opens" ? `${row.viewCount || 0} open${row.viewCount === 1 ? "" : "s"}` : metric === "Completed" ? "Completed" : `${Math.round(row.watchPercent || 0)}% viewed`} · ${this.activityDate(row.lastViewedAt)}`
+                detailLabel: `${metric === "Total opens" ? `${row.viewCount || 0} open${row.viewCount === 1 ? "" : "s"}` : metric === "Completed" ? "Completed" : `${Math.round(row.watchPercent || 0)}% ${this.selectedIsDocument ? "read" : "viewed"}`} · ${this.activityDate(row.lastViewedAt)}`
             }));
         } catch (error) {
             this.engagementRows = [];

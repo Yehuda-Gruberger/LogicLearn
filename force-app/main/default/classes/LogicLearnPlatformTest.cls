@@ -109,6 +109,15 @@ private class LogicLearnPlatformTest {
         input.requiredUsers = new List<String>{String.valueOf(UserInfo.getUserId())};
         LogicLearnAdminController.saveTutorial(input);
         System.assertEquals(2, LogicLearnAdminController.getTutorialPages(videoId).size());
+        List<TrainingVideoController.FolderSection> library = TrainingVideoController.getLibrary(null, null);
+        TrainingVideoController.VideoInfo libraryDocument;
+        for (TrainingVideoController.FolderSection section : library) {
+            for (TrainingVideoController.VideoInfo tutorial : section.videos) {
+                if (tutorial.id == videoId) libraryDocument = tutorial;
+            }
+        }
+        System.assertNotEquals(null, libraryDocument);
+        System.assertEquals(2, libraryDocument.pageCount);
 
         LogicLearnAudienceService.adminOverride = false;
         TrainingVideoController.DocumentInfo document = TrainingVideoController.getDocument(videoId);
