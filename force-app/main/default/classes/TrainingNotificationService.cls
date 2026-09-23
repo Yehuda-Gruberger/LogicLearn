@@ -102,9 +102,13 @@ public with sharing class TrainingNotificationService {
 
     /** Sends an explicit admin-requested email to a live LogicLearn audience. */
     public static Integer notifyAudience(Id videoId, String notificationType) {
+        return notifyAudience(videoId, notificationType, null);
+    }
+
+    public static Integer notifyAudience(Id videoId, String notificationType, String templateOverride) {
         if (videoId == null) return 0;
         String type = String.isBlank(notificationType) ? 'Assignment' : notificationType;
-        String purpose = type == 'New Video' ? 'Visibility' : 'Required';
+        String purpose = new Set<String>{'New Video','First Publish','Update'}.contains(type) ? 'Visibility' : 'Required';
         Set<Id> recipientIds = LogicLearnAudienceService.usersForVideo(videoId, purpose);
         if (recipientIds.isEmpty()) return 0;
 
@@ -117,7 +121,11 @@ public with sharing class TrainingNotificationService {
         if (recipientIds.isEmpty()) return 0;
 
         LogicLearn_Settings__c settings = LogicLearnAdminController.settingsRow();
-        String selectedTemplate = type == 'Reminder' ? settings.Reminder_Template_Name__c : settings.Assignment_Template_Name__c;
+        String selectedTemplate = String.isNotBlank(templateOverride) ? templateOverride :
+            type == 'Reminder' ? settings.Reminder_Template_Name__c :
+            type == 'Update' ? settings.Update_Email_Template__c :
+            type == 'First Publish' || type == 'New Video' ? settings.First_Publish_Email_Template__c :
+            settings.Assignment_Template_Name__c;
         List<EmailTemplate> templates = [
             SELECT Id FROM EmailTemplate
             WHERE (Name = :selectedTemplate OR DeveloperName = :selectedTemplate) AND IsActive = TRUE

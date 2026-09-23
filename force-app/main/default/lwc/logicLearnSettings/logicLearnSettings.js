@@ -41,6 +41,14 @@ export default class LogicLearnSettings extends LightningElement {
         return this.optionsWithCurrent(this.settings?.reminderTemplateName);
     }
 
+    get firstPublishTemplateOptions() {
+        return this.optionsWithCurrent(this.settings?.firstPublishEmailTemplate);
+    }
+
+    get updateTemplateOptions() {
+        return this.optionsWithCurrent(this.settings?.updateEmailTemplate);
+    }
+
     get changeLabel() {
         return this.originalSettings === JSON.stringify(this.settings) ? "No changes" : "Unsaved changes";
     }
@@ -79,7 +87,8 @@ export default class LogicLearnSettings extends LightningElement {
         const suggestedName = event.detail?.query || "";
         this.templateForm = {
             name: suggestedName,
-            subject: this.templateTargetField === "reminderTemplateName" ? "Reminder: [VIDEO_NAME]" : "New training: [VIDEO_NAME]",
+            subject: this.templateTargetField === "reminderTemplateName" ? "Reminder: [VIDEO_NAME]" :
+                this.templateTargetField === "updateEmailTemplate" ? "Updated training: [VIDEO_NAME]" : "New training: [VIDEO_NAME]",
             htmlBody: this.defaultTemplateBody(this.templateTargetField)
         };
         this.showTemplateCreator = true;
@@ -88,6 +97,9 @@ export default class LogicLearnSettings extends LightningElement {
     defaultTemplateBody(targetField) {
         if (targetField === "reminderTemplateName") {
             return "Hi [USER_NAME],\n\nThis is a reminder to complete [VIDEO_NAME].\n\nOpen the tutorial: [VIDEO_LINK]\nView your training library: [LIBRARY_LINK]";
+        }
+        if (targetField === "updateEmailTemplate") {
+            return "Hi [USER_NAME],\n\n[VIDEO_NAME] has been updated.\n\nReview the tutorial: [VIDEO_LINK]\nView your training library: [LIBRARY_LINK]";
         }
         return "Hi [USER_NAME],\n\nA new tutorial, [VIDEO_NAME], is ready for you.\n\nOpen the tutorial: [VIDEO_LINK]\nView your training library: [LIBRARY_LINK]";
     }
@@ -127,7 +139,7 @@ export default class LogicLearnSettings extends LightningElement {
     }
 
     async handleSave() {
-        const fields = [...this.template.querySelectorAll(".settings-content lightning-input")];
+        const fields = [...this.template.querySelectorAll(".settings-content lightning-input, .settings-content lightning-textarea")];
         if (!fields.reduce((valid, field) => field.reportValidity() && valid, true)) return;
         this.saving = true;
         try {

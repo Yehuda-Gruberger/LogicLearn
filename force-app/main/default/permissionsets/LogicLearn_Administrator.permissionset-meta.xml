@@ -15,12 +15,17 @@
     <objectPermissions><object>Training_Group__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <objectPermissions><object>Training_Group_Member__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <objectPermissions><object>Training_Notification_Log__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
+    <objectPermissions><object>Training_Tutorial_Page__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <objectPermissions><object>Training_Video__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <objectPermissions><object>Training_View__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Assignment_Template_Name__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Completion_Threshold__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.First_Publish_Email_Template__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.First_Publish_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Prevent_Skipping__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Reminder_Template_Name__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.Update_Email_Template__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.Update_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Audience__c.LogicLearn_Group__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Audience__c.Excluded__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Audience__c.Profile_Id__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
@@ -37,6 +42,7 @@
     <fieldPermissions><field>Training_Notification_Log__c.Sent_At__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Notification_Log__c.Training_Video__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Notification_Log__c.User__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Training_Tutorial_Page__c.Body__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Video__c.Category__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Video__c.Assignment_Notification_Channel__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Video__c.Completion_Threshold__c</field><readable>true</readable><editable>true</editable></fieldPermissions>

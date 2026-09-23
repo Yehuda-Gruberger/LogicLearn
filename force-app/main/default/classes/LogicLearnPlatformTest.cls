@@ -94,6 +94,36 @@ private class LogicLearnPlatformTest {
     }
 
     @IsTest
+    static void readTutorialPagesTrackProgressAndEngagementDetails() {
+        LogicLearnAudienceService.adminOverride = true;
+        Id videoId = LogicLearnAdminController.createTutorialDraft();
+        LogicLearnAdminController.TutorialPageInput first = new LogicLearnAdminController.TutorialPageInput();
+        first.title = 'Welcome'; first.body = '<p>Welcome to the guide.</p>'; first.pageNumber = 1;
+        LogicLearnAdminController.TutorialPageInput second = new LogicLearnAdminController.TutorialPageInput();
+        second.title = 'Finish'; second.body = '<p>You are done.</p>'; second.pageNumber = 2;
+        LogicLearnAdminController.saveTutorialPages(videoId, new List<LogicLearnAdminController.TutorialPageInput>{first, second});
+
+        LogicLearnAdminController.TutorialInput input = new LogicLearnAdminController.TutorialInput();
+        input.videoId = videoId; input.title = 'Read this'; input.status = 'Published'; input.contentType = 'Document';
+        input.visibilityUsers = new List<String>{String.valueOf(UserInfo.getUserId())};
+        input.requiredUsers = new List<String>{String.valueOf(UserInfo.getUserId())};
+        LogicLearnAdminController.saveTutorial(input);
+        System.assertEquals(2, LogicLearnAdminController.getTutorialPages(videoId).size());
+
+        LogicLearnAudienceService.adminOverride = false;
+        TrainingVideoController.DocumentInfo document = TrainingVideoController.getDocument(videoId);
+        System.assertEquals(2, document.pages.size()); System.assertEquals(1, document.currentPage);
+        TrainingVideoController.recordDocumentProgress(videoId, 1, 2);
+        TrainingVideoController.recordDocumentProgress(videoId, 2, 2);
+        Training_View__c view = [SELECT Status__c, Watch_Percent__c, View_Count__c FROM Training_View__c WHERE Training_Video__c = :videoId AND User__c = :UserInfo.getUserId()];
+        System.assertEquals('Completed', view.Status__c); System.assertEquals(100, view.Watch_Percent__c); System.assertEquals(1, view.View_Count__c);
+
+        LogicLearnAudienceService.adminOverride = true;
+        LogicLearnAdminController.EngagementPage detail = LogicLearnAdminController.getEngagementDetails(videoId, 'Completed', 1, 6);
+        System.assertEquals(1, detail.total); System.assertEquals(1, detail.rows.size());
+    }
+
+    @IsTest
     static void administrativeSurfacesRoundTrip() {
         LogicLearnAudienceService.adminOverride = true;
         LogicLearnAdminController.initializeLogicLearn();
@@ -103,8 +133,11 @@ private class LogicLearnPlatformTest {
         LogicLearnAdminController.SettingsDto settings = LogicLearnAdminController.getSettings();
         settings.completionThreshold = 85; settings.preventSkipping = false;
         settings.assignmentTemplateName = 'Custom Assignment'; settings.reminderTemplateName = 'Custom Reminder';
+        settings.firstPublishEmailTemplate = 'Custom Publish'; settings.updateEmailTemplate = 'Custom Update';
+        settings.firstPublishInAppMessage = '[VIDEO_NAME] is ready.'; settings.updateInAppMessage = '[VIDEO_NAME] changed.';
         LogicLearnAdminController.saveSettings(settings);
         System.assertEquals(85, LogicLearnAdminController.getSettings().completionThreshold);
+        System.assertEquals('Custom Update', LogicLearnAdminController.getSettings().updateEmailTemplate);
 
         LogicLearnAdminController.FolderInput folder = new LogicLearnAdminController.FolderInput();
         folder.name='Advanced'; folder.sortOrder=90; folder.description='Advanced material';

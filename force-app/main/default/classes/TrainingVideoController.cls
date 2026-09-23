@@ -39,6 +39,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String viewStatus { get; set; } // Pending / In Progress / Completed / null
         @AuraEnabled public Decimal watchPercent { get; set; }
         @AuraEnabled public Datetime completedAt { get; set; }
+        @AuraEnabled public String contentType { get; set; }
     }
 
     public class FolderInfo {
@@ -60,6 +61,22 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String externalUrl { get; set; }
         @AuraEnabled public Boolean preventSkipping { get; set; }
         @AuraEnabled public Date dueDate { get; set; }
+    }
+
+    public class DocumentPage {
+        @AuraEnabled public Id id { get; set; }
+        @AuraEnabled public String title { get; set; }
+        @AuraEnabled public String body { get; set; }
+        @AuraEnabled public Integer pageNumber { get; set; }
+    }
+
+    public class DocumentInfo {
+        @AuraEnabled public Id videoId { get; set; }
+        @AuraEnabled public String title { get; set; }
+        @AuraEnabled public List<DocumentPage> pages { get; set; }
+        @AuraEnabled public Integer currentPage { get; set; }
+        @AuraEnabled public String viewStatus { get; set; }
+        @AuraEnabled public Decimal watchPercent { get; set; }
     }
 
     // ───────────────────────── Library ─────────────────────────
@@ -125,6 +142,7 @@ public without sharing class TrainingVideoController {
             info.previewUrl = vid.Content_Type__c != 'External Link' && String.isNotBlank(vid.Video_Content_Version_Id__c)
                 ? '/sfc/servlet.shepherd/version/download/' + vid.Video_Content_Version_Id__c
                 : null;
+            info.contentType = vid.Content_Type__c;
 
             Training_View__c view = viewsByVideo.get(vid.Id);
             // Mandatory is per-user: only when this user was actually assigned the video.
@@ -179,6 +197,58 @@ public without sharing class TrainingVideoController {
         soql += 'ORDER BY Folder__r.Sort_Order__c NULLS LAST, Folder__r.Name NULLS LAST, ' +
             'Sort_Order__c NULLS LAST, Name';
         return Database.query(soql);
+    }
+
+    @AuraEnabled
+    public static DocumentInfo getDocument(Id videoId) {
+        if (videoId == null || !LogicLearnAudienceService.canUserSeeVideo(UserInfo.getUserId(), videoId))
+            throw new AuraHandledException('You do not have access to this tutorial.');
+        Training_Video__c video = [SELECT Id, Name, Content_Type__c FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
+        if (video.Content_Type__c != 'Document') throw new AuraHandledException('This tutorial is not a read tutorial.');
+        Training_View__c view = ensureViewOnOpen(videoId);
+        DocumentInfo result = new DocumentInfo();
+        result.videoId = video.Id; result.title = video.Name; result.pages = new List<DocumentPage>();
+        for (Training_Tutorial_Page__c page : [
+            SELECT Id, Name, Body__c, Page_Number__c FROM Training_Tutorial_Page__c
+            WHERE Training_Video__c = :videoId ORDER BY Page_Number__c, CreatedDate
+        ]) {
+            DocumentPage item = new DocumentPage();
+            item.id = page.Id; item.title = page.Name; item.body = page.Body__c;
+            item.pageNumber = Integer.valueOf(page.Page_Number__c); result.pages.add(item);
+        }
+        result.viewStatus = view.Status__c;
+        result.watchPercent = view.Watch_Percent__c == null ? 0 : view.Watch_Percent__c;
+        Integer pageCount = result.pages.size();
+        result.currentPage = pageCount == 0 ? 0 : Math.min(pageCount, Math.max(1,
+            Integer.valueOf(Math.floor((result.watchPercent / 100) * pageCount)) + 1));
+        return result;
+    }
+
+    @AuraEnabled
+    public static void recordDocumentProgress(Id videoId, Integer pageNumber, Integer totalPages) {
+        if (videoId == null || !LogicLearnAudienceService.canUserSeeVideo(UserInfo.getUserId(), videoId))
+            throw new AuraHandledException('You do not have access to this tutorial.');
+        Training_Video__c video = [SELECT Content_Type__c FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
+        if (video.Content_Type__c != 'Document') throw new AuraHandledException('This tutorial is not a read tutorial.');
+        Integer total = totalPages == null || totalPages < 1 ? 1 : totalPages;
+        Integer reached = pageNumber == null ? 1 : Math.max(1, Math.min(pageNumber, total));
+        String key = buildKey(videoId);
+        List<Training_View__c> existing = [
+            SELECT Id, Status__c, Watch_Percent__c, Completed_At__c, Completion_Method__c
+            FROM Training_View__c WHERE User_Video_Key__c = :key LIMIT 1
+        ];
+        Training_View__c view = existing.isEmpty() ? ensureViewOnOpen(videoId) : existing[0];
+        Decimal percent = (Decimal.valueOf(String.valueOf(reached)) / total * 100).setScale(0);
+        if (view.Watch_Percent__c == null || percent > view.Watch_Percent__c) view.Watch_Percent__c = percent;
+        view.Last_Viewed_At__c = System.now();
+        if (reached >= total) {
+            view.Status__c = 'Completed'; view.Watch_Percent__c = 100;
+            if (view.Completed_At__c == null) view.Completed_At__c = System.now();
+            view.Completion_Method__c = 'Tracked';
+        } else if (view.Status__c != 'Completed') {
+            view.Status__c = 'In Progress';
+        }
+        update view;
     }
 
     // ───────────────────────── Playback ─────────────────────────

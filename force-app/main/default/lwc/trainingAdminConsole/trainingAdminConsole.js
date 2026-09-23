@@ -11,6 +11,7 @@ import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
+import getEngagementDetails from "@salesforce/apex/LogicLearnAdminController.getEngagementDetails";
 
 const VIDEO_COLUMNS = [
     {label: "Title", fieldName: "title", type: "text"},
@@ -52,12 +53,20 @@ export default class TrainingAdminConsole extends LightningElement {
     detailLoading = false;
     selectedVideoId;
     videoSearch = "";
+
+    get selectedIsDocument() { return this.selectedTutorial?.contentType === "Document"; }
     folderFilter = [];
     categoryFilter = [];
     statusFilter = [];
     tutorialScope = "all";
     activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0, opensStyle: "width:0%", startedStyle: "width:0%", completedStyle: "width:0%", averageStyle: "width:0%"};
     heroOverlayVisible = true;
+    engagementMetric;
+    engagementRows = [];
+    engagementPage = 1;
+    engagementPageSize = 6;
+    engagementTotal = 0;
+    engagementLoading = false;
     showSettingsModal = false;
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
@@ -422,6 +431,54 @@ export default class TrainingAdminConsole extends LightningElement {
 
     handlePreviewPause() {
         this.heroOverlayVisible = true;
+    }
+
+    get showEngagementPopover() { return Boolean(this.engagementMetric); }
+    get hasEngagementRows() { return this.engagementRows.length > 0; }
+    get engagementPageCount() { return Math.max(1, Math.ceil(this.engagementTotal / this.engagementPageSize)); }
+    get engagementPageLabel() { return `${this.engagementPage} / ${this.engagementPageCount}`; }
+    get engagementHasPrevious() { return this.engagementPage > 1; }
+    get engagementHasNext() { return this.engagementPage < this.engagementPageCount; }
+    get engagementNoPrevious() { return !this.engagementHasPrevious; }
+    get engagementNoNext() { return !this.engagementHasNext; }
+
+    async handleMetricEnter(event) {
+        const metric = event.currentTarget.dataset.metric;
+        if (this.engagementMetric !== metric) this.engagementPage = 1;
+        this.engagementMetric = metric;
+        await this.loadEngagementPage();
+    }
+
+    hideEngagementDetails() { this.engagementMetric = null; }
+
+    async changeEngagementPage(event) {
+        const nextPage = this.engagementPage + Number(event.currentTarget.dataset.direction);
+        if (nextPage < 1 || nextPage > this.engagementPageCount) return;
+        this.engagementPage = nextPage;
+        await this.loadEngagementPage();
+    }
+
+    async loadEngagementPage() {
+        const metric = this.engagementMetric;
+        if (!metric || !this.selectedVideoId) return;
+        this.engagementLoading = true;
+        try {
+            const result = await getEngagementDetails({videoId: this.selectedVideoId, metric, pageNumber: this.engagementPage, pageSize: this.engagementPageSize});
+            if (this.engagementMetric !== metric) return;
+            this.engagementPage = result.pageNumber;
+            this.engagementTotal = result.total;
+            this.engagementRows = (result.rows || []).map((row) => ({
+                ...row,
+                initials: (row.userName || "?").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
+                detailLabel: metric === "Total opens" ? `${row.viewCount || 0} open${row.viewCount === 1 ? "" : "s"}` :
+                    metric === "Completed" ? "Completed" : `${Math.round(row.watchPercent || 0)}% viewed`
+            }));
+        } catch (error) {
+            this.engagementRows = [];
+            this.engagementTotal = 0;
+        } finally {
+            if (this.engagementMetric === metric) this.engagementLoading = false;
+        }
     }
 
     handleFolderFilter(event) {

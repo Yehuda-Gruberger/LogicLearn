@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <allowInChatterGroups>false</allowInChatterGroups><deploymentStatus>Deployed</deploymentStatus>
+    <enableActivities>false</enableActivities><enableBulkApi>true</enableBulkApi><enableFeeds>false</enableFeeds>
+    <enableHistory>false</enableHistory><enableReports>false</enableReports><enableSearch>false</enableSearch>
+    <label>Training Tutorial Page</label><nameField><label>Page Title</label><type>Text</type></nameField>
+    <pluralLabel>Training Tutorial Pages</pluralLabel><sharingModel>ControlledByParent</sharingModel><visibility>Public</visibility>
+</CustomObject>

@@ -20,12 +20,12 @@
     </template>
     <template lwc:else>
         <div class="panel">
-            <header><div><h2>Learner activity</h2><p>See who opened, watched, and completed this tutorial.</p></div><lightning-button label="Export CSV" icon-name="utility:download" onclick={exportCsv} disabled={loading}></lightning-button></header>
+            <header><div><h2>Learner activity</h2><p>See who opened, watched, and completed this tutorial.</p></div><button type="button" class="app-button secondary" onclick={exportCsv} disabled={loading}><lightning-icon icon-name="utility:download" size="xx-small"></lightning-icon>Export CSV</button></header>
             <div class={toolbarClass}>
                 <template lwc:if={compact}></template>
                 <template lwc:else><c-logic-learn-picker label="Tutorial" placeholder="Search tutorials" options={videos} value={videoId} onchange={handleVideo}></c-logic-learn-picker></template>
                 <lightning-combobox label="Reminder channel" value={reminderChannel} options={channelOptions} onchange={handleChannel}></lightning-combobox>
-                <lightning-button variant="brand" label="Send reminder" icon-name="utility:notification" onclick={sendReminder} disabled={sending}></lightning-button>
+                <button type="button" class="app-button primary" onclick={sendReminder} disabled={sending}><lightning-icon icon-name="utility:notification" size="xx-small" variant="inverse"></lightning-icon>Send reminder</button>
             </div>
             <template lwc:if={loading}><div class="loading"><lightning-spinner alternative-text="Loading tracking" size="small"></lightning-spinner></div></template>
             <template lwc:elseif={hasRows}><lightning-datatable key-field="userId" data={rows} columns={columns} hide-checkbox-column></lightning-datatable></template>

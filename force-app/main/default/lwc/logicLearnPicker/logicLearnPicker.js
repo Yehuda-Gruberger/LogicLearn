@@ -128,6 +128,13 @@ export default class LogicLearnPicker extends LightningElement {
         this.emitChange();
     }
 
+    handleOptionMouseDown(event) {
+        // Keep focus in the search input until the click commits the row. Without
+        // this, a non-focusable action row triggers focusout, closes the menu,
+        // and is removed from the DOM before its click handler can run.
+        event.preventDefault();
+    }
+
     handleExclude(event) {
         event.stopPropagation();
         const selected = event.currentTarget.dataset.value;

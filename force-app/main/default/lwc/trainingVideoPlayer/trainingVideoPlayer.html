@@ -54,8 +54,8 @@
                 <h3>External video</h3>
                 <p>This video opens in a new tab. LogicLearn cannot track how much you watch.</p>
                 <div class="external-actions">
-                    <lightning-button variant="brand" label="Open video" icon-name="utility:new_window" onclick={handleOpenExternal}></lightning-button>
-                    <lightning-button label="Mark complete" icon-name="utility:check" onclick={handleManualComplete} disabled={completed}></lightning-button>
+                    <button type="button" class="player-button primary" onclick={handleOpenExternal}><lightning-icon icon-name="utility:new_window" size="xx-small" variant="inverse"></lightning-icon>Open video</button>
+                    <button type="button" class="player-button secondary" onclick={handleManualComplete} disabled={completed}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon>Mark complete</button>
                 </div>
                 <template lwc:if={completed}><span class="complete">Completed</span></template>
             </div></template>

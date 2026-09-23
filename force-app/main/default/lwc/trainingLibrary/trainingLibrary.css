@@ -225,7 +225,7 @@
 }
 
 .rail-item.child .rail-ico {
-  --sds-c-icon-color-foreground-default: var(--ink-faint);
+  --slds-c-icon-color-foreground-default: var(--ink-faint);
 }
 
 .rail-name {
@@ -700,6 +700,11 @@
   transform-origin: center top;
   animation: llDialogIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+.modal.document-modal { max-width: min(880px, 94vw); background: #fff; }
+.document-modal .modal-head { background: #12394a; }
+.document-modal c-logic-learn-document-reader { height: min(70vh, 650px); }
+.empty-action { display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border:0;border-radius:999px;background:#0b8798;color:#fff;font:inherit;font-size:.72rem;font-weight:750;cursor:pointer; }
+.empty-action:hover { background:#087485; }
 
 .modal-head {
   display: flex;

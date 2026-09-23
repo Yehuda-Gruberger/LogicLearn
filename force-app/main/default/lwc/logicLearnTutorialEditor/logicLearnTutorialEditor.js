@@ -5,10 +5,15 @@ import discardTutorialDraft from "@salesforce/apex/LogicLearnAdminController.dis
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
+import getTutorialPages from "@salesforce/apex/LogicLearnAdminController.getTutorialPages";
 import getAudienceMembers from "@salesforce/apex/LogicLearnAdminController.getAudienceMembers";
+import getEmailTemplates from "@salesforce/apex/LogicLearnAdminController.getEmailTemplates";
 import saveTutorialWithTitle from "@salesforce/apex/LogicLearnAdminController.saveTutorialWithTitle";
+import saveTutorialPages from "@salesforce/apex/LogicLearnAdminController.saveTutorialPages";
 import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
 import sendInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendInAppNotification";
+import sendLifecycleNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleNotification";
+import sendLifecycleInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
 import saveGroup from "@salesforce/apex/LogicLearnAdminController.saveGroup";
 import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
@@ -45,7 +50,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     @api highlightSection;
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: [], categories: []};
-    settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: ""};
+    settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated."};
+    emailTemplates = [];
     completionMode = "global";
     loading = true;
     saving = false;
@@ -59,21 +65,34 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
     creatingFolder = false;
     draftTitle = "";
+    originalStatus = "Draft";
+    lifecycleEmailTemplate = "";
+    lifecycleInAppMessage = "";
+    customizingLifecycleNotice = false;
+    pages = [];
+    activePageIndex = 0;
+    richTextFormats = ["font", "size", "bold", "italic", "underline", "strike", "list", "indent", "align", "link", "image", "header", "color", "background", "clean"];
 
     async connectedCallback() {
         try {
-            const [catalog, settings, id] = await Promise.all([
+            const [catalog, settings, templates, id] = await Promise.all([
                 getCatalog(),
                 getSettings(),
+                getEmailTemplates(),
                 this.recordId ? Promise.resolve(this.recordId) : createTutorialDraft()
             ]);
             this.catalog = catalog;
             this.settings = settings;
+            this.emailTemplates = templates || [];
             this.createdDraft = !this.recordId;
             this.recordId = id;
             const tutorial = await getTutorial({videoId: id});
             this.fileName = tutorial.fileName;
             this.form = this.normalize({...EMPTY_FORM, ...tutorial, videoId: id});
+            const savedPages = await getTutorialPages({videoId: id});
+            this.pages = savedPages?.length ? savedPages.map((page, index) => ({...page, clientKey: page.pageId || `page-${index + 1}`})) : [this.newPage(1)];
+            this.originalStatus = tutorial.status || "Draft";
+            this.resetLifecycleNoticeDefaults();
             this.draftTitle = this.form.title || "";
             this.completionMode = tutorial.completionThreshold == null ? "global" : "custom";
             await Promise.all([this.refreshInheritedAudience("visibility"), this.refreshInheritedAudience("required")]);
@@ -106,6 +125,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get fileDisplayName() {
         return this.fileName || "No video selected yet";
     }
+    get uploadLabel() { return this.hasFile ? "Replace" : "Upload file"; }
+    get uploadTrayClass() { return this.hasFile ? "upload-tray has-file" : "upload-tray empty-file"; }
 
     get contentStageClass() { return this.activeStage === "content" ? "studio-stage active" : "studio-stage"; }
     get detailsStageClass() { return this.activeStage === "details" ? "studio-stage active" : "studio-stage"; }
@@ -119,6 +140,25 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get isFile() {
         return this.form.contentType === "Salesforce File";
     }
+
+    get isDocument() { return this.form.contentType === "Document"; }
+    get contentPanelTitle() { return this.isDocument ? "Read tutorial" : "Video"; }
+    get contentHelp() { return this.isDocument ? "What learners will read, one page at a time." : "What learners will watch."; }
+    get activePage() { return this.pages[this.activePageIndex] || this.newPage(1); }
+    get pageTabs() {
+        return this.pages.map((page, index) => ({
+            ...page,
+            index,
+            label: page.title?.trim() || `Page ${index + 1}`,
+            className: index === this.activePageIndex ? "page-tab active" : "page-tab"
+        }));
+    }
+    get canRemovePage() { return this.pages.length > 1; }
+    get canMovePageUp() { return this.activePageIndex > 0; }
+    get canMovePageDown() { return this.activePageIndex < this.pages.length - 1; }
+    get cannotRemovePage() { return !this.canRemovePage; }
+    get cannotMovePageUp() { return !this.canMovePageUp; }
+    get cannotMovePageDown() { return !this.canMovePageDown; }
 
     get hasFile() {
         return Boolean(this.fileName);
@@ -175,8 +215,39 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get contentOptions() {
         return [
             {label: "Salesforce File (tracked)", value: "Salesforce File"},
-            {label: "External link (manual completion)", value: "External Link"}
+            {label: "External link (manual completion)", value: "External Link"},
+            {label: "Read tutorial (pages)", value: "Document"}
         ];
+    }
+
+    newPage(number) { return {pageId: null, clientKey: `new-${Date.now()}-${number}`, title: `Page ${number}`, body: "", pageNumber: number}; }
+
+    handlePageSelect(event) { this.activePageIndex = Number(event.currentTarget.dataset.index); }
+    handlePageTitle(event) {
+        const pages = this.pages.map((page, index) => index === this.activePageIndex ? {...page, title: event.target.value} : page);
+        this.pages = pages;
+    }
+    handlePageBody(event) {
+        const value = event.detail?.value ?? event.target.value;
+        this.pages = this.pages.map((page, index) => index === this.activePageIndex ? {...page, body: value} : page);
+    }
+    addPage() {
+        this.pages = [...this.pages, this.newPage(this.pages.length + 1)];
+        this.activePageIndex = this.pages.length - 1;
+    }
+    removePage() {
+        if (!this.canRemovePage) return;
+        this.pages = this.pages.filter((page, index) => index !== this.activePageIndex);
+        this.activePageIndex = Math.min(this.activePageIndex, this.pages.length - 1);
+    }
+    movePage(event) {
+        const direction = Number(event.currentTarget.dataset.direction);
+        const destination = this.activePageIndex + direction;
+        if (destination < 0 || destination >= this.pages.length) return;
+        const pages = [...this.pages];
+        [pages[this.activePageIndex], pages[destination]] = [pages[destination], pages[this.activePageIndex]];
+        this.pages = pages;
+        this.activePageIndex = destination;
     }
 
     get skipOptions() {
@@ -222,6 +293,35 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get publishChannelOptions() { return this.channelChoices("publishNotificationChannel"); }
     get assignmentChannelOptions() { return this.channelChoices("assignmentNotificationChannel"); }
+    get lifecycleNotificationType() { return this.originalStatus === "Published" ? "Update" : "First Publish"; }
+    get isUpdateNotification() { return this.lifecycleNotificationType === "Update"; }
+    get publicationNoticeLabel() { return this.isUpdateNotification ? "Notify viewers about update" : "Notify when first published"; }
+    get lifecycleNoticeTitle() { return this.isUpdateNotification ? "Tutorial updated" : "First publish"; }
+    get lifecycleEmailDefault() { return this.isUpdateNotification ? this.settings.updateEmailTemplate : this.settings.firstPublishEmailTemplate; }
+    get lifecycleMessageDefault() { return this.isUpdateNotification ? this.settings.updateInAppMessage : this.settings.firstPublishInAppMessage; }
+    get lifecycleTemplateOptions() {
+        const options = [...this.emailTemplates];
+        if (this.lifecycleEmailTemplate && !options.some((item) => item.value === this.lifecycleEmailTemplate)) options.unshift({value: this.lifecycleEmailTemplate, label: this.lifecycleEmailTemplate});
+        return options;
+    }
+    get showLifecycleNotice() { return this.form.publishNotificationChannel !== "None"; }
+    get showLifecycleEmail() { return ["Email", "Both"].includes(this.form.publishNotificationChannel); }
+    get showLifecycleInApp() { return ["In-app", "Both"].includes(this.form.publishNotificationChannel); }
+    get lifecycleCustomizationLabel() { return this.customizingLifecycleNotice ? "Use defaults" : "Override"; }
+    get lifecycleNoticeClass() { return this.customizingLifecycleNotice ? "notice-defaults editing" : "notice-defaults"; }
+
+    resetLifecycleNoticeDefaults() {
+        this.lifecycleEmailTemplate = this.lifecycleEmailDefault || "";
+        this.lifecycleInAppMessage = this.lifecycleMessageDefault || "";
+    }
+
+    toggleLifecycleCustomization() {
+        if (this.customizingLifecycleNotice) this.resetLifecycleNoticeDefaults();
+        this.customizingLifecycleNotice = !this.customizingLifecycleNotice;
+    }
+
+    handleLifecycleTemplate(event) { this.lifecycleEmailTemplate = event.detail.value; }
+    handleLifecycleMessage(event) { this.lifecycleInAppMessage = event.currentTarget.value; }
 
     handleField(event) {
         const field = event.currentTarget.dataset.field;
@@ -409,13 +509,22 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.toast("Video required", "Upload a video file before publishing.", "error");
             return;
         }
+        if (this.isDocument && this.form.status === "Published" && !this.pages.some((page) => (page.body || "").replace(/<[^>]*>/g, "").trim())) {
+            this.activeStage = "content";
+            this.toast("Page content required", "Add content to at least one page before publishing.", "error");
+            return;
+        }
         this.saving = true;
         try {
+            if (this.isDocument) {
+                await saveTutorialPages({videoId: this.recordId, pages: this.pages.map((page, index) => ({pageId: page.pageId, title: page.title, body: page.body, pageNumber: index + 1}))});
+            }
             const payload = {...this.form, videoId: this.recordId, fileName: null, title: currentTitle};
             const videoId = await saveTutorialWithTitle({input: payload, title: currentTitle});
             const notices = [];
-            if (["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendNotification({videoId, notificationType: "New Video"}));
-            if (["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: "New Video"}));
+            const isLifecycleEvent = this.form.status === "Published";
+            if (isLifecycleEvent && ["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleNotification({videoId, notificationType: this.lifecycleNotificationType, templateName: this.lifecycleEmailTemplate}));
+            if (isLifecycleEvent && ["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleInAppNotification({videoId, notificationType: this.lifecycleNotificationType, messageTemplate: this.lifecycleInAppMessage}));
             if (["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendNotification({videoId, notificationType: "Assignment"}));
             if (["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: "Assignment"}));
             const counts = notices.length ? await Promise.all(notices) : [];

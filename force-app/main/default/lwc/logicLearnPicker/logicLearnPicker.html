@@ -28,7 +28,7 @@
             <div class="menu">
                 <template for:each={filteredOptions} for:item="item">
                     <template lwc:if={actionMode}>
-                        <div key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span><template lwc:if={item.canExclude}><span class="option-actions"><button type="button" class={item.excludeClass} data-value={item.value} onclick={handleExclude} title="Exclude"><lightning-icon icon-name={item.excludeIcon} size="xx-small"></lightning-icon></button></span></template></div>
+                        <div key={item.value} class={item.rowClass} data-value={item.value} onmousedown={handleOptionMouseDown} onclick={handleSelect}><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span><template lwc:if={item.canExclude}><span class="option-actions"><button type="button" class={item.excludeClass} data-value={item.value} onmousedown={handleOptionMouseDown} onclick={handleExclude} title="Exclude"><lightning-icon icon-name={item.excludeIcon} size="xx-small"></lightning-icon></button></span></template></div>
                     </template>
                     <template lwc:else><button type="button" key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}><template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span></button></template>
                 </template>

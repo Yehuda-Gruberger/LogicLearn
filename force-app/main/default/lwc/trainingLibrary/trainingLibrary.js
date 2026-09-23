@@ -82,8 +82,18 @@ export default class TrainingLibrary extends LightningElement {
         return match.title;
       }
     }
-    return "Training video";
+    return "Training tutorial";
   }
+
+  get activeIsDocument() {
+    for (const section of this.sections) {
+      const match = section.videos.find((video) => video.id === this.activeVideoId);
+      if (match) return match.contentType === "Document";
+    }
+    return false;
+  }
+
+  get modalClass() { return this.activeIsDocument ? "modal document-modal" : "modal"; }
 
   get isAdminMode() {
     return this.mode === "admin";
@@ -457,6 +467,8 @@ export default class TrainingLibrary extends LightningElement {
         ? `Due ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${video.dueDate}T00:00:00`))}`
         : "",
       cardClass: emphasize ? "card mandatory" : "card",
+      cardIcon: video.contentType === "Document" ? "utility:knowledge_base" : "utility:play",
+      typeMeta: video.contentType === "Document" ? "Read tutorial" : this.formatDuration(video.durationSeconds),
     };
   }
 
