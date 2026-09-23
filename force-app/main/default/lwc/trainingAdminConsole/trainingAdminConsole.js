@@ -338,6 +338,10 @@ export default class TrainingAdminConsole extends LightningElement {
         this.activitySummary = event.detail;
     }
 
+    handleLibraryMode() {
+        this.dispatchEvent(new CustomEvent("library"));
+    }
+
     handleDeleteTutorial(event) {
         const row = this.videos.find((video) => video.id === event.currentTarget.dataset.id);
         if (row) this.confirmAndDeleteTutorial(row);

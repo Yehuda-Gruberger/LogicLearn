@@ -27,6 +27,7 @@
                     <template lwc:else><div class="browser-empty">No tutorials match these filters.</div></template>
                 </div>
                 <lightning-button class="create-wide" variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+                <div class="browser-mode-toggle" role="group" aria-label="Workspace view"><button onclick={handleLibraryMode}>Library</button><button class="active">Admin</button></div>
             </aside>
 
             <main class="video-dashboard">

@@ -37,6 +37,10 @@
                     <div class="rp-label"><span>Your progress</span><span class="tnum">{progressCountLabel}</span></div>
                     <div class="bar"><span style={progressStyle}></span></div>
                 </div>
+                <div class="rail-mode-toggle" role="group" aria-label="Workspace view">
+                    <button class="active">Library</button>
+                    <template lwc:if={isAdmin}><button onclick={showAdminMode}>Admin</button></template>
+                </div>
             </template>
         </aside>
 
@@ -48,17 +52,11 @@
                     <h1 class="h1">{pageTitle}</h1>
                 </div>
                 <div class="topbar-spacer"></div>
-                <template lwc:if={isAdmin}>
-                    <div class="seg" role="group" aria-label="View">
-                        <button class={libraryBtnClass} onclick={showLibraryMode}>Library</button>
-                        <button class={adminBtnClass} onclick={showAdminMode}>Admin</button>
-                    </div>
-                </template>
             </div>
 
             <div class="scroll">
                 <template lwc:if={isAdminMode}>
-                    <c-training-admin-console></c-training-admin-console>
+                    <c-training-admin-console onlibrary={showLibraryMode}></c-training-admin-console>
                 </template>
 
                 <template lwc:else>
