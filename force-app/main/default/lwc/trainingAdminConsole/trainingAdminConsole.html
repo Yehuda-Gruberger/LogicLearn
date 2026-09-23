@@ -1,74 +1,89 @@
 <template>
-    <nav class="admin-tabs" aria-label="Administration">
-        <button class={tutorialsTabClass} data-section="tutorials" onclick={handleSection}>Tutorials</button>
-        <button class={groupsTabClass} data-section="groups" onclick={handleSection}>Groups</button>
-        <button class={trackingTabClass} data-section="tracking" onclick={handleSection}>Tracking</button>
-        <button class={settingsTabClass} data-section="settings" onclick={handleSection}>Settings</button>
-    </nav>
-
     <template lwc:if={isTutorials}>
-      <div class="console">
-        <div class="panel">
-            <div class="panel-head">
-                <span class="panel-title">Folders</span>
-                <lightning-button label="New Folder" icon-name="utility:add" onclick={handleNewFolder}></lightning-button>
-            </div>
-            <template lwc:if={hasFolders}>
-                <ul class="folders">
-                    <template for:each={folderList} for:item="f">
-                        <li key={f.id} class={f.rowClass} style={f.indentStyle}>
-                            <lightning-icon icon-name="utility:open_folder" size="x-small"></lightning-icon>
-                            <span class="folder-name">{f.name}</span>
-                            <div class="folder-actions">
-                                <lightning-button-icon icon-name="utility:edit" alternative-text="Edit" title="Edit" variant="bare" data-id={f.id} onclick={handleEditFolder}></lightning-button-icon>
-                                <lightning-button-icon icon-name="utility:delete" alternative-text="Delete" title="Delete" variant="bare" data-id={f.id} onclick={handleDeleteFolder}></lightning-button-icon>
-                            </div>
-                        </li>
-                    </template>
-                </ul>
-            </template>
-            <template lwc:else><p class="muted">No folders yet. Create one to organize your tutorials.</p></template>
-        </div>
+        <div class="studio-page">
+            <header class="studio-hero">
+                <div>
+                    <span class="eyebrow">Content management</span>
+                    <h2>Tutorials</h2>
+                    <p>Create, publish, and monitor every training experience.</p>
+                </div>
+                <lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+            </header>
 
-        <div class="panel">
-            <div class="panel-head">
-                <span class="panel-title">Tutorials</span>
-                <lightning-button variant="brand" label="New Tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+            <div class="stats-grid">
+                <article class="stat-card"><span class="stat-icon teal"><lightning-icon icon-name="utility:video" size="small"></lightning-icon></span><div><strong>{videoCount}</strong><small>Total tutorials</small></div></article>
+                <article class="stat-card"><span class="stat-icon green"><lightning-icon icon-name="utility:success" size="small"></lightning-icon></span><div><strong>{publishedCount}</strong><small>Published</small></div></article>
+                <article class="stat-card"><span class="stat-icon slate"><lightning-icon icon-name="utility:edit" size="small"></lightning-icon></span><div><strong>{draftCount}</strong><small>Drafts</small></div></article>
+                <article class="stat-card"><span class="stat-icon blue"><lightning-icon icon-name="utility:check" size="small"></lightning-icon></span><div><strong>{completionCount}</strong><small>Completions</small></div></article>
             </div>
+
             <template lwc:if={hasVideos}>
-                <lightning-datatable key-field="id" data={videos} columns={videoColumns} hide-checkbox-column onrowaction={handleVideoRowAction}></lightning-datatable>
+                <section class="content-panel">
+                    <div class="content-head"><div><h3>Your tutorials</h3><p>Manage content without leaving the studio.</p></div><span>{videoCountLabel}</span></div>
+                    <div class="list-head"><span>Video</span><span>Status</span><span>Assigned</span><span>Completed</span><span></span></div>
+                    <div class="video-list">
+                        <template for:each={tutorialRows} for:item="video">
+                            <article key={video.id} class="video-row">
+                                <div class="video-primary">
+                                    <div class="video-thumb" style={video.thumbStyle}><lightning-icon icon-name="utility:play" size="x-small" variant="inverse"></lightning-icon></div>
+                                    <div class="video-info"><strong>{video.title}</strong><span>{video.meta}</span></div>
+                                </div>
+                                <span class={video.statusClass}>{video.status}</span>
+                                <span class="metric"><strong>{video.assignedCount}</strong><small>Learners</small></span>
+                                <span class="metric"><strong>{video.completedCount}</strong><small>Finished</small></span>
+                                <div class="row-actions">
+                                    <lightning-button-icon icon-name="utility:preview" alternative-text="View details" title="View details and tracking" variant="bare" data-id={video.id} onclick={handleViewTutorial}></lightning-button-icon>
+                                    <lightning-button-icon icon-name="utility:edit" alternative-text="Edit tutorial" title="Edit tutorial" variant="bare" data-id={video.id} onclick={handleEditTutorial}></lightning-button-icon>
+                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare" data-id={video.id} onclick={handleDeleteTutorial}></lightning-button-icon>
+                                </div>
+                            </article>
+                        </template>
+                    </div>
+                </section>
             </template>
-            <template lwc:else><p class="muted">No tutorials yet. Click New Tutorial to add one.</p></template>
+            <template lwc:else>
+                <section class="empty-studio"><span><lightning-icon icon-name="utility:video" size="large" variant="inverse"></lightning-icon></span><h3>Create your first tutorial</h3><p>Add a video, configure its audience, and publish it from one polished workspace.</p><lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button></section>
+            </template>
         </div>
-      </div>
     </template>
     <template lwc:elseif={isGroups}><c-logic-learn-group-manager></c-logic-learn-group-manager></template>
     <template lwc:elseif={isTracking}><c-logic-learn-tracking></c-logic-learn-tracking></template>
     <template lwc:else><c-logic-learn-settings></c-logic-learn-settings></template>
 
-    <template lwc:if={showFolderForm}>
-        <section class="modal-backdrop" onclick={closeFolderForm}>
-            <div class="modal" onclick={stopPropagation}>
-                <header class="modal-head"><span class="modal-title">{folderModalTitle}</span></header>
-                <div class="form-body">
-                    <lightning-input data-field="name" label="Name" value={folderForm.name} onchange={handleFolderField} required></lightning-input>
-                    <c-logic-learn-picker label="Parent folder" placeholder="Search folders" options={folderOptions} value={folderForm.parentId} onchange={handleFolderParent}></c-logic-learn-picker>
-                    <lightning-input data-field="sortOrder" type="number" label="Sort order" value={folderForm.sortOrder} onchange={handleFolderField}></lightning-input>
-                    <lightning-input data-field="icon" label="Icon name (optional)" value={folderForm.icon} onchange={handleFolderField}></lightning-input>
-                    <lightning-textarea data-field="description" label="Description" value={folderForm.description} onchange={handleFolderField}></lightning-textarea>
-                </div>
-                <div class="modal-foot">
-                    <lightning-button label="Cancel" onclick={closeFolderForm}></lightning-button>
-                    <lightning-button variant="brand" label="Save" onclick={handleFolderSaved} class="slds-m-left_x-small"></lightning-button>
-                </div>
-            </div>
-        </section>
-    </template>
-
     <template lwc:if={showTutorialEditor}>
         <section class="modal-backdrop">
             <div class="modal modal-editor" onclick={stopPropagation}>
                 <c-logic-learn-tutorial-editor record-id={tutorialRecordId} onsaved={handleTutorialSaved} onclose={closeTutorialEditor}></c-logic-learn-tutorial-editor>
+            </div>
+        </section>
+    </template>
+
+    <template lwc:if={showTutorialDetails}>
+        <section class="modal-backdrop detail-backdrop" onclick={closeTutorialDetails}>
+            <div class="detail-modal" onclick={stopPropagation}>
+                <template lwc:if={detailLoading}><div class="detail-loading"><lightning-spinner alternative-text="Loading tutorial details"></lightning-spinner></div></template>
+                <template lwc:elseif={selectedTutorial}>
+                    <header class="detail-head">
+                        <div><span class="eyebrow">Tutorial dashboard</span><h2>{selectedTutorial.title}</h2><p>{selectedTutorial.folderName} / {selectedTutorial.category}</p></div>
+                        <lightning-button-icon icon-name="utility:close" alternative-text="Close" title="Close" variant="bare" onclick={closeTutorialDetails}></lightning-button-icon>
+                    </header>
+                    <div class="detail-body">
+                        <section class="detail-overview">
+                            <div><small>Status</small><strong>{selectedTutorial.status}</strong></div>
+                            <div><small>Video source</small><strong>{selectedTutorial.contentType}</strong></div>
+                            <div><small>Completion</small><strong>{selectedTutorial.completionLabel}</strong></div>
+                            <div><small>Due date</small><strong>{selectedTutorial.dueDate}</strong></div>
+                        </section>
+                        <template lwc:if={selectedTutorial.description}><p class="detail-description">{selectedTutorial.description}</p></template>
+                        <section class="audience-summary">
+                            <article><lightning-icon icon-name="utility:preview" size="small"></lightning-icon><div><small>Can view</small><strong>{selectedTutorial.visibilitySummary}</strong></div></article>
+                            <article><lightning-icon icon-name="utility:check" size="small"></lightning-icon><div><small>Required</small><strong>{selectedTutorial.requiredSummary}</strong></div></article>
+                            <article><lightning-icon icon-name="utility:notification" size="small"></lightning-icon><div><small>Notifications</small><strong>{selectedTutorial.notificationSummary}</strong></div></article>
+                            <article><lightning-icon icon-name="utility:lock" size="small"></lightning-icon><div><small>Skipping</small><strong>{selectedTutorial.skipLabel}</strong></div></article>
+                        </section>
+                        <c-logic-learn-tracking compact video-id={selectedTutorial.videoId}></c-logic-learn-tracking>
+                    </div>
+                </template>
             </div>
         </section>
     </template>

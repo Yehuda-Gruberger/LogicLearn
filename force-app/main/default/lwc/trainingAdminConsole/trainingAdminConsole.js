@@ -8,6 +8,7 @@ import getAdminVideos from "@salesforce/apex/TrainingVideoController.getAdminVid
 import initializeLogicLearn from "@salesforce/apex/LogicLearnAdminController.initializeLogicLearn";
 import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
 import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
+import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
 
 const VIDEO_COLUMNS = [
     {label: "Title", fieldName: "title", type: "text"},
@@ -29,7 +30,7 @@ const VIDEO_COLUMNS = [
 
 export default class TrainingAdminConsole extends LightningElement {
     videoColumns = VIDEO_COLUMNS;
-    activeSection = "tutorials";
+    @api activeSection = "tutorials";
 
     folders = [];
     @track videos = [];
@@ -41,6 +42,9 @@ export default class TrainingAdminConsole extends LightningElement {
     editingFolderId = null;
     editingVideoId = null;
     tutorialRecordId = null;
+    showTutorialDetails = false;
+    selectedTutorial;
+    detailLoading = false;
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
     folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
@@ -113,6 +117,30 @@ export default class TrainingAdminConsole extends LightningElement {
 
     get hasVideos() {
         return this.videos.length > 0;
+    }
+
+    get videoCount() { return this.videos.length; }
+    get videoCountLabel() { return `${this.videoCount} ${this.videoCount === 1 ? "tutorial" : "tutorials"}`; }
+    get publishedCount() { return this.videos.filter((video) => video.status === "Published").length; }
+    get draftCount() { return this.videos.filter((video) => video.status === "Draft").length; }
+    get completionCount() { return this.videos.reduce((total, video) => total + (video.completedCount || 0), 0); }
+
+    get tutorialRows() {
+        const gradients = {
+            Onboarding: "linear-gradient(135deg,#0b5563,#0e8ea0)",
+            Compliance: "linear-gradient(135deg,#8f1d18,#c2453c)",
+            Products: "linear-gradient(135deg,#5a3d82,#8158b0)",
+            Processes: "linear-gradient(135deg,#1f6b3c,#3a9459)",
+            Systems: "linear-gradient(135deg,#274b74,#3f6fa3)"
+        };
+        return this.videos.map((video) => ({
+            ...video,
+            assignedCount: video.assignedCount || 0,
+            completedCount: video.completedCount || 0,
+            meta: [video.folderName, video.category].filter(Boolean).join(" / ") || "Uncategorized",
+            statusClass: `status-pill ${(video.status || "Draft").toLowerCase()}`,
+            thumbStyle: `background:${gradients[video.category] || "linear-gradient(135deg,#334155,#08798a)"}`
+        }));
     }
 
     get folderOptions() {
@@ -205,6 +233,49 @@ export default class TrainingAdminConsole extends LightningElement {
         } else if (action === "delete") {
             this.confirmAndDeleteTutorial(row);
         }
+    }
+
+    handleEditTutorial(event) {
+        this.tutorialRecordId = event.currentTarget.dataset.id;
+        this.showTutorialEditor = true;
+    }
+
+    async handleViewTutorial(event) {
+        const videoId = event.currentTarget.dataset.id;
+        this.showTutorialDetails = true;
+        this.detailLoading = true;
+        try {
+            const detail = await getTutorial({videoId});
+            this.selectedTutorial = {
+                ...detail,
+                folderName: this.videos.find((video) => video.id === videoId)?.folderName || "Ungrouped",
+                visibilitySummary: this.audienceSummary(detail, "visibility"),
+                requiredSummary: this.audienceSummary(detail, "required"),
+                notificationSummary: this.audienceSummary(detail, "notification"),
+                completionLabel: detail.completionThreshold == null ? "Global default" : `${detail.completionThreshold}%`,
+                skipLabel: detail.skipPrevention || "Use global default"
+            };
+        } catch (error) {
+            this.showToast("Could not load tutorial", this.extractError(error), "error");
+            this.showTutorialDetails = false;
+        } finally {
+            this.detailLoading = false;
+        }
+    }
+
+    audienceSummary(detail, prefix) {
+        const count = ["Users", "Profiles", "Groups"].reduce((total, suffix) => total + (detail[`${prefix}${suffix}`]?.length || 0), 0);
+        return `${count} ${count === 1 ? "selection" : "selections"}`;
+    }
+
+    closeTutorialDetails() {
+        this.showTutorialDetails = false;
+        this.selectedTutorial = undefined;
+    }
+
+    handleDeleteTutorial(event) {
+        const row = this.videos.find((video) => video.id === event.currentTarget.dataset.id);
+        if (row) this.confirmAndDeleteTutorial(row);
     }
 
     async confirmAndDeleteTutorial(row) {

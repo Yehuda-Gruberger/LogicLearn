@@ -1,13 +1,14 @@
 <template>
     <div class="panel">
-        <header><div><h2>Tracking</h2><p>See who opened, watched, and completed each required tutorial.</p></div><lightning-button label="Export CSV" icon-name="utility:download" onclick={exportCsv} disabled={loading}></lightning-button></header>
-        <div class="toolbar">
-            <c-logic-learn-picker label="Tutorial" placeholder="Search tutorials" options={videos} value={videoId} onchange={handleVideo}></c-logic-learn-picker>
+        <header><div><h2>Learner activity</h2><p>See who opened, watched, and completed this tutorial.</p></div><lightning-button label="Export CSV" icon-name="utility:download" onclick={exportCsv} disabled={loading}></lightning-button></header>
+        <div class={toolbarClass}>
+            <template lwc:if={compact}></template>
+            <template lwc:else><c-logic-learn-picker label="Tutorial" placeholder="Search tutorials" options={videos} value={videoId} onchange={handleVideo}></c-logic-learn-picker></template>
             <lightning-combobox label="Reminder channel" value={reminderChannel} options={channelOptions} onchange={handleChannel}></lightning-combobox>
             <lightning-button variant="brand" label="Send reminder" icon-name="utility:notification" onclick={sendReminder} disabled={sending}></lightning-button>
         </div>
         <template lwc:if={loading}><div class="loading"><lightning-spinner alternative-text="Loading tracking" size="small"></lightning-spinner></div></template>
         <template lwc:elseif={hasRows}><lightning-datatable key-field="userId" data={rows} columns={columns} hide-checkbox-column></lightning-datatable></template>
-        <template lwc:else><p class="empty">Select a tutorial to view its live required audience and progress.</p></template>
+        <template lwc:else><p class="empty">No required learners have activity for this tutorial yet.</p></template>
     </div>
 </template>

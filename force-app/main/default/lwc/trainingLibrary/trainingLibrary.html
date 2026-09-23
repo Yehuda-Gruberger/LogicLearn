@@ -1,30 +1,43 @@
 <template>
     <div class="app">
-        <!-- ===== Folder rail ===== -->
+        <!-- ===== Contextual rail ===== -->
         <aside class="rail">
-            <div class="rail-title">Folders</div>
-            <template for:each={folderItems} for:item="folder">
-                <div
-                    key={folder.id}
-                    class={folder.itemClass}
-                    style={folder.indentStyle}
-                    data-id={folder.id}
-                    onclick={handleFolderSelect}
-                >
-                    <lightning-icon icon-name="utility:open_folder" size="x-small" class="rail-ico"></lightning-icon>
-                    <span class="rail-name">{folder.name}</span>
-                    <span class="rail-count">{folder.count}</span>
+            <template lwc:if={isAdminMode}>
+                <div class="admin-rail-head">
+                    <span class="admin-rail-mark"><lightning-icon icon-name="utility:setup" size="small" variant="inverse"></lightning-icon></span>
+                    <div><span>Workspace</span><strong>Admin Studio</strong></div>
+                </div>
+                <nav class="admin-nav" aria-label="Administration">
+                    <button class={adminTutorialsClass} data-section="tutorials" onclick={handleAdminSection}>
+                        <span class="admin-nav-icon"><lightning-icon icon-name="utility:video" size="x-small"></lightning-icon></span>
+                        <span><strong>Tutorials</strong><small>Create and publish</small></span>
+                    </button>
+                    <button class={adminGroupsClass} data-section="groups" onclick={handleAdminSection}>
+                        <span class="admin-nav-icon"><lightning-icon icon-name="utility:groups" size="x-small"></lightning-icon></span>
+                        <span><strong>Groups</strong><small>Organize audiences</small></span>
+                    </button>
+                    <button class={adminSettingsClass} data-section="settings" onclick={handleAdminSection}>
+                        <span class="admin-nav-icon"><lightning-icon icon-name="utility:settings" size="x-small"></lightning-icon></span>
+                        <span><strong>Settings</strong><small>Platform defaults</small></span>
+                    </button>
+                </nav>
+                <div class="admin-rail-tip"><lightning-icon icon-name="utility:info" size="xx-small"></lightning-icon><span>Switch to Library to browse tutorials as a learner.</span></div>
+            </template>
+            <template lwc:else>
+                <div class="rail-title">Folders</div>
+                <template for:each={folderItems} for:item="folder">
+                    <div key={folder.id} class={folder.itemClass} style={folder.indentStyle} data-id={folder.id} onclick={handleFolderSelect}>
+                        <lightning-icon icon-name="utility:open_folder" size="x-small" class="rail-ico"></lightning-icon>
+                        <span class="rail-name">{folder.name}</span>
+                        <span class="rail-count">{folder.count}</span>
+                    </div>
+                </template>
+                <div class="rail-sep"></div>
+                <div class="rail-progress">
+                    <div class="rp-label"><span>Your progress</span><span class="tnum">{progressCountLabel}</span></div>
+                    <div class="bar"><span style={progressStyle}></span></div>
                 </div>
             </template>
-
-            <div class="rail-sep"></div>
-            <div class="rail-progress">
-                <div class="rp-label">
-                    <span>Your progress</span>
-                    <span class="tnum">{progressCountLabel}</span>
-                </div>
-                <div class="bar"><span style={progressStyle}></span></div>
-            </div>
         </aside>
 
         <!-- ===== Main ===== -->
@@ -32,7 +45,7 @@
             <div class="topbar">
                 <div class="titles">
                     <div class="eyebrow">LogicLearn</div>
-                    <h1 class="h1">Training Library</h1>
+                    <h1 class="h1">{pageTitle}</h1>
                 </div>
                 <div class="topbar-spacer"></div>
                 <template lwc:if={isAdmin}>
@@ -45,7 +58,7 @@
 
             <div class="scroll">
                 <template lwc:if={isAdminMode}>
-                    <c-training-admin-console></c-training-admin-console>
+                    <c-training-admin-console active-section={adminSection}></c-training-admin-console>
                 </template>
 
                 <template lwc:else>

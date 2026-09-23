@@ -26,6 +26,7 @@
                 <template lwc:if={hasOptions}></template>
                 <template lwc:else>
                     <div class="no-options">No matches</div>
+                    <template lwc:if={createLabel}><button type="button" class="create-option" onclick={handleCreate}><lightning-icon icon-name="utility:add" size="xx-small"></lightning-icon><span>{createLabel}</span></button></template>
                 </template>
             </div>
         </template>

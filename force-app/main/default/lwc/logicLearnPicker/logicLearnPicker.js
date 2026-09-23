@@ -6,6 +6,7 @@ export default class LogicLearnPicker extends LightningElement {
     @api multiple = false;
     @api required = false;
     @api disabled = false;
+    @api createLabel;
     _options = [];
     _value = [];
     query = "";
@@ -96,6 +97,12 @@ export default class LogicLearnPicker extends LightningElement {
     handleFocusOut(event) {
         const next = event.relatedTarget;
         if (!next || !this.template.contains(next)) this.open = false;
+    }
+
+    handleCreate(event) {
+        event.stopPropagation();
+        this.open = false;
+        this.dispatchEvent(new CustomEvent("create"));
     }
 
     emitChange() {

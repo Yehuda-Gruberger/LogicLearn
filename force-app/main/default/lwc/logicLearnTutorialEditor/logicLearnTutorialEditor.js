@@ -9,6 +9,7 @@ import saveTutorial from "@salesforce/apex/LogicLearnAdminController.saveTutoria
 import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
 import sendInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
+import saveGroup from "@salesforce/apex/LogicLearnAdminController.saveGroup";
 
 const EMPTY_FORM = {
     videoId: null,
@@ -46,6 +47,10 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     newVideoChannel = "None";
     assignmentChannel = "None";
     activeStage = "content";
+    showGroupCreator = false;
+    groupSaving = false;
+    groupTargetField;
+    groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
 
     async connectedCallback() {
         try {
@@ -91,10 +96,14 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         return this.fileName || "No video selected yet";
     }
 
-    get contentStageClass() { return this.activeStage === "content" ? "stage active" : "stage"; }
-    get detailsStageClass() { return this.activeStage === "details" ? "stage active" : "stage"; }
-    get settingsStageClass() { return this.activeStage === "settings" ? "stage active" : "stage"; }
-    get audienceStageClass() { return this.activeStage === "audience" ? "stage active" : "stage"; }
+    get contentStageClass() { return this.activeStage === "content" ? "studio-stage active" : "studio-stage"; }
+    get detailsStageClass() { return this.activeStage === "details" ? "studio-stage active" : "studio-stage"; }
+    get settingsStageClass() { return this.activeStage === "settings" ? "studio-stage active" : "studio-stage"; }
+    get audienceStageClass() { return this.activeStage === "audience" ? "studio-stage active" : "studio-stage"; }
+    get isContentStage() { return this.activeStage === "content"; }
+    get isDetailsStage() { return this.activeStage === "details"; }
+    get isSettingsStage() { return this.activeStage === "settings"; }
+    get isAudienceStage() { return this.activeStage === "audience"; }
 
     get isFile() {
         return this.form.contentType === "Salesforce File";
@@ -171,6 +180,44 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.form = {...this.form, [field]: event.detail.value};
     }
 
+    handleCreateGroup(event) {
+        this.groupTargetField = event.currentTarget.dataset.field;
+        this.groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
+        this.showGroupCreator = true;
+    }
+
+    closeGroupCreator() {
+        this.showGroupCreator = false;
+    }
+
+    handleGroupField(event) {
+        this.groupForm = {...this.groupForm, [event.currentTarget.dataset.field]: event.target.value};
+    }
+
+    handleGroupPicker(event) {
+        this.groupForm = {...this.groupForm, [event.currentTarget.dataset.field]: event.detail.value};
+    }
+
+    async handleGroupSave() {
+        const name = this.template.querySelector('.quick-group-modal lightning-input[data-field="name"]');
+        if (!name?.reportValidity()) return;
+        this.groupSaving = true;
+        try {
+            const groupId = await saveGroup({input: this.groupForm});
+            this.catalog = await getCatalog();
+            if (this.groupTargetField) {
+                const selected = this.form[this.groupTargetField] || [];
+                this.form = {...this.form, [this.groupTargetField]: [...selected, groupId]};
+            }
+            this.showGroupCreator = false;
+            this.toast("Group created", `${this.groupForm.name} is ready and selected.`, "success");
+        } catch (error) {
+            this.toast("Could not create group", this.message(error), "error");
+        } finally {
+            this.groupSaving = false;
+        }
+    }
+
     handleCompletionMode(event) {
         this.completionMode = event.detail.value;
         const threshold = this.completionMode === "global"
@@ -180,18 +227,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     handleStage(event) {
-        const target = event.currentTarget.dataset.target;
-        this.activeStage = target;
-        const scroller = this.template.querySelector(".body");
-        const panel = this.template.querySelector(`[data-panel="${target}"]`);
-        if (scroller && panel) {
-            const panelTop = panel.getBoundingClientRect().top;
-            const scrollerTop = scroller.getBoundingClientRect().top;
-            scroller.scrollTo({
-                top: scroller.scrollTop + panelTop - scrollerTop - 12,
-                behavior: "smooth"
-            });
-        }
+        this.activeStage = event.currentTarget.dataset.target;
     }
 
     async handleUpload(event) {
@@ -209,12 +245,29 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     async handleSave() {
         const inputs = [...this.template.querySelectorAll("lightning-input, lightning-textarea, lightning-combobox")];
         if (!inputs.reduce((valid, input) => input.reportValidity() && valid, true)) return;
+        if (!this.form.title?.trim()) {
+            this.activeStage = "details";
+            this.toast("Title required", "Enter a tutorial title before saving.", "error");
+            return;
+        }
+        if (this.form.contentType === "External Link" && !this.form.externalUrl) {
+            this.activeStage = "content";
+            this.toast("Video link required", "Enter the external video URL before saving.", "error");
+            return;
+        }
+        if (this.completionMode === "custom" && (!this.form.completionThreshold || this.form.completionThreshold < 1 || this.form.completionThreshold > 100)) {
+            this.activeStage = "settings";
+            this.toast("Completion threshold required", "Enter a threshold from 1 to 100 percent.", "error");
+            return;
+        }
         const visibilityCount = this.form.visibilityUsers.length + this.form.visibilityProfiles.length + this.form.visibilityGroups.length;
         if (this.form.status === "Published" && visibilityCount === 0) {
+            this.activeStage = "audience";
             this.toast("Audience required", "Select at least one visibility audience before publishing.", "error");
             return;
         }
         if (this.form.contentType === "Salesforce File" && this.form.status === "Published" && !this.fileName) {
+            this.activeStage = "content";
             this.toast("Video required", "Upload a video file before publishing.", "error");
             return;
         }

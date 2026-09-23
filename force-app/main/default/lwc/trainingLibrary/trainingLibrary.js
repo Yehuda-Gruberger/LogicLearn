@@ -21,6 +21,7 @@ export default class TrainingLibrary extends LightningElement {
     @track selectedFolderId = "all";
     @track showPlayer = false;
     @track mode = "library";
+    @track adminSection = "tutorials";
     @track activeVideoId;
     @track activeAutoplay = false;
     isAdmin = false;
@@ -72,6 +73,10 @@ export default class TrainingLibrary extends LightningElement {
         return this.mode === "admin";
     }
 
+    get pageTitle() {
+        return this.isAdminMode ? "Admin Studio" : "Training Library";
+    }
+
     get libraryBtnClass() {
         return this.mode === "library" ? "seg-btn on" : "seg-btn";
     }
@@ -80,12 +85,24 @@ export default class TrainingLibrary extends LightningElement {
         return this.mode === "admin" ? "seg-btn on" : "seg-btn";
     }
 
+    get adminTutorialsClass() { return this.adminNavClass("tutorials"); }
+    get adminGroupsClass() { return this.adminNavClass("groups"); }
+    get adminSettingsClass() { return this.adminNavClass("settings"); }
+
+    adminNavClass(section) {
+        return this.adminSection === section ? "admin-nav-item active" : "admin-nav-item";
+    }
+
     showLibraryMode() {
         this.mode = "library";
     }
 
     showAdminMode() {
         this.mode = "admin";
+    }
+
+    handleAdminSection(event) {
+        this.adminSection = event.currentTarget.dataset.section;
     }
 
     @wire(getLibrary, {folderId: "$apexFolderId", category: null})

@@ -37,6 +37,40 @@
     padding: 1rem 0.75rem;
 }
 
+.admin-rail-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.2rem 0.35rem 1rem;
+    margin-bottom: 0.45rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.admin-rail-mark {
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 0.6rem;
+    background: linear-gradient(145deg, #102f46, #08798a);
+    box-shadow: 0 5px 12px rgba(9, 83, 98, 0.2);
+}
+
+.admin-rail-head > div { display: flex; flex-direction: column; }
+.admin-rail-head span:not(.admin-rail-mark) { color: var(--ink-faint); font-size: 0.61rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.admin-rail-head strong { color: var(--ink); font-size: 0.86rem; }
+.admin-nav { display: flex; flex-direction: column; gap: 0.25rem; }
+.admin-nav-item { width: 100%; display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.6rem; border: 0; border-radius: 0.55rem; background: transparent; color: var(--ink-soft); font: inherit; text-align: left; cursor: pointer; }
+.admin-nav-item:hover { background: #eaf0f3; color: var(--ink); }
+.admin-nav-item.active { background: var(--accent-wash); color: var(--accent-ink); box-shadow: inset 3px 0 0 var(--accent); }
+.admin-nav-icon { width: 1.8rem; height: 1.8rem; flex: 0 0 auto; display: grid; place-items: center; border-radius: 0.45rem; background: #e9eef2; }
+.admin-nav-item.active .admin-nav-icon { background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 46, 0.12); }
+.admin-nav-item > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.admin-nav-item strong { color: inherit; font-size: 0.8rem; }
+.admin-nav-item small { margin-top: 0.05rem; color: var(--ink-faint); font-size: 0.61rem; }
+.admin-rail-tip { display: flex; align-items: flex-start; gap: 0.4rem; margin: 1.25rem 0.35rem 0; padding-top: 0.9rem; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 0.64rem; line-height: 1.4; }
+
 .rail-title {
     font-size: 0.68rem;
     letter-spacing: 0.09em;
