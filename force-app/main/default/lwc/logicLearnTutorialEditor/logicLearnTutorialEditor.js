@@ -45,6 +45,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     fileName;
     newVideoChannel = "None";
     assignmentChannel = "None";
+    activeStage = "content";
 
     async connectedCallback() {
         try {
@@ -81,6 +82,19 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get title() {
         return this.createdDraft ? "Create tutorial" : "Edit tutorial";
     }
+
+    get saveLabel() {
+        return this.form.status === "Published" ? "Publish tutorial" : "Save tutorial";
+    }
+
+    get fileDisplayName() {
+        return this.fileName || "No video selected yet";
+    }
+
+    get contentStageClass() { return this.activeStage === "content" ? "stage active" : "stage"; }
+    get detailsStageClass() { return this.activeStage === "details" ? "stage active" : "stage"; }
+    get settingsStageClass() { return this.activeStage === "settings" ? "stage active" : "stage"; }
+    get audienceStageClass() { return this.activeStage === "audience" ? "stage active" : "stage"; }
 
     get isFile() {
         return this.form.contentType === "Salesforce File";
@@ -163,6 +177,13 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             ? null
             : this.form.completionThreshold ?? this.settings.completionThreshold;
         this.form = {...this.form, completionThreshold: threshold};
+    }
+
+    handleStage(event) {
+        const target = event.currentTarget.dataset.target;
+        this.activeStage = target;
+        const panel = this.template.querySelector(`[data-panel="${target}"]`);
+        if (panel) panel.scrollIntoView({behavior: "smooth", block: "start"});
     }
 
     async handleUpload(event) {
