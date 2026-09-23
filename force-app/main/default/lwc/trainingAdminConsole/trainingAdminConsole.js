@@ -617,10 +617,12 @@ export default class TrainingAdminConsole extends LightningElement {
         this.newTutorialType = "Salesforce File";
     }
 
-    async handleTutorialSaved() {
+    async handleTutorialSaved(event) {
+        const savedVideoId = event.detail?.videoId || this.tutorialRecordId || this.selectedVideoId;
         this.closeTutorialEditor();
+        this.selectedVideoId = savedVideoId;
         await refreshApex(this._wiredVideos);
-        if (this.selectedVideoId) await this.selectTutorial(this.selectedVideoId);
+        if (savedVideoId) await this.selectTutorial(savedVideoId);
     }
 
     stopPropagation(event) {

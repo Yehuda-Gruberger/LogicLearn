@@ -207,8 +207,19 @@
   min-height: 0;
   overflow-y: auto;
   margin-top: 0;
-  padding-right: 0.1rem;
+  padding-right: 0.28rem;
+  scrollbar-color: rgba(98, 188, 201, 0.7) transparent;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
 }
+.browser-list::-webkit-scrollbar { width: 0.38rem; }
+.browser-list::-webkit-scrollbar-track { background: transparent; }
+.browser-list::-webkit-scrollbar-thumb {
+  border: 1px solid #0d3449;
+  border-radius: 999px;
+  background: rgba(98, 188, 201, 0.62);
+}
+.browser-list::-webkit-scrollbar-thumb:hover { background: rgba(118, 211, 222, 0.88); }
 .browser-item {
   width: 100%;
   display: grid;
