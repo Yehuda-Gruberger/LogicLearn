@@ -238,6 +238,31 @@ public without sharing class TrainingVideoController {
         return info;
     }
 
+    /** Administrative preview that never creates or updates learner tracking. */
+    @AuraEnabled
+    public static PlaybackInfo getAdminPreview(Id videoId) {
+        LogicLearnAudienceService.requireAdmin();
+        if (videoId == null) throw new AuraHandledException('No video specified.');
+        Training_Video__c video = [
+            SELECT Id, Name, Video_Content_Version_Id__c, Content_Type__c, External_URL__c, Due_Date__c
+            FROM Training_Video__c WHERE Id = :videoId LIMIT 1
+        ];
+        String cvId = video.Content_Type__c == 'External Link' ? null : String.isNotBlank(video.Video_Content_Version_Id__c)
+            ? video.Video_Content_Version_Id__c : resolveLatestVideoContentVersion(videoId);
+        PlaybackInfo info = new PlaybackInfo();
+        info.videoId = video.Id;
+        info.title = video.Name;
+        info.contentVersionId = cvId;
+        info.videoUrl = String.isNotBlank(cvId) ? '/sfc/servlet.shepherd/version/download/' + cvId : null;
+        info.resumePercent = 0;
+        info.isMandatory = false;
+        info.isExternal = video.Content_Type__c == 'External Link';
+        info.externalUrl = video.External_URL__c;
+        info.dueDate = video.Due_Date__c;
+        info.preventSkipping = false;
+        return info;
+    }
+
     /**
      * @description Falls back to the latest file linked to the record when no ContentVersion has
      * been explicitly pinned. Prefers common video file types.
@@ -472,6 +497,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String category { get; set; }
         @AuraEnabled public String status { get; set; }
         @AuraEnabled public Datetime createdDate { get; set; }
+        @AuraEnabled public String previewUrl { get; set; }
         @AuraEnabled public Integer assignedCount { get; set; }
         @AuraEnabled public Integer completedCount { get; set; }
     }
@@ -507,7 +533,8 @@ public without sharing class TrainingVideoController {
 
         List<VideoAdminRow> rows = new List<VideoAdminRow>();
         for (Training_Video__c v : [
-            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c, CreatedDate
+            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c, CreatedDate,
+                Content_Type__c, Video_Content_Version_Id__c
             FROM Training_Video__c
             ORDER BY CreatedDate DESC
         ]) {
@@ -519,6 +546,9 @@ public without sharing class TrainingVideoController {
             r.category = v.Category__c;
             r.status = v.Status__c;
             r.createdDate = v.CreatedDate;
+            r.previewUrl = v.Content_Type__c != 'External Link' && String.isNotBlank(v.Video_Content_Version_Id__c)
+                ? '/sfc/servlet.shepherd/version/download/' + v.Video_Content_Version_Id__c
+                : null;
             r.assignedCount = assignedByVideo.containsKey(v.Id) ? assignedByVideo.get(v.Id) : 0;
             r.completedCount = completedByVideo.containsKey(v.Id) ? completedByVideo.get(v.Id) : 0;
             rows.add(r);

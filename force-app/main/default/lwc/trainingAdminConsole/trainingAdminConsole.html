@@ -2,19 +2,22 @@
     <template lwc:if={isTutorials}>
         <div class="master-detail">
             <aside class="video-browser">
-                <header class="browser-brand"><span><lightning-icon icon-name="utility:video" size="small" variant="inverse"></lightning-icon></span><div><small>Training workspace</small><strong>LogicLearn</strong></div></header>
-                <lightning-button class="create-top" variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
+                <header class="browser-brand"><span><lightning-icon icon-name="utility:video" size="small" variant="inverse"></lightning-icon></span><div><small>Training workspace</small><strong>LogicLearn</strong></div><button class="brand-settings" title="Global settings" onclick={openSettings}><lightning-icon icon-name="utility:settings" size="x-small" variant="inverse"></lightning-icon></button></header>
+                <button class="create-top" onclick={handleNewVideo}><lightning-icon icon-name="utility:add" size="xx-small" variant="inverse"></lightning-icon><span>Create tutorial</span></button>
                 <lightning-input class="video-search" type="search" variant="label-hidden" label="Search tutorials" placeholder="Search tutorials" value={videoSearch} onchange={handleVideoSearch}></lightning-input>
                 <div class="browser-filters">
-                    <c-logic-learn-picker label="Folder" placeholder="All folders" options={browserFolderOptions} value={folderFilter} onchange={handleFolderFilter}></c-logic-learn-picker>
-                    <c-logic-learn-picker label="Category" placeholder="All categories" options={browserCategoryOptions} value={categoryFilter} onchange={handleCategoryFilter}></c-logic-learn-picker>
-                    <c-logic-learn-picker class="status-filter" label="Status" placeholder="All statuses" options={browserStatusOptions} value={statusFilter} onchange={handleStatusFilter}></c-logic-learn-picker>
+                    <c-logic-learn-picker multiple label="Folder" placeholder="All folders" options={browserFolderOptions} value={folderFilter} onchange={handleFolderFilter}></c-logic-learn-picker>
+                    <c-logic-learn-picker multiple label="Category" placeholder="All categories" options={browserCategoryOptions} value={categoryFilter} onchange={handleCategoryFilter}></c-logic-learn-picker>
+                    <c-logic-learn-picker multiple class="status-filter" label="Status" placeholder="All statuses" options={browserStatusOptions} value={statusFilter} onchange={handleStatusFilter}></c-logic-learn-picker>
                 </div>
                 <div class="browser-list">
                     <template lwc:if={hasFilteredVideos}>
                         <template for:each={filteredTutorialRows} for:item="video">
                             <button key={video.id} class={video.rowClass} data-id={video.id} onclick={handleVideoSelect}>
-                                <span class="browser-thumb" style={video.thumbStyle}><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span>
+                                <span class="browser-thumb" style={video.thumbStyle}>
+                                    <template lwc:if={video.previewUrl}><video src={video.previewUrl} muted loop playsinline preload="metadata" onmouseenter={handleThumbnailEnter} onmouseleave={handleThumbnailLeave}></video></template>
+                                    <span class="thumb-play"><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span>
+                                </span>
                                 <span class="browser-copy"><strong>{video.title}</strong><small>{video.meta}</small><small class="created-date">Created {video.createdLabel}</small><span class={video.statusClass}>{video.status}</span></span>
                             </button>
                         </template>
@@ -27,15 +30,25 @@
             <main class="video-dashboard">
                 <template lwc:if={detailLoading}><div class="dashboard-loading"><lightning-spinner alternative-text="Loading tutorial dashboard"></lightning-spinner></div></template>
                 <template lwc:elseif={selectedTutorial}>
-                    <header class="dashboard-head">
-                        <div class="dashboard-title-line"><h2>{selectedTutorial.title}</h2><span>{selectedTutorial.folderName} / {selectedTutorial.category}</span><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div>
-                        <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button variant="brand" label="Edit tutorial" icon-name="utility:edit" onclick={handleEditSelected}></lightning-button></div>
-                    </header>
-
                     <section class="video-stage">
-                        <div class="video-hero" style={selectedRow.thumbStyle}>
-                            <span class="hero-play"><lightning-icon icon-name="utility:play" size="medium" variant="inverse"></lightning-icon></span>
-                            <div class="hero-caption"><span>{selectedTutorial.contentType}</span><strong>{selectedTutorial.fileName}</strong></div>
+                        <div class="video-hero">
+                            <c-training-video-player video-id={selectedVideoId} preview-only onplay={handlePreviewPlay} onpause={handlePreviewPause}></c-training-video-player>
+                            <div class="hero-toolbar">
+                                <span>{selectedTutorial.folderName} / {selectedTutorial.category} / {selectedTutorial.title}</span>
+                                <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare-inverse" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button-icon icon-name="utility:edit" alternative-text="Edit tutorial" title="Edit tutorial" variant="bare-inverse" onclick={handleEditSelected}></lightning-button-icon></div>
+                            </div>
+                            <template lwc:if={heroOverlayVisible}>
+                                <div class="hero-info">
+                                    <div class="hero-copy">
+                                        <span class="hero-kicker">Training tutorial</span>
+                                        <h2>{selectedTutorial.title}</h2>
+                                        <div class="hero-meta"><span>{selectedTutorial.category}</span><span>Created {selectedRow.createdLabel}</span><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div>
+                                        <p>{selectedTutorial.description}</p>
+                                        <small>{selectedTutorial.contentType}</small>
+                                    </div>
+                                    <button class="hero-play-button" onclick={handleHeroPlay}><span><lightning-icon icon-name="utility:play" size="small" variant="inverse"></lightning-icon></span><strong>Play tutorial</strong></button>
+                                </div>
+                            </template>
                         </div>
                     </section>
 
@@ -74,7 +87,7 @@
         </div>
     </template>
     <template lwc:elseif={isGroups}><c-logic-learn-group-manager></c-logic-learn-group-manager></template>
-    <template lwc:else><c-logic-learn-settings></c-logic-learn-settings></template>
+    <template lwc:else><div class="settings-page"><header><button onclick={openTutorials}><lightning-icon icon-name="utility:back" size="xx-small"></lightning-icon><span>Back to tutorials</span></button><div><span class="eyebrow">LogicLearn</span><h2>Global settings</h2></div></header><c-logic-learn-settings></c-logic-learn-settings></div></template>
 
     <template lwc:if={showTutorialEditor}>
         <section class="modal-backdrop"><div class="modal-editor" onclick={stopPropagation}><c-logic-learn-tutorial-editor record-id={tutorialRecordId} onsaved={handleTutorialSaved} onclose={closeTutorialEditor}></c-logic-learn-tutorial-editor></div></section>

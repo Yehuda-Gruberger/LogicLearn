@@ -1,6 +1,7 @@
 import {LightningElement, api, track} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import getPlayback from "@salesforce/apex/TrainingVideoController.getPlayback";
+import getAdminPreview from "@salesforce/apex/TrainingVideoController.getAdminPreview";
 import recordProgress from "@salesforce/apex/TrainingVideoController.recordProgress";
 import markExternalComplete from "@salesforce/apex/TrainingVideoController.markExternalComplete";
 
@@ -16,6 +17,7 @@ export default class TrainingVideoPlayer extends LightningElement {
     // When true, start playing once the video is ready (used for click-to-open in the library;
     // deep links from the email pass this as false so the video waits for the user).
     @api autoplay = false;
+    @api previewOnly = false;
 
     @track isLoading = true;
     @track error;
@@ -61,7 +63,9 @@ export default class TrainingVideoPlayer extends LightningElement {
         this.isLoading = true;
         this.error = null;
         try {
-            const info = await getPlayback({videoId: this.effectiveVideoId});
+            const info = this.previewOnly
+                ? await getAdminPreview({videoId: this.effectiveVideoId})
+                : await getPlayback({videoId: this.effectiveVideoId});
             this.title = info.title;
             this.videoUrl = info.videoUrl;
             this.resumePercent = info.resumePercent || 0;
@@ -169,9 +173,15 @@ export default class TrainingVideoPlayer extends LightningElement {
             const percent = Math.min(100, Math.round((this._maxWatchedTime / video.duration) * 100));
             this.persist(percent, false);
         }
+        this.dispatchEvent(new CustomEvent("pause"));
+    }
+
+    handlePlay() {
+        this.dispatchEvent(new CustomEvent("play"));
     }
 
     async persist(percent, ended) {
+        if (this.previewOnly) return;
         try {
             await recordProgress({videoId: this.effectiveVideoId, percent, ended});
             if (ended) {
@@ -204,6 +214,7 @@ export default class TrainingVideoPlayer extends LightningElement {
     }
 
     async handleManualComplete() {
+        if (this.previewOnly) return;
         try {
             await markExternalComplete({videoId: this.effectiveVideoId});
             this.completed = true;
@@ -225,5 +236,25 @@ export default class TrainingVideoPlayer extends LightningElement {
             return error.message;
         }
         return "Unable to load this video.";
+    }
+
+    @api
+    reload() {
+        this._loaded = true;
+        this._resumeApplied = false;
+        this._lastReportedAt = 0;
+        this._maxWatchedTime = 0;
+        this.videoUrl = undefined;
+        this.loadPlayback();
+    }
+
+    @api
+    play() {
+        const video = this.videoElement;
+        if (!video) return;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch(() => {});
+        }
     }
 }

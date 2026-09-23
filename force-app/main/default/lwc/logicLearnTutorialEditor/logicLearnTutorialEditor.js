@@ -51,6 +51,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     groupSaving = false;
     groupTargetField;
     groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
+    showVideoPreview = false;
 
     async connectedCallback() {
         try {
@@ -236,6 +237,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         try {
             await setUploadedVideo({videoId: this.recordId, contentDocumentId: files[0].documentId});
             this.fileName = files[0].name;
+            requestAnimationFrame(() => this.template.querySelectorAll("c-training-video-player").forEach((player) => player.reload()));
             this.toast("Uploaded", `${files[0].name} is ready.`, "success");
         } catch (error) {
             this.toast("Upload error", this.message(error), "error");
@@ -245,11 +247,14 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     async handleSave() {
         const inputs = [...this.template.querySelectorAll("lightning-input, lightning-textarea, lightning-combobox")];
         if (!inputs.reduce((valid, input) => input.reportValidity() && valid, true)) return;
-        if (!this.form.title?.trim()) {
+        const titleInput = this.template.querySelector('lightning-input[data-field="title"]');
+        const currentTitle = (titleInput?.value || this.form.title || "").trim();
+        if (!currentTitle) {
             this.activeStage = "details";
             this.toast("Title required", "Enter a tutorial title before saving.", "error");
             return;
         }
+        this.form = {...this.form, title: currentTitle};
         if (this.form.contentType === "External Link" && !this.form.externalUrl) {
             this.activeStage = "content";
             this.toast("Video link required", "Enter the external video URL before saving.", "error");
@@ -300,6 +305,14 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             }
         }
         this.dispatchEvent(new CustomEvent("close"));
+    }
+
+    openVideoPreview() {
+        this.showVideoPreview = true;
+    }
+
+    closeVideoPreview() {
+        this.showVideoPreview = false;
     }
 
     stopPropagation(event) {

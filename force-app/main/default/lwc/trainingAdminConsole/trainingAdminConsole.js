@@ -47,10 +47,11 @@ export default class TrainingAdminConsole extends LightningElement {
     detailLoading = false;
     selectedVideoId;
     videoSearch = "";
-    folderFilter;
-    categoryFilter;
-    statusFilter;
+    folderFilter = [];
+    categoryFilter = [];
+    statusFilter = [];
     activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
+    heroOverlayVisible = true;
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
     folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
@@ -161,25 +162,25 @@ export default class TrainingAdminConsole extends LightningElement {
         const search = this.videoSearch.trim().toLowerCase();
         return this.tutorialRows.filter((video) =>
             (!search || video.title?.toLowerCase().includes(search)) &&
-            (!this.folderFilter || video.folderId === this.folderFilter) &&
-            (!this.categoryFilter || video.category === this.categoryFilter) &&
-            (!this.statusFilter || video.status === this.statusFilter)
+            (!this.folderFilter.length || this.folderFilter.includes(video.folderId)) &&
+            (!this.categoryFilter.length || this.categoryFilter.includes(video.category)) &&
+            (!this.statusFilter.length || this.statusFilter.includes(video.status))
         );
     }
 
     get hasFilteredVideos() { return this.filteredTutorialRows.length > 0; }
 
     get browserFolderOptions() {
-        return [{value: "", label: "All folders", meta: "Filter"}, ...this.folders.map((folder) => ({value: folder.id, label: folder.name, meta: "Folder"}))];
+        return this.folders.map((folder) => ({value: folder.id, label: folder.name, meta: "Folder"}));
     }
 
     get browserCategoryOptions() {
-        return [{value: "", label: "All categories", meta: "Filter"}, ...["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
-            .map((value) => ({value, label: value, meta: "Category"}))];
+        return ["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
+            .map((value) => ({value, label: value, meta: "Category"}));
     }
 
     get browserStatusOptions() {
-        return [{value: "", label: "All statuses", meta: "Filter"}, ...["Draft", "Published", "Archived"].map((value) => ({value, label: value, meta: "Status"}))];
+        return ["Draft", "Published", "Archived"].map((value) => ({value, label: value, meta: "Status"}));
     }
 
     get selectedRow() {
@@ -289,6 +290,7 @@ export default class TrainingAdminConsole extends LightningElement {
 
     async selectTutorial(videoId) {
         this.selectedVideoId = videoId;
+        this.heroOverlayVisible = true;
         this.activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
         this.detailLoading = true;
         try {
@@ -322,16 +324,42 @@ export default class TrainingAdminConsole extends LightningElement {
         this.videoSearch = event.target.value;
     }
 
+    handleThumbnailEnter(event) {
+        const video = event.currentTarget;
+        video.muted = true;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+    }
+
+    handleThumbnailLeave(event) {
+        const video = event.currentTarget;
+        video.pause();
+        video.currentTime = 0;
+    }
+
+    handleHeroPlay() {
+        this.heroOverlayVisible = false;
+        this.template.querySelector(".video-hero c-training-video-player")?.play();
+    }
+
+    handlePreviewPlay() {
+        this.heroOverlayVisible = false;
+    }
+
+    handlePreviewPause() {
+        this.heroOverlayVisible = true;
+    }
+
     handleFolderFilter(event) {
-        this.folderFilter = event.detail.value || undefined;
+        this.folderFilter = event.detail.value || [];
     }
 
     handleCategoryFilter(event) {
-        this.categoryFilter = event.detail.value || undefined;
+        this.categoryFilter = event.detail.value || [];
     }
 
     handleStatusFilter(event) {
-        this.statusFilter = event.detail.value || undefined;
+        this.statusFilter = event.detail.value || [];
     }
 
     handleEditSelected() {
@@ -352,6 +380,9 @@ export default class TrainingAdminConsole extends LightningElement {
     handleLibraryMode() {
         this.dispatchEvent(new CustomEvent("library"));
     }
+
+    openSettings() { this.activeSection = "settings"; }
+    openTutorials() { this.activeSection = "tutorials"; }
 
     handleDeleteTutorial(event) {
         const row = this.videos.find((video) => video.id === event.currentTarget.dataset.id);
