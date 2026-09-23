@@ -49,6 +49,7 @@ export default class TrainingAdminConsole extends LightningElement {
     videoSearch = "";
     folderFilter;
     categoryFilter;
+    statusFilter;
     activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
@@ -139,18 +140,19 @@ export default class TrainingAdminConsole extends LightningElement {
     get tutorialRows() {
         const gradients = {
             Onboarding: "linear-gradient(135deg,#0b5563,#0e8ea0)",
-            Compliance: "linear-gradient(135deg,#8f1d18,#c2453c)",
-            Products: "linear-gradient(135deg,#5a3d82,#8158b0)",
-            Processes: "linear-gradient(135deg,#1f6b3c,#3a9459)",
-            Systems: "linear-gradient(135deg,#274b74,#3f6fa3)"
+            Compliance: "linear-gradient(135deg,#4c3c68,#75568e)",
+            Products: "linear-gradient(135deg,#3e5a82,#577da6)",
+            Processes: "linear-gradient(135deg,#23614e,#3a8b70)",
+            Systems: "linear-gradient(135deg,#284965,#3e6b86)"
         };
         return this.videos.map((video) => ({
             ...video,
             assignedCount: video.assignedCount || 0,
             completedCount: video.completedCount || 0,
             meta: [video.folderName, video.category].filter(Boolean).join(" / ") || "Uncategorized",
+            createdLabel: video.createdDate ? new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric", year: "numeric"}).format(new Date(video.createdDate)) : "",
             statusClass: `status-pill ${(video.status || "Draft").toLowerCase()}`,
-            thumbStyle: `background:${gradients[video.category] || "linear-gradient(135deg,#334155,#08798a)"}`,
+            thumbStyle: `background:${gradients[video.category] || "linear-gradient(135deg,#334155,#4d6e7a)"}`,
             rowClass: video.id === this.selectedVideoId ? "browser-item active" : "browser-item"
         }));
     }
@@ -160,7 +162,8 @@ export default class TrainingAdminConsole extends LightningElement {
         return this.tutorialRows.filter((video) =>
             (!search || video.title?.toLowerCase().includes(search)) &&
             (!this.folderFilter || video.folderId === this.folderFilter) &&
-            (!this.categoryFilter || video.category === this.categoryFilter)
+            (!this.categoryFilter || video.category === this.categoryFilter) &&
+            (!this.statusFilter || video.status === this.statusFilter)
         );
     }
 
@@ -173,6 +176,10 @@ export default class TrainingAdminConsole extends LightningElement {
     get browserCategoryOptions() {
         return [{value: "", label: "All categories", meta: "Filter"}, ...["Onboarding", "Compliance", "Products", "Processes", "Systems", "Professional Development", "Other"]
             .map((value) => ({value, label: value, meta: "Category"}))];
+    }
+
+    get browserStatusOptions() {
+        return [{value: "", label: "All statuses", meta: "Filter"}, ...["Draft", "Published", "Archived"].map((value) => ({value, label: value, meta: "Status"}))];
     }
 
     get selectedRow() {
@@ -321,6 +328,10 @@ export default class TrainingAdminConsole extends LightningElement {
 
     handleCategoryFilter(event) {
         this.categoryFilter = event.detail.value || undefined;
+    }
+
+    handleStatusFilter(event) {
+        this.statusFilter = event.detail.value || undefined;
     }
 
     handleEditSelected() {

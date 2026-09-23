@@ -471,6 +471,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String folderName { get; set; }
         @AuraEnabled public String category { get; set; }
         @AuraEnabled public String status { get; set; }
+        @AuraEnabled public Datetime createdDate { get; set; }
         @AuraEnabled public Integer assignedCount { get; set; }
         @AuraEnabled public Integer completedCount { get; set; }
     }
@@ -506,9 +507,9 @@ public without sharing class TrainingVideoController {
 
         List<VideoAdminRow> rows = new List<VideoAdminRow>();
         for (Training_Video__c v : [
-            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c
+            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c, CreatedDate
             FROM Training_Video__c
-            ORDER BY Folder__r.Name NULLS FIRST, Name
+            ORDER BY CreatedDate DESC
         ]) {
             VideoAdminRow r = new VideoAdminRow();
             r.id = v.Id;
@@ -517,6 +518,7 @@ public without sharing class TrainingVideoController {
             r.folderName = v.Folder__r.Name;
             r.category = v.Category__c;
             r.status = v.Status__c;
+            r.createdDate = v.CreatedDate;
             r.assignedCount = assignedByVideo.containsKey(v.Id) ? assignedByVideo.get(v.Id) : 0;
             r.completedCount = completedByVideo.containsKey(v.Id) ? completedByVideo.get(v.Id) : 0;
             rows.add(r);

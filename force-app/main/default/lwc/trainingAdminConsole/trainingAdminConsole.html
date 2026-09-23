@@ -1,32 +1,26 @@
 <template>
-    <nav class="studio-nav" aria-label="Admin workspace">
-        <button class={tutorialsTabClass} data-section="tutorials" onclick={handleSection}><lightning-icon icon-name="utility:video" size="xx-small"></lightning-icon>Tutorials</button>
-        <button class={groupsTabClass} data-section="groups" onclick={handleSection}><lightning-icon icon-name="utility:groups" size="xx-small"></lightning-icon>Groups</button>
-        <button class={settingsTabClass} data-section="settings" onclick={handleSection}><lightning-icon icon-name="utility:settings" size="xx-small"></lightning-icon>Settings</button>
-    </nav>
-
     <template lwc:if={isTutorials}>
         <div class="master-detail">
             <aside class="video-browser">
-                <header class="browser-head"><div><span class="eyebrow">Content</span><h2>Tutorials</h2></div><lightning-button-icon icon-name="utility:add" alternative-text="Create tutorial" title="Create tutorial" variant="brand" onclick={handleNewVideo}></lightning-button-icon></header>
+                <header class="browser-brand"><span><lightning-icon icon-name="utility:video" size="small" variant="inverse"></lightning-icon></span><div><small>Training workspace</small><strong>LogicLearn</strong></div></header>
+                <lightning-button class="create-top" variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
                 <lightning-input class="video-search" type="search" variant="label-hidden" label="Search tutorials" placeholder="Search tutorials" value={videoSearch} onchange={handleVideoSearch}></lightning-input>
                 <div class="browser-filters">
                     <c-logic-learn-picker label="Folder" placeholder="All folders" options={browserFolderOptions} value={folderFilter} onchange={handleFolderFilter}></c-logic-learn-picker>
                     <c-logic-learn-picker label="Category" placeholder="All categories" options={browserCategoryOptions} value={categoryFilter} onchange={handleCategoryFilter}></c-logic-learn-picker>
+                    <c-logic-learn-picker class="status-filter" label="Status" placeholder="All statuses" options={browserStatusOptions} value={statusFilter} onchange={handleStatusFilter}></c-logic-learn-picker>
                 </div>
-                <div class="browser-label"><span>Your videos</span><span>{videoCount}</span></div>
                 <div class="browser-list">
                     <template lwc:if={hasFilteredVideos}>
                         <template for:each={filteredTutorialRows} for:item="video">
                             <button key={video.id} class={video.rowClass} data-id={video.id} onclick={handleVideoSelect}>
                                 <span class="browser-thumb" style={video.thumbStyle}><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span>
-                                <span class="browser-copy"><strong>{video.title}</strong><small>{video.meta}</small><span class={video.statusClass}>{video.status}</span></span>
+                                <span class="browser-copy"><strong>{video.title}</strong><small>{video.meta}</small><small class="created-date">Created {video.createdLabel}</small><span class={video.statusClass}>{video.status}</span></span>
                             </button>
                         </template>
                     </template>
                     <template lwc:else><div class="browser-empty">No tutorials match these filters.</div></template>
                 </div>
-                <lightning-button class="create-wide" variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button>
                 <div class="browser-mode-toggle" role="group" aria-label="Workspace view"><button onclick={handleLibraryMode}>Library</button><button class="active">Admin</button></div>
             </aside>
 
@@ -34,7 +28,7 @@
                 <template lwc:if={detailLoading}><div class="dashboard-loading"><lightning-spinner alternative-text="Loading tutorial dashboard"></lightning-spinner></div></template>
                 <template lwc:elseif={selectedTutorial}>
                     <header class="dashboard-head">
-                        <div><span class="eyebrow">Tutorial dashboard</span><h2>{selectedTutorial.title}</h2><p>{selectedTutorial.folderName} / {selectedTutorial.category}</p></div>
+                        <div class="dashboard-title-line"><h2>{selectedTutorial.title}</h2><span>{selectedTutorial.folderName} / {selectedTutorial.category}</span><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div>
                         <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button variant="brand" label="Edit tutorial" icon-name="utility:edit" onclick={handleEditSelected}></lightning-button></div>
                     </header>
 
