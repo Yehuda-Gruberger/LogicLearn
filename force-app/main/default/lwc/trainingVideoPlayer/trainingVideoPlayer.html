@@ -32,7 +32,7 @@
                 ></video>
             </div>
 
-            <div class="controlbar">
+            <template lwc:if={showControlbar}><div class="controlbar">
                 <span class="speed-label">Speed</span>
                 <div class="speed-group" role="group" aria-label="Playback speed">
                     <template for:each={speedOptions} for:item="opt">
@@ -58,7 +58,7 @@
                     <lightning-button label="Mark complete" icon-name="utility:check" onclick={handleManualComplete} disabled={completed}></lightning-button>
                 </div>
                 <template lwc:if={completed}><span class="complete">Completed</span></template>
-            </div>
+            </div></template>
         </template>
     </div>
 </template>

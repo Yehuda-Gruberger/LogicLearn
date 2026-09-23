@@ -18,6 +18,7 @@ export default class TrainingVideoPlayer extends LightningElement {
     // deep links from the email pass this as false so the video waits for the user).
     @api autoplay = false;
     @api previewOnly = false;
+    @api compact = false;
 
     @track isLoading = true;
     @track error;
@@ -174,6 +175,10 @@ export default class TrainingVideoPlayer extends LightningElement {
             this.persist(percent, false);
         }
         this.dispatchEvent(new CustomEvent("pause"));
+    }
+
+    get showControlbar() {
+        return !this.compact;
     }
 
     handlePlay() {

@@ -52,6 +52,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     groupTargetField;
     groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
     showVideoPreview = false;
+    draftTitle = "";
 
     async connectedCallback() {
         try {
@@ -67,6 +68,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             const tutorial = await getTutorial({videoId: id});
             this.fileName = tutorial.fileName;
             this.form = this.normalize({...EMPTY_FORM, ...tutorial, videoId: id});
+            this.draftTitle = this.form.title || "";
             this.completionMode = tutorial.completionThreshold == null ? "global" : "custom";
         } catch (error) {
             this.toast("Unable to open tutorial", this.message(error), "error");
@@ -176,6 +178,10 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.form = {...this.form, [field]: value === "" ? null : value};
     }
 
+    handleTitleInput(event) {
+        this.draftTitle = event.currentTarget.value || "";
+    }
+
     handlePicker(event) {
         const field = event.currentTarget.dataset.field;
         this.form = {...this.form, [field]: event.detail.value};
@@ -248,7 +254,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         const inputs = [...this.template.querySelectorAll("lightning-input, lightning-textarea, lightning-combobox")];
         if (!inputs.reduce((valid, input) => input.reportValidity() && valid, true)) return;
         const titleInput = this.template.querySelector('lightning-input[data-field="title"]');
-        const currentTitle = (titleInput?.value || this.form.title || "").trim();
+        const currentTitle = (titleInput?.value || this.draftTitle || this.form.title || "").trim();
         if (!currentTitle) {
             this.activeStage = "details";
             this.toast("Title required", "Enter a tutorial title before saving.", "error");
@@ -278,7 +284,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         }
         this.saving = true;
         try {
-            const videoId = await saveTutorial({input: {...this.form, videoId: this.recordId, fileName: null}});
+            const payload = {...this.form, videoId: this.recordId, fileName: null, title: currentTitle};
+            const videoId = await saveTutorial({input: payload});
             const notices = [];
             if (["Email", "Both"].includes(this.newVideoChannel)) notices.push(sendNotification({videoId, notificationType: "New Video"}));
             if (["In-app", "Both"].includes(this.newVideoChannel)) notices.push(sendInAppNotification({videoId, notificationType: "New Video"}));

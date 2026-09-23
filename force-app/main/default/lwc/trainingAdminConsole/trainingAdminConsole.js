@@ -52,6 +52,7 @@ export default class TrainingAdminConsole extends LightningElement {
     statusFilter = [];
     activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
     heroOverlayVisible = true;
+    showSettingsModal = false;
     folderModalTitle = "New Folder";
     videoModalTitle = "New Video";
     folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
@@ -381,7 +382,8 @@ export default class TrainingAdminConsole extends LightningElement {
         this.dispatchEvent(new CustomEvent("library"));
     }
 
-    openSettings() { this.activeSection = "settings"; }
+    openSettings() { this.showSettingsModal = true; }
+    closeSettings() { this.showSettingsModal = false; }
     openTutorials() { this.activeSection = "tutorials"; }
 
     handleDeleteTutorial(event) {

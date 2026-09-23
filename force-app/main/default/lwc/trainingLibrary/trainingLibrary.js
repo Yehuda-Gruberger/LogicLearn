@@ -27,6 +27,7 @@ export default class TrainingLibrary extends LightningElement {
     isAdmin = false;
     _deepLinkHandled;
     _openTutorialAfterModeChange = false;
+    _modeInitialized = false;
 
     sections = [];
     folders = [];
@@ -37,6 +38,10 @@ export default class TrainingLibrary extends LightningElement {
     wiredAdmin({data}) {
         if (data !== undefined) {
             this.isAdmin = data;
+            if (!this._modeInitialized) {
+                this._modeInitialized = true;
+                if (data && !this._deepLinkHandled) this.mode = "admin";
+            }
         }
     }
 

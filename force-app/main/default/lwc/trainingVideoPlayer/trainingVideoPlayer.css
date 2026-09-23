@@ -24,6 +24,7 @@
 .video-wrap {
     position: relative;
     width: 100%;
+    max-height: var(--logic-learn-player-max-height, none);
     background: #000;
     aspect-ratio: 16 / 9;
 }
@@ -33,6 +34,7 @@
     height: 100%;
     display: block;
     background: #000;
+    object-fit: contain;
 }
 
 .controlbar {

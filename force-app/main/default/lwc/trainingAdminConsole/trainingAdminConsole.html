@@ -32,7 +32,7 @@
                 <template lwc:elseif={selectedTutorial}>
                     <section class="video-stage">
                         <div class="video-hero">
-                            <c-training-video-player video-id={selectedVideoId} preview-only onplay={handlePreviewPlay} onpause={handlePreviewPause}></c-training-video-player>
+                            <c-training-video-player video-id={selectedVideoId} preview-only compact onplay={handlePreviewPlay} onpause={handlePreviewPause}></c-training-video-player>
                             <div class="hero-toolbar">
                                 <span>{selectedTutorial.folderName} / {selectedTutorial.category} / {selectedTutorial.title}</span>
                                 <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare-inverse" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button-icon icon-name="utility:edit" alternative-text="Edit tutorial" title="Edit tutorial" variant="bare-inverse" onclick={handleEditSelected}></lightning-button-icon></div>
@@ -41,7 +41,7 @@
                                 <div class="hero-info">
                                     <div class="hero-copy">
                                         <span class="hero-kicker">Training tutorial</span>
-                                        <h2>{selectedTutorial.title}</h2>
+                                        <h2>{selectedRow.title}</h2>
                                         <div class="hero-meta"><span>{selectedTutorial.category}</span><span>Created {selectedRow.createdLabel}</span><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div>
                                         <p>{selectedTutorial.description}</p>
                                         <small>{selectedTutorial.contentType}</small>
@@ -87,7 +87,16 @@
         </div>
     </template>
     <template lwc:elseif={isGroups}><c-logic-learn-group-manager></c-logic-learn-group-manager></template>
-    <template lwc:else><div class="settings-page"><header><button onclick={openTutorials}><lightning-icon icon-name="utility:back" size="xx-small"></lightning-icon><span>Back to tutorials</span></button><div><span class="eyebrow">LogicLearn</span><h2>Global settings</h2></div></header><c-logic-learn-settings></c-logic-learn-settings></div></template>
+
+    <template lwc:if={showSettingsModal}>
+        <section class="settings-backdrop" onclick={closeSettings}>
+            <div class="settings-modal" onclick={stopPropagation}>
+                <header><div><span class="eyebrow">LogicLearn</span><h2>Global settings</h2><p>Default behavior for tutorials and notifications</p></div><lightning-button-icon icon-name="utility:close" alternative-text="Close settings" title="Close" variant="bare" onclick={closeSettings}></lightning-button-icon></header>
+                <div class="settings-modal-body"><c-logic-learn-settings></c-logic-learn-settings></div>
+                <footer><lightning-button label="Close" onclick={closeSettings}></lightning-button></footer>
+            </div>
+        </section>
+    </template>
 
     <template lwc:if={showTutorialEditor}>
         <section class="modal-backdrop"><div class="modal-editor" onclick={stopPropagation}><c-logic-learn-tutorial-editor record-id={tutorialRecordId} onsaved={handleTutorialSaved} onclose={closeTutorialEditor}></c-logic-learn-tutorial-editor></div></section>
