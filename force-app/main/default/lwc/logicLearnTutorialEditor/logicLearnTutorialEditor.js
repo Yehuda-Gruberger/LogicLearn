@@ -51,7 +51,6 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     groupSaving = false;
     groupTargetField;
     groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
-    showVideoPreview = false;
     draftTitle = "";
 
     async connectedCallback() {
@@ -352,14 +351,6 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             }
         }
         this.dispatchEvent(new CustomEvent("close"));
-    }
-
-    openVideoPreview() {
-        this.showVideoPreview = true;
-    }
-
-    closeVideoPreview() {
-        this.showVideoPreview = false;
     }
 
     stopPropagation(event) {

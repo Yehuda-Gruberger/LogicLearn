@@ -36,7 +36,7 @@
 .browser-mode-toggle button.active { background: #fff; color: #075e6c; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
 .video-dashboard { min-width:0; min-height:0; overflow:hidden; padding:.85rem 1.2rem 1rem; background:#eef2f5; }
 .dashboard-loading { position:relative; height:100%; min-height:20rem; }
-.dashboard-header { min-height:3.55rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.dashboard-header { min-height:3.55rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:.55rem; }
 .dashboard-heading { min-width:0; }
 .breadcrumb { overflow:hidden; color:#74879a; font-size:.64rem; text-overflow:ellipsis; white-space:nowrap; }
 .breadcrumb span { margin:0 .25rem; color:#a3aebb; }
