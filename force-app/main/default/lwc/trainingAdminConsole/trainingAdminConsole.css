@@ -476,6 +476,46 @@
   display: block;
   width: 100%;
 }
+.empty-video-preview {
+  height: 100%;
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(145deg, #f4f8f9, #e9f1f4);
+  color: #29465a;
+  text-align: center;
+}
+.empty-video-preview > span {
+  width: 3.75rem;
+  height: 3.75rem;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.7rem;
+  border-radius: 0.75rem;
+  background: #dbecef;
+  --slds-c-icon-color-foreground-default: #118899;
+}
+.empty-video-preview strong { font-size: 0.9rem; }
+.empty-video-preview p { margin: 0.2rem 0 0.85rem; color: #6d8292; font-size: 0.66rem; }
+.empty-video-preview button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.48rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: #0b8798;
+  color: #fff;
+  font: inherit;
+  font-size: 0.67rem;
+  font-weight: 750;
+  cursor: pointer;
+  --slds-c-icon-color-foreground-default: #fff;
+}
+.empty-video-preview button:hover { background: #087485; }
 .hero-play-button {
   position: absolute;
   top: 50%;

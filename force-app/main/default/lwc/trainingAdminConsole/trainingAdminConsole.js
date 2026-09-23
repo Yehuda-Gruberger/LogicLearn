@@ -58,6 +58,11 @@ export default class TrainingAdminConsole extends LightningElement {
     videoSearch = "";
 
     get selectedIsDocument() { return this.selectedTutorial?.contentType === "Document"; }
+    get selectedHasPlayableVideo() {
+        if (!this.selectedTutorial || this.selectedIsDocument) return false;
+        if (this.selectedTutorial.contentType === "External Link") return Boolean(this.selectedTutorial.externalUrl);
+        return Boolean(this.selectedTutorial.fileName || this.selectedRow?.previewUrl);
+    }
     folderFilter = [];
     categoryFilter = [];
     statusFilter = [];
@@ -543,6 +548,13 @@ export default class TrainingAdminConsole extends LightningElement {
         if (!this.selectedVideoId) return;
         this.tutorialRecordId = this.selectedVideoId;
         this.editorHighlight = null;
+        this.showTutorialEditor = true;
+    }
+
+    handleAddVideo() {
+        if (!this.selectedVideoId) return;
+        this.tutorialRecordId = this.selectedVideoId;
+        this.editorHighlight = "video";
         this.showTutorialEditor = true;
     }
 
