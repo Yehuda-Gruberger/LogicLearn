@@ -98,6 +98,9 @@
   gap: 1rem;
   align-items: start;
 }
+.setup-grid.document-layout { grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.75fr); }
+.document-layout .document-builder { min-height: 22rem; }
+.publishing-grid.document-publishing { grid-template-columns: minmax(12rem, 0.55fr); }
 .editor-column {
   min-width: 0;
   min-height: 0;

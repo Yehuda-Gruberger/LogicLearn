@@ -48,6 +48,7 @@ const EMPTY_FORM = {
 export default class LogicLearnTutorialEditor extends LightningElement {
     @api recordId;
     @api highlightSection;
+    @api initialContentType = "Salesforce File";
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: [], categories: []};
     settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated."};
@@ -89,6 +90,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             const tutorial = await getTutorial({videoId: id});
             this.fileName = tutorial.fileName;
             this.form = this.normalize({...EMPTY_FORM, ...tutorial, videoId: id});
+            if (this.createdDraft && this.initialContentType) this.form = {...this.form, contentType: this.initialContentType};
             const savedPages = await getTutorialPages({videoId: id});
             this.pages = savedPages?.length ? savedPages.map((page, index) => ({...page, clientKey: page.pageId || `page-${index + 1}`})) : [this.newPage(1)];
             this.originalStatus = tutorial.status || "Draft";
@@ -115,7 +117,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     get title() {
-        return this.createdDraft ? "Create tutorial" : "Edit tutorial";
+        if (this.isDocument) return this.createdDraft ? "Create document tutorial" : "Edit document tutorial";
+        return this.createdDraft ? "Create video tutorial" : "Edit video tutorial";
     }
 
     get saveLabel() {
@@ -142,6 +145,12 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     get isDocument() { return this.form.contentType === "Document"; }
+    get isVideoTutorial() { return !this.isDocument; }
+    get showVideoRules() { return !this.isDocument; }
+    get studioIcon() { return this.isDocument ? "utility:knowledge_base" : "utility:video"; }
+    get setupGridClass() { return this.isDocument ? "setup-grid document-layout" : "setup-grid"; }
+    get publishingGridClass() { return this.isDocument ? "publishing-grid document-publishing" : "publishing-grid"; }
+    get descriptionPlaceholder() { return this.isDocument ? "What will learners learn from this document?" : "What will learners be able to do after watching?"; }
     get contentPanelTitle() { return this.isDocument ? "Read tutorial" : "Video"; }
     get contentHelp() { return this.isDocument ? "What learners will read, one page at a time." : "What learners will watch."; }
     get activePage() { return this.pages[this.activePageIndex] || this.newPage(1); }
@@ -215,8 +224,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get contentOptions() {
         return [
             {label: "Salesforce File (tracked)", value: "Salesforce File"},
-            {label: "External link (manual completion)", value: "External Link"},
-            {label: "Read tutorial (pages)", value: "Document"}
+            {label: "External link (manual completion)", value: "External Link"}
         ];
     }
 

@@ -29,7 +29,8 @@ public without sharing class LogicLearnAdminController {
     public class GroupInput { @AuraEnabled public Id groupId { get; set; } @AuraEnabled public String name { get; set; } @AuraEnabled public String description { get; set; } @AuraEnabled public List<String> users { get; set; } @AuraEnabled public List<String> profiles { get; set; } @AuraEnabled public List<String> groups { get; set; } }
     public class GroupRow { @AuraEnabled public Id id; @AuraEnabled public String name; @AuraEnabled public String description; @AuraEnabled public Integer memberCount; }
     public class TrackingRow { @AuraEnabled public Id userId; @AuraEnabled public String userName; @AuraEnabled public String status; @AuraEnabled public Decimal watchPercent; @AuraEnabled public Decimal viewCount; @AuraEnabled public Datetime firstViewedAt; @AuraEnabled public Datetime lastViewedAt; @AuraEnabled public Datetime completedAt; @AuraEnabled public String completionMethod; @AuraEnabled public Date dueDate; @AuraEnabled public Boolean overdue; }
-    public class EngagementPage { @AuraEnabled public List<TrackingRow> rows; @AuraEnabled public Integer total; @AuraEnabled public Integer pageNumber; @AuraEnabled public Integer pageSize; }
+    public class EngagementPage { @AuraEnabled public List<TrackingRow> rows; @AuraEnabled public Integer total; @AuraEnabled public Decimal metricTotal; @AuraEnabled public Integer pageNumber; @AuraEnabled public Integer pageSize; }
+    public class EngagementSummary { @AuraEnabled public Decimal totalOpens; @AuraEnabled public Integer started; @AuraEnabled public Integer completed; @AuraEnabled public Decimal averageWatch; }
     public class FolderInput { @AuraEnabled public Id folderId; @AuraEnabled public String name; @AuraEnabled public Id parentId; @AuraEnabled public Decimal sortOrder; @AuraEnabled public String icon; @AuraEnabled public String description; }
 
     @AuraEnabled
@@ -404,6 +405,11 @@ public without sharing class LogicLearnAdminController {
         String filter = metric == 'Completed' ? ' AND Status__c = \'Completed\'' :
             metric == 'Average watched' ? ' AND Watch_Percent__c > 0' : ' AND View_Count__c > 0';
         result.total = Database.countQuery('SELECT COUNT() FROM Training_View__c WHERE Training_Video__c = :videoId' + filter);
+        result.metricTotal = result.total;
+        if (metric == 'Total opens') {
+            AggregateResult opens = [SELECT SUM(View_Count__c) total FROM Training_View__c WHERE Training_Video__c = :videoId AND View_Count__c > 0];
+            result.metricTotal = opens.get('total') == null ? 0 : (Decimal)opens.get('total');
+        }
         Integer rowOffset = (result.pageNumber - 1) * result.pageSize;
         if (rowOffset >= result.total && result.total > 0) { result.pageNumber = 1; rowOffset = 0; }
         Integer limitSize = result.pageSize;
@@ -416,6 +422,23 @@ public without sharing class LogicLearnAdminController {
             row.firstViewedAt = view.First_Viewed_At__c; row.lastViewedAt = view.Last_Viewed_At__c;
             row.completedAt = view.Completed_At__c; row.completionMethod = view.Completion_Method__c; result.rows.add(row);
         }
+        return result;
+    }
+
+    @AuraEnabled
+    public static EngagementSummary getEngagementSummary(Id videoId) {
+        LogicLearnAudienceService.requireAdmin();
+        EngagementSummary result = new EngagementSummary();
+        result.totalOpens = 0; result.started = 0; result.completed = 0; result.averageWatch = 0;
+        if (videoId == null) return result;
+        AggregateResult activity = [
+            SELECT COUNT(Id) people, SUM(View_Count__c) opens, AVG(Watch_Percent__c) average
+            FROM Training_View__c WHERE Training_Video__c = :videoId AND View_Count__c > 0
+        ];
+        result.started = (Integer)activity.get('people');
+        result.totalOpens = activity.get('opens') == null ? 0 : (Decimal)activity.get('opens');
+        result.averageWatch = activity.get('average') == null ? 0 : ((Decimal)activity.get('average')).setScale(0);
+        result.completed = [SELECT COUNT() FROM Training_View__c WHERE Training_Video__c = :videoId AND Status__c = 'Completed'];
         return result;
     }
 

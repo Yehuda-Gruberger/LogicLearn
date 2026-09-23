@@ -78,7 +78,7 @@ export default class LogicLearnTracking extends LightningElement {
             this.rows = await getTracking({videoId: this.videoId});
             const totalWatch = this.rows.reduce((sum, row) => sum + Number(row.watchPercent || 0), 0);
             this.dispatchEvent(new CustomEvent("trackingloaded", {detail: {
-                totalOpens: this.rows.filter((row) => Number(row.viewCount || 0) > 0).length,
+                totalOpens: this.rows.reduce((sum, row) => sum + Number(row.viewCount || 0), 0),
                 started: this.rows.filter((row) => Number(row.viewCount || 0) > 0).length,
                 completed: this.rows.filter((row) => row.status === "Completed").length,
                 averageWatch: this.rows.length ? Math.round(totalWatch / this.rows.length) : 0

@@ -12,6 +12,7 @@ import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial"
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 import getEngagementDetails from "@salesforce/apex/LogicLearnAdminController.getEngagementDetails";
+import getEngagementSummary from "@salesforce/apex/LogicLearnAdminController.getEngagementSummary";
 
 const VIDEO_COLUMNS = [
     {label: "Title", fieldName: "title", type: "text"},
@@ -44,6 +45,8 @@ export default class TrainingAdminConsole extends LightningElement {
 
     @track showFolderForm = false;
     @track showTutorialEditor = false;
+    showCreateMenu = false;
+    newTutorialType = "Salesforce File";
     editingFolderId = null;
     editingVideoId = null;
     tutorialRecordId = null;
@@ -64,8 +67,9 @@ export default class TrainingAdminConsole extends LightningElement {
     engagementMetric;
     engagementRows = [];
     engagementPage = 1;
-    engagementPageSize = 6;
+    engagementPageSize = 5;
     engagementTotal = 0;
+    engagementMetricTotal = 0;
     engagementLoading = false;
     showSettingsModal = false;
     folderModalTitle = "New Folder";
@@ -311,8 +315,14 @@ export default class TrainingAdminConsole extends LightningElement {
     // ── Video CRUD ──
 
     handleNewVideo() {
+        this.showCreateMenu = !this.showCreateMenu;
+    }
+
+    handleCreateType(event) {
+        this.newTutorialType = event.currentTarget.dataset.type;
         this.tutorialRecordId = null;
         this.editorHighlight = null;
+        this.showCreateMenu = false;
         this.showTutorialEditor = true;
     }
 
@@ -366,6 +376,7 @@ export default class TrainingAdminConsole extends LightningElement {
                 dueDateLabel: this.formatDate(detail.dueDate),
                 requiredPeopleLabel: `${row.assignedCount || 0} ${(row.assignedCount || 0) === 1 ? "person" : "people"}`
             };
+            await this.loadEngagementSummary(videoId);
         } catch (error) {
             this.showToast("Could not load tutorial", this.extractError(error), "error");
         } finally {
@@ -437,10 +448,23 @@ export default class TrainingAdminConsole extends LightningElement {
     get hasEngagementRows() { return this.engagementRows.length > 0; }
     get engagementPageCount() { return Math.max(1, Math.ceil(this.engagementTotal / this.engagementPageSize)); }
     get engagementPageLabel() { return `${this.engagementPage} / ${this.engagementPageCount}`; }
+    get showEngagementPageLabel() { return this.engagementPage > 1; }
     get engagementHasPrevious() { return this.engagementPage > 1; }
     get engagementHasNext() { return this.engagementPage < this.engagementPageCount; }
     get engagementNoPrevious() { return !this.engagementHasPrevious; }
     get engagementNoNext() { return !this.engagementHasNext; }
+    get engagementRemaining() { return Math.max(0, this.engagementTotal - this.engagementPage * this.engagementPageSize); }
+    get showEngagementMore() { return this.engagementRemaining > 0; }
+    get engagementMoreLabel() { return `+${this.engagementRemaining} more`; }
+    get engagementPopoverClass() {
+        const position = {"Total opens": "top", Started: "started", Completed: "completed", "Average watched": "average"}[this.engagementMetric] || "top";
+        return `engagement-popover ${position}`;
+    }
+    get engagementSummary() {
+        if (this.engagementMetric === "Total opens") return `${Math.round(this.engagementMetricTotal || 0)} opens from ${this.engagementTotal} ${this.engagementTotal === 1 ? "person" : "people"}. Most recent first.`;
+        if (this.engagementMetric === "Average watched") return `${this.engagementTotal} active ${this.engagementTotal === 1 ? "learner" : "learners"}. Most recent first.`;
+        return `${this.engagementTotal} ${this.engagementTotal === 1 ? "learner" : "learners"}. Most recent first.`;
+    }
 
     async handleMetricEnter(event) {
         const metric = event.currentTarget.dataset.metric;
@@ -467,11 +491,10 @@ export default class TrainingAdminConsole extends LightningElement {
             if (this.engagementMetric !== metric) return;
             this.engagementPage = result.pageNumber;
             this.engagementTotal = result.total;
+            this.engagementMetricTotal = result.metricTotal;
             this.engagementRows = (result.rows || []).map((row) => ({
                 ...row,
-                initials: (row.userName || "?").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
-                detailLabel: metric === "Total opens" ? `${row.viewCount || 0} open${row.viewCount === 1 ? "" : "s"}` :
-                    metric === "Completed" ? "Completed" : `${Math.round(row.watchPercent || 0)}% viewed`
+                detailLabel: `${metric === "Total opens" ? `${row.viewCount || 0} open${row.viewCount === 1 ? "" : "s"}` : metric === "Completed" ? "Completed" : `${Math.round(row.watchPercent || 0)}% viewed`} · ${this.activityDate(row.lastViewedAt)}`
             }));
         } catch (error) {
             this.engagementRows = [];
@@ -479,6 +502,14 @@ export default class TrainingAdminConsole extends LightningElement {
         } finally {
             if (this.engagementMetric === metric) this.engagementLoading = false;
         }
+    }
+
+    activityDate(value) {
+        if (!value) return "date unavailable";
+        const date = new Date(value);
+        const today = new Date();
+        if (date.toDateString() === today.toDateString()) return "today";
+        return new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric"}).format(date);
     }
 
     handleFolderFilter(event) {
@@ -520,7 +551,17 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     handleTrackingLoaded(event) {
-        this.activitySummary = this.buildActivitySummary(event.detail);
+        this.loadEngagementSummary(this.selectedVideoId);
+    }
+
+    async loadEngagementSummary(videoId) {
+        if (!videoId) return;
+        try {
+            const summary = await getEngagementSummary({videoId});
+            if (this.selectedVideoId === videoId) this.activitySummary = this.buildActivitySummary(summary);
+        } catch (error) {
+            // The rest of the dashboard remains useful if the summary refresh fails.
+        }
     }
 
     buildActivitySummary(summary) {
@@ -573,6 +614,7 @@ export default class TrainingAdminConsole extends LightningElement {
         this.showTutorialEditor = false;
         this.tutorialRecordId = null;
         this.editorHighlight = null;
+        this.newTutorialType = "Salesforce File";
     }
 
     async handleTutorialSaved() {

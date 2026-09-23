@@ -121,6 +121,8 @@ private class LogicLearnPlatformTest {
         LogicLearnAudienceService.adminOverride = true;
         LogicLearnAdminController.EngagementPage detail = LogicLearnAdminController.getEngagementDetails(videoId, 'Completed', 1, 6);
         System.assertEquals(1, detail.total); System.assertEquals(1, detail.rows.size());
+        LogicLearnAdminController.EngagementSummary summary = LogicLearnAdminController.getEngagementSummary(videoId);
+        System.assertEquals(1, summary.totalOpens); System.assertEquals(1, summary.started); System.assertEquals(1, summary.completed);
     }
 
     @IsTest
