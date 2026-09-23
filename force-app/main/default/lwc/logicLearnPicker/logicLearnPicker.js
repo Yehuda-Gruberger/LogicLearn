@@ -10,6 +10,7 @@ export default class LogicLearnPicker extends LightningElement {
     @api hideLabel = false;
     @api showMetaInChip = false;
     @api actionMode = false;
+    @api editable = false;
     _options = [];
     _value = [];
     _exclusions = [];

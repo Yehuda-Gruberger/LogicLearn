@@ -1,10 +1,13 @@
 :host {
   display: block;
+  position: relative;
+  height: 100%;
+  min-height: 0;
   color: #172434;
 }
 .master-detail {
-  height: auto;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-columns: 335px minmax(700px, 1fr) 290px;
   overflow: visible;
@@ -759,18 +762,22 @@
   font-size: 0.75rem;
 }
 .settings-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 9100;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
   padding: 1rem;
   background: rgba(8, 20, 30, 0.62);
   animation: llBackdropIn 0.18s ease-out both;
 }
 .settings-modal {
   width: min(1200px, 100%);
-  max-height: calc(100vh - 2rem);
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -832,7 +839,7 @@
   border-top: 1px solid #dce3ea;
 }
 .modal-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 9000;
   isolation: isolate;
@@ -841,7 +848,7 @@
   justify-content: center;
   padding: 1rem;
   box-sizing: border-box;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   background: rgba(9, 18, 26, 0.6);
   animation: llBackdropIn 0.18s ease-out both;
@@ -850,8 +857,8 @@
   position: relative;
   width: 100%;
   max-width: 1480px;
-  height: calc(100dvh - 2rem);
-  max-height: calc(100dvh - 2rem);
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
   border-radius: 0.7rem;
   background: #fff;

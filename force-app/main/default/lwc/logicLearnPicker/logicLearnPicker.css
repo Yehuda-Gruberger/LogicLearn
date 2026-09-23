@@ -12,6 +12,9 @@
 .chip small{font-size:.5rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.72}
 .chip.excluded{background:#fce8e6;color:#9b2c2c}
 .chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 1rem; line-height: .7; }
+.editable-icon{flex:0 0 auto;--slds-c-icon-color-foreground-default:#08798a}
+.chip .editable-icon{margin-left:.05rem}
+.option-editable{margin-left:auto}
 .menu { position: absolute; z-index: 9100; top: 100%; right: 0; left: 0; max-height: 16rem; overflow: auto; padding: .25rem; border: 1px solid #d8dee7; border-radius: .5rem; background: #fff; box-shadow: 0 8px 24px rgba(16,32,46,.16); transform-origin:top center; animation:llMenuIn .15s cubic-bezier(.16,1,.3,1) both; }
 .drop-up .menu{top:auto;bottom:100%;transform-origin:bottom center;animation:llMenuUpIn .15s cubic-bezier(.16,1,.3,1) both}
 .option { width: 100%; display: flex; align-items: center; gap: .55rem; padding: .5rem; border: 0; border-radius: .35rem; background: transparent; color: #263548; text-align: left; cursor: pointer; }
