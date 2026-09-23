@@ -84,7 +84,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 3rem 1rem;
+    padding: 1rem;
     overflow-y: auto;
 }
 
@@ -107,8 +107,10 @@
 
 .modal-editor {
     max-width: 1120px;
+    height: calc(100vh - 2rem);
+    max-height: calc(100vh - 2rem);
     padding: 0;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .modal-head {

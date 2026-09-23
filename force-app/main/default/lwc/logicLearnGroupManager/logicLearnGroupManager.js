@@ -1,5 +1,6 @@
 import {LightningElement} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
+import LightningConfirm from "lightning/confirm";
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getGroups from "@salesforce/apex/LogicLearnAdminController.getGroups";
 import getGroup from "@salesforce/apex/LogicLearnAdminController.getGroup";
@@ -23,7 +24,10 @@ export default class LogicLearnGroupManager extends LightningElement {
         catch(e){this.toast("Could not open group",this.message(e),"error");}
     }
     async handleDelete(event){
-        try{await deleteGroup({groupId:event.currentTarget.dataset.id});this.toast("Deleted","Group deleted.","success");await this.load();}
+        const groupId=event.currentTarget.dataset.id;const groupName=this.groups.find(item=>item.id===groupId)?.name||"this group";
+        const confirmed=await LightningConfirm.open({label:"Delete group?",message:`Are you sure you want to delete “${groupName}”? It will be removed from tutorial audiences.`,theme:"warning"});
+        if(!confirmed)return;
+        try{await deleteGroup({groupId});this.toast("Deleted",`${groupName} was deleted.`,"success");await this.load();}
         catch(e){this.toast("Could not delete",this.message(e),"error");}
     }
     handleField(event){this.form={...this.form,[event.currentTarget.dataset.field]:event.target.value};}

@@ -86,8 +86,16 @@ export default class LogicLearnPicker extends LightningElement {
         this.emitChange();
     }
 
-    handleToggle() {
-        if (!this.disabled) this.open = !this.open;
+    handleOpen() {
+        if (this.disabled) return;
+        this.open = true;
+        const input = this.template.querySelector("input");
+        if (input && this.template.activeElement !== input) input.focus();
+    }
+
+    handleFocusOut(event) {
+        const next = event.relatedTarget;
+        if (!next || !this.template.contains(next)) this.open = false;
     }
 
     emitChange() {

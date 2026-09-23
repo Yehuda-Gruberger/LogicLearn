@@ -1,7 +1,7 @@
 <template>
-    <div class="picker">
+    <div class="picker" onfocusout={handleFocusOut}>
         <label class="label">{label}<template lwc:if={required}><span class="required"> *</span></template></label>
-        <div class={inputClass} onclick={handleToggle}>
+        <div class={inputClass} onclick={handleOpen}>
             <template lwc:if={hasSelected}>
                 <div class="chips">
                     <template for:each={selectedItems} for:item="item">

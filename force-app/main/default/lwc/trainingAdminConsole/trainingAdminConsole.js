@@ -1,5 +1,6 @@
 import {LightningElement, wire, track} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
+import LightningConfirm from "lightning/confirm";
 import {refreshApex} from "@salesforce/apex";
 import {deleteRecord} from "lightning/uiRecordApi";
 import getFolders from "@salesforce/apex/TrainingVideoController.getFolders";
@@ -139,14 +140,22 @@ export default class TrainingAdminConsole extends LightningElement {
         }
     }
 
-    handleDeleteFolder(event) {
+    async handleDeleteFolder(event) {
         const id = event.currentTarget.dataset.id;
-        deleteRecord(id)
-            .then(() => {
-                this.showToast("Deleted", "Folder deleted. Its videos moved to Ungrouped.", "success");
-                return Promise.all([refreshApex(this._wiredFolders), refreshApex(this._wiredVideos)]);
-            })
-            .catch((e) => this.showToast("Error", this.extractError(e), "error"));
+        const folderName = this.folders.find((folder) => folder.id === id)?.name || "this folder";
+        const confirmed = await LightningConfirm.open({
+            label: "Delete folder?",
+            message: `Are you sure you want to delete “${folderName}”? Its tutorials will move to Ungrouped.`,
+            theme: "warning"
+        });
+        if (!confirmed) return;
+        try {
+            await deleteRecord(id);
+            this.showToast("Deleted", `${folderName} was deleted. Its tutorials moved to Ungrouped.`, "success");
+            await Promise.all([refreshApex(this._wiredFolders), refreshApex(this._wiredVideos)]);
+        } catch (error) {
+            this.showToast("Error", this.extractError(error), "error");
+        }
     }
 
     closeFolderForm() {
@@ -188,12 +197,23 @@ export default class TrainingAdminConsole extends LightningElement {
             this.tutorialRecordId = row.id;
             this.showTutorialEditor = true;
         } else if (action === "delete") {
-            deleteRecord(row.id)
-                .then(() => {
-                    this.showToast("Deleted", "Video deleted.", "success");
-                    return refreshApex(this._wiredVideos);
-                })
-                .catch((e) => this.showToast("Error", this.extractError(e), "error"));
+            this.confirmAndDeleteTutorial(row);
+        }
+    }
+
+    async confirmAndDeleteTutorial(row) {
+        const confirmed = await LightningConfirm.open({
+            label: "Delete tutorial?",
+            message: `Are you sure you want to delete “${row.title}”? Its video and tracking relationship cannot be restored.`,
+            theme: "warning"
+        });
+        if (!confirmed) return;
+        try {
+            await deleteRecord(row.id);
+            this.showToast("Deleted", `${row.title} was deleted.`, "success");
+            await refreshApex(this._wiredVideos);
+        } catch (error) {
+            this.showToast("Error", this.extractError(error), "error");
         }
     }
 
