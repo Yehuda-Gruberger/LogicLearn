@@ -773,7 +773,7 @@
   max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   border-radius: 0.8rem;
   background: #fff;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
@@ -813,8 +813,10 @@
   background: #e5f3f5;
 }
 .settings-modal-body {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0;
   background: #fff;
 }
