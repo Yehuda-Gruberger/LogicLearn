@@ -1,6 +1,7 @@
 import { LightningElement, wire, track } from "lwc";
 import { CurrentPageReference } from "lightning/navigation";
 import { refreshApex } from "@salesforce/apex";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getLibrary from "@salesforce/apex/TrainingVideoController.getLibrary";
 import getFolders from "@salesforce/apex/TrainingVideoController.getFolders";
 import isLibraryAdmin from "@salesforce/apex/TrainingVideoController.isLibraryAdmin";
@@ -572,6 +573,16 @@ export default class TrainingLibrary extends LightningElement {
     this.activeVideoId = undefined;
     // Refresh so the card reflects any new In Progress / Completed status from this watch.
     await refreshApex(this._wired);
+  }
+
+  async handleDocumentProgress(event) {
+    if (!event.detail?.completed) return;
+    this.dispatchEvent(new ShowToastEvent({
+      title: "Tutorial completed",
+      message: "Your reading progress has been saved.",
+      variant: "success",
+    }));
+    await this.handleClosePlayer();
   }
 
   // Keep clicks inside the modal from bubbling to the backdrop (which closes it).
