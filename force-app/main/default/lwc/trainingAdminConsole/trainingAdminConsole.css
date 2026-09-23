@@ -769,7 +769,7 @@
 .modal-editor {
   position: relative;
   width: 100%;
-  max-width: 1120px;
+  max-width: 1480px;
   height: calc(100vh - 2rem);
   max-height: calc(100vh - 2rem);
   overflow: hidden;

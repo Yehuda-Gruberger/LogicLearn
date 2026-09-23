@@ -98,8 +98,37 @@
   gap: 1rem;
   align-items: start;
 }
-.setup-grid.document-layout { grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.75fr); }
-.document-layout .document-builder { min-height: 22rem; }
+.setup-grid.document-layout {
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+}
+.document-layout > .editor-column { display: contents; }
+.document-layout .video-card {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.document-layout .details-card { grid-column: 2; grid-row: 1; }
+.document-layout .publishing-card { grid-column: 2; grid-row: 2; }
+.document-layout .audience-card {
+  grid-column: 2;
+  grid-row: 3;
+  min-height: 0;
+  overflow: auto;
+}
+.document-layout .video-card > .panel-head { min-height: 2.75rem; }
+.document-layout .video-card > .video-body {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  padding: 0;
+}
+.document-layout .document-builder { min-height: 0; flex: 1; }
 .publishing-grid.document-publishing { grid-template-columns: minmax(12rem, 0.55fr); }
 .editor-column {
   min-width: 0;
@@ -290,15 +319,23 @@
 .document-builder {
   min-height: 17rem;
   display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
+  grid-template-columns: 10rem minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid #dbe4ea;
-  border-radius: 0.6rem;
-  background: #fff;
+  background: #e9eef1;
 }
-.page-rail { padding: 0.55rem; border-right: 1px solid #e1e8ed; background: #f5f9fa; }
+.page-rail {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.7rem;
+  border-right: 1px solid #d7e0e5;
+  background: #f8fafb;
+}
 .page-rail-head, .page-tools, .page-tools > div { display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; }
-.page-rail-head { margin-bottom: 0.45rem; color: #385064; font-size: 0.67rem; }
+.page-rail-head { margin-bottom: 0.65rem; color: #385064; font-size: 0.67rem; }
+.page-rail-head > div { display: flex; flex-direction: column; }
+.page-rail-head small { margin-top: 0.06rem; color: #8493a2; font-size: 0.5rem; font-weight: 500; }
+.page-list { min-height: 0; flex: 1; overflow-y: auto; }
 .page-tab {
   width: 100%;
   display: grid;
@@ -317,9 +354,53 @@
 .page-tab span { display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border-radius: 0.3rem; background: #dfebee; font-size: 0.56rem; }
 .page-tab strong { overflow: hidden; font-size: 0.63rem; text-overflow: ellipsis; white-space: nowrap; }
 .page-tab:hover, .page-tab.active { border-color: #80c6cf; background: #e9f5f6; color: #075e6c; }
-.page-editor { min-width: 0; padding: 0.65rem; }
-.page-tools { margin-bottom: 0.5rem; }
+.add-page-action {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  border: 1px dashed #9db4c1;
+  border-radius: 0.42rem;
+  background: #fff;
+  color: #08798a;
+  font: inherit;
+  font-size: 0.61rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.add-page-action:hover { border-color: #1595a6; background: #edf8f9; }
+.page-editor {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem 1.35rem 2rem;
+  background: #e9eef1;
+}
+.document-sheet {
+  width: min(52rem, 100%);
+  min-height: calc(100% - 0.25rem);
+  margin: 0 auto;
+  padding: 1rem 1.25rem 2.5rem;
+  border: 1px solid #d7dee3;
+  border-radius: 0.2rem;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(24, 48, 65, 0.12);
+}
+.page-tools {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #e5eaee;
+}
 .page-tools lightning-input { flex: 1; }
+.page-title-input { font-weight: 750; }
+.word-editor {
+  display: block;
+  min-height: 30rem;
+  --slds-c-rich-text-editor-sizing-min-height: 29rem;
+  --slds-c-textarea-sizing-min-height: 29rem;
+}
 .icon-action {
   width: 1.85rem;
   height: 1.85rem;
@@ -704,6 +785,24 @@
   .editor-column {
     gap: 0.75rem;
   }
+  .setup-grid.document-layout {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  .document-layout > .editor-column {
+    display: flex;
+    margin-bottom: 0.75rem;
+  }
+  .document-layout .video-card,
+  .document-layout .details-card,
+  .document-layout .publishing-card,
+  .document-layout .audience-card {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .document-layout .document-builder { min-height: 36rem; }
+  .document-layout .audience-card { overflow: visible; }
 }
 @media (max-width: 600px) {
   .details-grid,
@@ -716,4 +815,7 @@
   }
   .channel-setting { align-items: stretch; flex-direction: column; }
   .channel-selector { max-width: none; }
+  .document-builder { grid-template-columns: 7.5rem minmax(0, 1fr); }
+  .page-editor { padding: 0.65rem; }
+  .document-sheet { padding: 0.75rem 0.7rem 1.5rem; }
 }
