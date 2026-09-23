@@ -184,4 +184,18 @@ private class LogicLearnPlatformTest {
         System.assertEquals(0,LogicLearnAdminController.getGroups().size());
         System.assert(TrainingVideoController.getAdminVideos().size()>=4);
     }
+
+    @IsTest
+    static void emailTemplateManagerRequiresCompleteInput() {
+        LogicLearnAudienceService.adminOverride = true;
+        System.assertNotEquals(null, LogicLearnAdminController.getEmailTemplates());
+        Boolean missingSelectionRejected = false;
+        try { LogicLearnAdminController.getEmailTemplate(null); }
+        catch (AuraHandledException error) { missingSelectionRejected = true; }
+        System.assertEquals(true, missingSelectionRejected);
+        Boolean incompleteTemplateRejected = false;
+        try { LogicLearnAdminController.saveEmailTemplate(null, '', '', ''); }
+        catch (AuraHandledException error) { incompleteTemplateRejected = true; }
+        System.assertEquals(true, incompleteTemplateRejected);
+    }
 }

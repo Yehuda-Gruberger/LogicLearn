@@ -1,6 +1,7 @@
 /** Administrative API for setup, groups, the tutorial wizard, settings, and tracking. */
 public without sharing class LogicLearnAdminController {
-    public class Option { @AuraEnabled public String value; @AuraEnabled public String label; @AuraEnabled public String meta; }
+    public class Option { @AuraEnabled public String value; @AuraEnabled public String label; @AuraEnabled public String meta; @AuraEnabled public String id; }
+    public class EmailTemplateDto { @AuraEnabled public Id templateId; @AuraEnabled public String name; @AuraEnabled public String subject; @AuraEnabled public String htmlBody; }
     public class Catalog { @AuraEnabled public List<Option> users; @AuraEnabled public List<Option> profiles; @AuraEnabled public List<Option> groups; @AuraEnabled public List<Option> folders; @AuraEnabled public List<Option> categories; }
     public class SettingsDto {
         @AuraEnabled public Decimal completionThreshold; @AuraEnabled public Boolean preventSkipping;
@@ -94,33 +95,76 @@ public without sharing class LogicLearnAdminController {
     public static List<Option> getEmailTemplates() {
         LogicLearnAudienceService.requireAdmin();
         List<Option> result = new List<Option>();
-        for (EmailTemplate templateRow : [SELECT Name, Subject FROM EmailTemplate WHERE IsActive = TRUE ORDER BY Name LIMIT 500]) {
-            Option item = new Option(); item.value = templateRow.Name; item.label = templateRow.Name; item.meta = templateRow.Subject;
+        for (EmailTemplate templateRow : [SELECT Id, Name, Subject FROM EmailTemplate WHERE IsActive = TRUE ORDER BY Name LIMIT 500]) {
+            Option item = new Option(); item.id = templateRow.Id; item.value = templateRow.Name; item.label = templateRow.Name; item.meta = templateRow.Subject;
             result.add(item);
         }
         return result;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static EmailTemplateDto getEmailTemplate(String templateName) {
+        LogicLearnAudienceService.requireAdmin();
+        if (String.isBlank(templateName)) throw new AuraHandledException('Choose an email template to edit.');
+        List<EmailTemplate> templates = [
+            SELECT Id, Name, Subject, HtmlValue, Body
+            FROM EmailTemplate
+            WHERE (Name = :templateName OR DeveloperName = :templateName) AND IsActive = TRUE
+            ORDER BY LastModifiedDate DESC LIMIT 1
+        ];
+        if (templates.isEmpty()) throw new AuraHandledException('Email template not found: ' + templateName);
+        EmailTemplate source = templates[0];
+        EmailTemplateDto result = new EmailTemplateDto();
+        result.templateId = source.Id; result.name = source.Name; result.subject = source.Subject;
+        String fallbackBody = source.Body == null ? '' : source.Body;
+        result.htmlBody = String.isNotBlank(source.HtmlValue)
+            ? source.HtmlValue
+            : fallbackBody.escapeHtml4().replace('\r\n', '\n').replace('\n', '<br/>');
+        return result;
+    }
+
     @AuraEnabled
     public static Option createEmailTemplate(String name, String subject, String htmlBody) {
+        return saveEmailTemplate(null, name, subject, htmlBody);
+    }
+
+    @AuraEnabled
+    public static Option saveEmailTemplate(Id templateId, String name, String subject, String htmlBody) {
         LogicLearnAudienceService.requireAdmin();
         if (String.isBlank(name) || String.isBlank(subject) || String.isBlank(htmlBody))
             throw new AuraHandledException('Template name, subject, and message are required.');
-        List<Folder> folders = [SELECT Id FROM Folder WHERE Type = 'Email' AND DeveloperName = 'unfiled$public' LIMIT 1];
-        if (folders.isEmpty()) throw new AuraHandledException('The public email template folder is unavailable.');
-        String developerName = name.trim().replaceAll('[^A-Za-z0-9_]', '_').replaceAll('_+', '_');
-        if (String.isBlank(developerName)) developerName = 'LogicLearn_Template';
-        if ([SELECT COUNT() FROM EmailTemplate WHERE DeveloperName = :developerName] > 0)
-            developerName += '_' + String.valueOf(Datetime.now().getTime());
-        String plainBody = htmlBody.trim();
-        String safeHtmlBody = plainBody.escapeHtml4().replace('\r\n', '\n').replace('\n', '<br/>');
-        EmailTemplate templateRow = new EmailTemplate(
-            Name = name.trim(), DeveloperName = developerName, FolderId = folders[0].Id,
-            TemplateType = 'custom', Subject = subject.trim(), HtmlValue = safeHtmlBody,
-            Body = plainBody, IsActive = true, Encoding = 'UTF-8'
-        );
-        insert templateRow;
-        Option result = new Option(); result.value = templateRow.Name; result.label = templateRow.Name; result.meta = templateRow.Subject;
+        String safeHtmlBody = sanitizeEmailHtml(htmlBody);
+        String plainBody = safeHtmlBody.replaceAll('(?i)<br\\s*/?>', '\n')
+            .replaceAll('(?i)</p>', '\n\n').stripHtmlTags().unescapeHtml4().trim();
+        EmailTemplate templateRow;
+        if (templateId != null) {
+            templateRow = [SELECT Id, Name FROM EmailTemplate WHERE Id = :templateId LIMIT 1];
+            templateRow.Name = name.trim(); templateRow.Subject = subject.trim();
+            templateRow.HtmlValue = safeHtmlBody; templateRow.Body = plainBody; templateRow.IsActive = true;
+            update templateRow;
+        } else {
+            List<Folder> folders = [SELECT Id FROM Folder WHERE Type = 'Email' AND DeveloperName = 'unfiled$public' LIMIT 1];
+            if (folders.isEmpty()) throw new AuraHandledException('The public email template folder is unavailable.');
+            String developerName = name.trim().replaceAll('[^A-Za-z0-9_]', '_').replaceAll('_+', '_');
+            if (String.isBlank(developerName)) developerName = 'LogicLearn_Template';
+            if ([SELECT COUNT() FROM EmailTemplate WHERE DeveloperName = :developerName] > 0)
+                developerName += '_' + String.valueOf(Datetime.now().getTime());
+            templateRow = new EmailTemplate(
+                Name = name.trim(), DeveloperName = developerName, FolderId = folders[0].Id,
+                TemplateType = 'custom', Subject = subject.trim(), HtmlValue = safeHtmlBody,
+                Body = plainBody, IsActive = true, Encoding = 'UTF-8'
+            );
+            insert templateRow;
+        }
+        Option result = new Option(); result.id = templateRow.Id; result.value = templateRow.Name; result.label = templateRow.Name; result.meta = templateRow.Subject;
+        return result;
+    }
+
+    private static String sanitizeEmailHtml(String htmlBody) {
+        String result = htmlBody.trim();
+        result = result.replaceAll('(?is)<(script|style|iframe|object)[^>]*>.*?</\\1>', '');
+        result = result.replaceAll('(?i)\\s+on[a-z]+\\s*=\\s*"[^"]*"', '');
+        result = result.replaceAll('(?i)javascript:', '');
         return result;
     }
 
