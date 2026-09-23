@@ -50,7 +50,7 @@ export default class TrainingAdminConsole extends LightningElement {
     folderFilter = [];
     categoryFilter = [];
     statusFilter = [];
-    activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
+    activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0, opensStyle: "width:0%", startedStyle: "width:0%", completedStyle: "width:0%", averageStyle: "width:0%"};
     heroOverlayVisible = true;
     showSettingsModal = false;
     folderModalTitle = "New Folder";
@@ -293,7 +293,7 @@ export default class TrainingAdminConsole extends LightningElement {
     async selectTutorial(videoId) {
         this.selectedVideoId = videoId;
         this.heroOverlayVisible = true;
-        this.activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0};
+        this.activitySummary = this.buildActivitySummary({totalOpens: 0, started: 0, completed: 0, averageWatch: 0});
         this.detailLoading = true;
         try {
             const detail = await getTutorial({videoId});
@@ -307,8 +307,10 @@ export default class TrainingAdminConsole extends LightningElement {
                 visibilitySummary: this.audienceSummary(detail, "visibility"),
                 requiredSummary: this.audienceSummary(detail, "required"),
                 notificationSummary: this.audienceSummary(detail, "notification"),
-                completionLabel: detail.completionThreshold == null ? "Global default" : `${detail.completionThreshold}%`,
-                skipLabel: detail.skipPrevention || "Use global default"
+                completionLabel: detail.completionThreshold == null ? "Global default" : `Watch ${detail.completionThreshold}% of video`,
+                skipLabel: detail.skipPrevention || "Use global default",
+                dueDateLabel: this.formatDate(detail.dueDate),
+                requiredPeopleLabel: `${row.assignedCount || 0} ${(row.assignedCount || 0) === 1 ? "person" : "people"}`
             };
         } catch (error) {
             this.showToast("Could not load tutorial", this.extractError(error), "error");
@@ -376,7 +378,24 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     handleTrackingLoaded(event) {
-        this.activitySummary = event.detail;
+        this.activitySummary = this.buildActivitySummary(event.detail);
+    }
+
+    buildActivitySummary(summary) {
+        const audience = Math.max(this.selectedTutorial?.assignedCount || summary.started || summary.completed || 0, 1);
+        const percent = (value) => Math.min(100, Math.max(0, Math.round((Number(value || 0) / audience) * 100)));
+        return {
+            ...summary,
+            opensStyle: `width:${summary.totalOpens ? 100 : 0}%`,
+            startedStyle: `width:${percent(summary.started)}%`,
+            completedStyle: `width:${percent(summary.completed)}%`,
+            averageStyle: `width:${Math.min(100, Math.max(0, Number(summary.averageWatch || 0)))}%`
+        };
+    }
+
+    formatDate(value) {
+        if (!value) return "None";
+        return new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric", year: "numeric"}).format(new Date(`${value}T00:00:00`));
     }
 
     handleLibraryMode() {

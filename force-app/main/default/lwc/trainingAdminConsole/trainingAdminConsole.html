@@ -31,58 +31,31 @@
             <main class="video-dashboard">
                 <template lwc:if={detailLoading}><div class="dashboard-loading"><lightning-spinner alternative-text="Loading tutorial dashboard"></lightning-spinner></div></template>
                 <template lwc:elseif={selectedTutorial}>
-                    <section class="video-stage">
-                        <div class="video-hero">
-                            <c-training-video-player video-id={selectedVideoId} preview-only compact onplay={handlePreviewPlay} onpause={handlePreviewPause}></c-training-video-player>
-                            <div class="hero-toolbar">
-                                <span>{selectedTutorial.folderName} / {selectedTutorial.category} / {selectedTutorial.title}</span>
-                                <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare-inverse" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button-icon icon-name="utility:edit" alternative-text="Edit tutorial" title="Edit tutorial" variant="bare-inverse" onclick={handleEditSelected}></lightning-button-icon></div>
-                            </div>
-                            <template lwc:if={heroOverlayVisible}>
-                                <div class="hero-info">
-                                    <div class="hero-copy">
-                                        <span class="hero-kicker">Training tutorial</span>
-                                        <h2>{selectedRow.title}</h2>
-                                        <div class="hero-meta"><span>{selectedTutorial.category}</span><span>Created {selectedRow.createdLabel}</span><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div>
-                                        <p>{selectedTutorial.description}</p>
-                                        <small>{selectedTutorial.contentType}</small>
-                                    </div>
-                                    <button class="hero-play-button" onclick={handleHeroPlay}><span><lightning-icon icon-name="utility:play" size="small" variant="inverse"></lightning-icon></span><strong>Play tutorial</strong></button>
-                                </div>
-                            </template>
-                        </div>
-                    </section>
+                    <header class="dashboard-header">
+                        <div class="dashboard-heading"><div class="breadcrumb">{selectedTutorial.folderName} <span>/</span> {selectedTutorial.category}</div><div class="title-row"><h1>{selectedRow.title}</h1><span class={selectedRow.statusClass}>{selectedTutorial.status}</span></div><small>Created {selectedRow.createdLabel}</small></div>
+                        <div class="dashboard-actions"><button class="edit-action" onclick={handleEditSelected}><lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon><span>Edit</span></button><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="border" onclick={handleDeleteSelected}></lightning-button-icon></div>
+                    </header>
 
-                    <section class="activity-stats">
-                        <article><span class="stat-icon teal"><lightning-icon icon-name="utility:preview" size="small"></lightning-icon></span><div><strong>{activitySummary.totalOpens}</strong><small>Total opens</small></div></article>
-                        <article><span class="stat-icon blue"><lightning-icon icon-name="utility:play" size="small"></lightning-icon></span><div><strong>{activitySummary.started}</strong><small>Started</small></div></article>
-                        <article><span class="stat-icon green"><lightning-icon icon-name="utility:check" size="small"></lightning-icon></span><div><strong>{activitySummary.completed}</strong><small>Completed</small></div></article>
-                        <article><span class="stat-icon purple"><lightning-icon icon-name="utility:chart" size="small"></lightning-icon></span><div><strong>{activitySummary.averageWatch}%</strong><small>Average watched</small></div></article>
-                    </section>
+                    <div class="dashboard-media">
+                        <section class="video-stage"><div class="video-hero"><c-training-video-player video-id={selectedVideoId} preview-only compact onplay={handlePreviewPlay} onpause={handlePreviewPause}></c-training-video-player><template lwc:if={heroOverlayVisible}><button class="hero-play-button" onclick={handleHeroPlay}><span><lightning-icon icon-name="utility:play" size="small"></lightning-icon></span><strong>Play tutorial</strong></button></template></div></section>
+                        <section class="engagement-card">
+                            <header>Engagement</header>
+                            <div class="engagement-metric teal"><div><span>Total opens</span><strong>{activitySummary.totalOpens}</strong></div><div class="metric-track"><span style={activitySummary.opensStyle}></span></div></div>
+                            <div class="engagement-metric blue"><div><span>Started</span><strong>{activitySummary.started}</strong></div><div class="metric-track"><span style={activitySummary.startedStyle}></span></div></div>
+                            <div class="engagement-metric green"><div><span>Completed</span><strong>{activitySummary.completed}</strong></div><div class="metric-track"><span style={activitySummary.completedStyle}></span></div></div>
+                            <div class="engagement-metric purple"><div><span>Average watched</span><strong>{activitySummary.averageWatch}%</strong></div><div class="metric-track"><span style={activitySummary.averageStyle}></span></div></div>
+                        </section>
+                    </div>
 
-                    <section class="audience-strip">
-                        <div><small>Can view</small><strong>{selectedTutorial.visibilitySummary}</strong></div>
-                        <div><small>Required</small><strong>{selectedTutorial.requiredSummary}</strong></div>
-                        <div><small>Notifications</small><strong>{selectedTutorial.notificationSummary}</strong></div>
-                    </section>
-
-                    <section class="tutorial-info">
-                        <div class="info-top"><span class={selectedRow.statusClass}>{selectedTutorial.status}</span><small>{selectedTutorial.contentType}</small></div>
-                        <p>{selectedTutorial.description}</p>
-                        <dl>
-                            <div><dt>Completion</dt><dd>{selectedTutorial.completionLabel}</dd></div>
-                            <div><dt>Skipping</dt><dd>{selectedTutorial.skipLabel}</dd></div>
-                            <div><dt>Due date</dt><dd>{selectedTutorial.dueDate}</dd></div>
-                            <div><dt>Required audience</dt><dd>{selectedTutorial.requiredSummary}</dd></div>
-                        </dl>
-                    </section>
+                    <section class="summary-card audience-summary"><header><strong>Audience</strong><button onclick={handleEditSelected}>Manage</button></header><div class="summary-grid audience-grid"><div><small>Can view</small><strong>{selectedTutorial.visibilitySummary}</strong></div><div><small>Required</small><strong>{selectedTutorial.requiredPeopleLabel}</strong></div><div><small>Notifications</small><strong>{selectedTutorial.notificationSummary}</strong></div></div></section>
+                    <section class="summary-card settings-summary"><header><strong>Settings</strong><button onclick={handleEditSelected}>Edit</button></header><div class="summary-grid settings-grid"><div><small>Completion</small><strong>{selectedTutorial.completionLabel}</strong></div><div><small>Skipping</small><strong>{selectedTutorial.skipLabel}</strong></div><div><small>Due date</small><strong>{selectedTutorial.dueDateLabel}</strong></div><div><small>Required audience</small><strong>{selectedTutorial.requiredPeopleLabel}</strong></div><div><small>Source</small><strong>{selectedTutorial.contentType}</strong></div></div></section>
                 </template>
                 <template lwc:else>
                     <div class="dashboard-empty"><span><lightning-icon icon-name="utility:video" size="large" variant="inverse"></lightning-icon></span><h2>Create your first tutorial</h2><p>Add a video, choose its audience, and track engagement from this workspace.</p><lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button></div>
                 </template>
             </main>
             <aside class="people-sidebar">
-                <template lwc:if={selectedTutorial}><c-logic-learn-tracking people compact video-id={selectedVideoId} ontrackingloaded={handleTrackingLoaded}></c-logic-learn-tracking></template>
+                <template lwc:if={selectedTutorial}><c-logic-learn-tracking people compact video-id={selectedVideoId} ontrackingloaded={handleTrackingLoaded} onaddgroup={handleEditSelected} onassignpeople={handleEditSelected}></c-logic-learn-tracking></template>
                 <template lwc:else><div class="people-placeholder"><lightning-icon icon-name="utility:people" size="medium"></lightning-icon><span>Select a tutorial to see its learners.</span></div></template>
             </aside>
         </div>

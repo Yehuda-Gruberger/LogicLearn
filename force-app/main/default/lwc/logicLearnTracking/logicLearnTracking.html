@@ -8,14 +8,14 @@
                 <div class="people-list">
                     <template for:each={filteredPeople} for:item="person">
                         <article class="person" key={person.userId}>
-                            <span class="person-avatar">{person.initials}</span>
-                            <div class="person-copy"><strong>{person.userName}</strong><small>{person.activityLabel}</small><span class={person.statusClass}>{person.status}</span></div>
+                            <span class={person.avatarClass}>{person.initials}</span>
+                            <div class="person-copy"><div class="person-top"><strong>{person.userName}</strong><span class={person.statusClass}>{person.displayStatus}</span></div><div class="person-progress"><span style={person.progressStyle}></span></div><small>{person.activityLabel}</small></div>
                         </article>
                     </template>
                 </div>
             </template>
             <template lwc:else><div class="people-empty"><lightning-icon icon-name="utility:people" size="medium"></lightning-icon><p>No required learners yet.</p></div></template>
-            <footer class="people-actions"><lightning-combobox variant="label-hidden" label="Reminder channel" value={reminderChannel} options={channelOptions} onchange={handleChannel}></lightning-combobox><lightning-button variant="brand" label="Remind" icon-name="utility:notification" onclick={sendReminder} disabled={sending}></lightning-button></footer>
+            <footer class="people-actions"><button onclick={handleAddGroup}>Add group</button><button class="primary" onclick={handleAssignPeople}>Assign people</button></footer>
         </div>
     </template>
     <template lwc:else>

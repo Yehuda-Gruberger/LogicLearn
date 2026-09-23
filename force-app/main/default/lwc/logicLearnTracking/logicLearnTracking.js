@@ -55,11 +55,14 @@ export default class LogicLearnTracking extends LightningElement {
         const search = this.peopleSearch.trim().toLowerCase();
         return this.rows
             .filter((row) => !search || row.userName?.toLowerCase().includes(search) || row.status?.toLowerCase().includes(search))
-            .map((row) => ({
+            .map((row, index) => ({
                 ...row,
                 initials: (row.userName || "?").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
-                statusClass: `person-status ${(row.status || "not-started").toLowerCase().replaceAll(" ", "-")}`,
-                activityLabel: row.viewCount ? `${row.watchPercent || 0}% watched / ${row.viewCount} open${row.viewCount === 1 ? "" : "s"}` : "Not opened yet"
+                avatarClass: `person-avatar tone-${index % 5}`,
+                displayStatus: row.overdue ? "Overdue" : row.status,
+                statusClass: `person-status ${(row.overdue ? "overdue" : row.status || "not-started").toLowerCase().replaceAll(" ", "-")}`,
+                progressStyle: `width:${Math.min(100, Math.max(0, Number(row.watchPercent || 0)))}%`,
+                activityLabel: row.viewCount ? `${row.watchPercent || 0}% watched · ${row.viewCount} open${row.viewCount === 1 ? "" : "s"}` : "Not opened yet"
             }));
     }
     get peopleCountLabel() { return `${this.rows.length} ${this.rows.length === 1 ? "learner" : "learners"}`; }
@@ -87,6 +90,8 @@ export default class LogicLearnTracking extends LightningElement {
 
     handleChannel(event) { this.reminderChannel = event.detail.value; }
     handlePeopleSearch(event) { this.peopleSearch = event.target.value; }
+    handleAddGroup() { this.dispatchEvent(new CustomEvent("addgroup")); }
+    handleAssignPeople() { this.dispatchEvent(new CustomEvent("assignpeople")); }
 
     async sendReminder() {
         if (!this.videoId) return;
