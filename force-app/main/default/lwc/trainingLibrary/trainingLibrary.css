@@ -488,7 +488,7 @@
 .play {
   width: auto;
   height: auto;
-  border-radius: 0;
+  border-radius: 0.75rem;
   background: transparent;
   display: grid;
   place-items: center;

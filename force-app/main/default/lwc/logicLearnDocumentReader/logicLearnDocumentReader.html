@@ -3,7 +3,7 @@
         <template lwc:if={loading}><div class="state"><lightning-spinner alternative-text="Opening tutorial" size="small"></lightning-spinner></div></template>
         <template lwc:elseif={error}><div class="state error">{error}</div></template>
         <template lwc:elseif={hasPages}>
-            <header><div><span>{pageLabel}</span><h2>{currentPage.title}</h2></div><div class="progress"><i style={progressStyle}></i></div></header>
+            <header><div><span>{pageLabel}</span><h2>{currentPage.title}</h2><template lwc:if={showPagePicker}><lightning-combobox class="page-jump" variant="label-hidden" label="Choose a page" value={currentPageValue} options={pageOptions} onchange={handlePageJump}></lightning-combobox></template></div><div class="progress"><i style={progressStyle}></i></div></header>
             <section class="page-content"><lightning-formatted-rich-text value={currentPage.body}></lightning-formatted-rich-text></section>
             <footer><button type="button" class="reader-button secondary" onclick={handlePrevious} disabled={isFirst}><lightning-icon icon-name="utility:chevronleft" size="xx-small"></lightning-icon>Previous</button><button type="button" class="reader-button primary" onclick={handleNext} disabled={nextDisabled}>{nextLabel}<lightning-icon icon-name="utility:chevronright" size="xx-small" variant="inverse"></lightning-icon></button></footer>
         </template>

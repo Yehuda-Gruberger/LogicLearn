@@ -28,6 +28,9 @@ const EMPTY_FORM = {
     externalUrl: "",
     completionThreshold: null,
     skipPrevention: "Use Global Default",
+    documentPageRequirement: "Every page",
+    documentReadingOrder: "In order",
+    documentCompletionMode: "Finish on last page",
     dueDate: null,
     status: "Draft",
     visibilityUsers: [],
@@ -271,6 +274,27 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         return [
             {label: `Use global default (${this.settings.completionThreshold}%)`, value: "global"},
             {label: "Custom threshold", value: "custom"}
+        ];
+    }
+
+    get documentPageRequirementOptions() {
+        return [
+            {label: "Every page", value: "Every page"},
+            {label: "Final page only", value: "Final page only"}
+        ];
+    }
+
+    get documentReadingOrderOptions() {
+        return [
+            {label: "In order", value: "In order"},
+            {label: "Any order", value: "Any order"}
+        ];
+    }
+
+    get documentCompletionModeOptions() {
+        return [
+            {label: "Finish on last page", value: "Finish on last page"},
+            {label: "Automatically", value: "Automatic"}
         ];
     }
 

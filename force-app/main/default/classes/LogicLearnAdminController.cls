@@ -13,6 +13,7 @@ public without sharing class LogicLearnAdminController {
         @AuraEnabled public Id videoId { get; set; } @AuraEnabled public String title { get; set; } @AuraEnabled public String description { get; set; }
         @AuraEnabled public Id folderId { get; set; } @AuraEnabled public String category { get; set; } @AuraEnabled public String contentType { get; set; }
         @AuraEnabled public String externalUrl { get; set; } @AuraEnabled public Decimal completionThreshold { get; set; } @AuraEnabled public String skipPrevention { get; set; }
+        @AuraEnabled public String documentPageRequirement { get; set; } @AuraEnabled public String documentReadingOrder { get; set; } @AuraEnabled public String documentCompletionMode { get; set; }
         @AuraEnabled public Date dueDate { get; set; } @AuraEnabled public String status { get; set; }
         @AuraEnabled public String publishNotificationChannel { get; set; } @AuraEnabled public String assignmentNotificationChannel { get; set; }
         @AuraEnabled public List<String> visibilityUsers { get; set; } @AuraEnabled public List<String> visibilityProfiles { get; set; } @AuraEnabled public List<String> visibilityGroups { get; set; }
@@ -235,6 +236,7 @@ public without sharing class LogicLearnAdminController {
         Training_Video__c video = [
             SELECT Id, Name, Description__c, Folder__c, Category__c, Content_Type__c,
                 External_URL__c, Completion_Threshold__c, Skip_Prevention__c, Due_Date__c,
+                Document_Page_Requirement__c, Document_Reading_Order__c, Document_Completion_Mode__c,
                 Status__c, Video_Content_Version_Id__c, Publish_Notification_Channel__c,
                 Assignment_Notification_Channel__c
             FROM Training_Video__c WHERE Id = :videoId LIMIT 1
@@ -249,6 +251,9 @@ public without sharing class LogicLearnAdminController {
         result.externalUrl = video.External_URL__c;
         result.completionThreshold = video.Completion_Threshold__c;
         result.skipPrevention = String.isBlank(video.Skip_Prevention__c) ? 'Use Global Default' : video.Skip_Prevention__c;
+        result.documentPageRequirement = String.isBlank(video.Document_Page_Requirement__c) ? 'Every page' : video.Document_Page_Requirement__c;
+        result.documentReadingOrder = String.isBlank(video.Document_Reading_Order__c) ? 'In order' : video.Document_Reading_Order__c;
+        result.documentCompletionMode = String.isBlank(video.Document_Completion_Mode__c) ? 'Finish on last page' : video.Document_Completion_Mode__c;
         result.dueDate = video.Due_Date__c;
         result.status = video.Status__c;
         result.publishNotificationChannel = String.isBlank(video.Publish_Notification_Channel__c) ? 'None' : video.Publish_Notification_Channel__c;
@@ -351,6 +356,9 @@ public without sharing class LogicLearnAdminController {
         video.Name=input.title;video.Description__c=input.description;video.Folder__c=input.folderId;video.Category__c=input.category;
         video.Content_Type__c=String.isBlank(input.contentType)?'Salesforce File':input.contentType;video.External_URL__c=input.externalUrl;
         video.Completion_Threshold__c=input.completionThreshold;video.Skip_Prevention__c=String.isBlank(input.skipPrevention)?'Use Global Default':input.skipPrevention;
+        video.Document_Page_Requirement__c=String.isBlank(input.documentPageRequirement)?'Every page':input.documentPageRequirement;
+        video.Document_Reading_Order__c=String.isBlank(input.documentReadingOrder)?'In order':input.documentReadingOrder;
+        video.Document_Completion_Mode__c=String.isBlank(input.documentCompletionMode)?'Finish on last page':input.documentCompletionMode;
         video.Due_Date__c=input.dueDate;
         video.Publish_Notification_Channel__c=String.isBlank(input.publishNotificationChannel)?'None':input.publishNotificationChannel;
         video.Assignment_Notification_Channel__c=String.isBlank(input.assignmentNotificationChannel)?'None':input.assignmentNotificationChannel;

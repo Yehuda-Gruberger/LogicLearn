@@ -12,6 +12,11 @@ export default class LogicLearnDocumentReader extends LightningElement {
     loading = true;
     error;
     completed = false;
+    pageRequirement = "Every page";
+    readingOrder = "In order";
+    completionMode = "Finish on last page";
+    pagesRead = [];
+    saving = false;
 
     connectedCallback() { this.load(); }
 
@@ -30,6 +35,10 @@ export default class LogicLearnDocumentReader extends LightningElement {
                 this.title = result.title || this.title;
                 this.currentIndex = Math.max(0, (result.currentPage || 1) - 1);
                 this.completed = result.viewStatus === "Completed";
+                this.pageRequirement = result.pageRequirement || "Every page";
+                this.readingOrder = result.readingOrder || "In order";
+                this.completionMode = result.completionMode || "Finish on last page";
+                this.pagesRead = result.pagesRead || [];
             }
         } catch (error) {
             this.error = error?.body?.message || error?.message || "This tutorial could not be opened.";
@@ -44,28 +53,55 @@ export default class LogicLearnDocumentReader extends LightningElement {
     get progressStyle() { return `width:${this.pages.length ? ((this.currentIndex + 1) / this.pages.length) * 100 : 0}%`; }
     get isFirst() { return this.currentIndex === 0; }
     get isLast() { return this.currentIndex >= this.pages.length - 1; }
+    get isAnyOrder() { return this.readingOrder === "Any order"; }
+    get showPagePicker() { return !this.previewOnly && this.isAnyOrder && this.pages.length > 1; }
+    get currentPageValue() { return String(this.currentIndex); }
+    get pageOptions() { return this.pages.map((page, index) => ({label: `${index + 1}. ${page.title || `Page ${index + 1}`}`, value: String(index)})); }
     get nextLabel() { return this.isLast ? (this.completed ? "Completed" : "Finish tutorial") : "Next page"; }
-    get nextDisabled() { return !this.hasPages || (this.isLast && this.completed) || this.previewOnly && this.isLast; }
+    get nextDisabled() { return this.saving || !this.hasPages || (this.isLast && this.completed) || this.previewOnly && this.isLast; }
 
-    handlePrevious() {
-        if (!this.isFirst) this.currentIndex -= 1;
+    async handlePrevious() {
+        if (this.isFirst || this.saving) return;
+        if (!this.previewOnly) await this.savePage(this.currentIndex + 1, false);
+        if (!this.error) this.currentIndex -= 1;
     }
 
     async handleNext() {
-        if (!this.hasPages) return;
-        const reached = Math.min(this.currentIndex + 2, this.pages.length);
-        if (!this.previewOnly) {
-            try {
-                await recordDocumentProgress({videoId: this.videoId, pageNumber: reached, totalPages: this.pages.length});
-            } catch (error) {
-                this.error = error?.body?.message || "Progress could not be saved.";
-                return;
-            }
+        if (!this.hasPages || this.saving) return;
+        const wasLast = this.isLast;
+        const result = this.previewOnly ? null : await this.savePage(this.currentIndex + 1, wasLast);
+        if (this.error) return;
+        if (!wasLast) this.currentIndex += 1;
+        if (result?.completed) this.notifyCompleted();
+    }
+
+    async handlePageJump(event) {
+        const destination = Number(event.detail.value);
+        if (destination === this.currentIndex || this.saving) return;
+        const result = await this.savePage(this.currentIndex + 1, false);
+        if (this.error) return;
+        this.currentIndex = destination;
+        if (result?.completed) this.notifyCompleted();
+    }
+
+    async savePage(pageNumber, finishRequested) {
+        this.saving = true;
+        this.error = null;
+        try {
+            const result = await recordDocumentProgress({videoId: this.videoId, pageNumber, totalPages: this.pages.length, finishRequested});
+            this.pagesRead = result?.pagesRead || this.pagesRead;
+            this.completed = result?.completed === true;
+            return result;
+        } catch (error) {
+            this.error = error?.body?.message || "Progress could not be saved.";
+            return null;
+        } finally {
+            this.saving = false;
         }
-        if (!this.isLast) this.currentIndex += 1;
-        else {
-            this.completed = true;
-            this.dispatchEvent(new CustomEvent("progresschange", {detail: {completed: true, percent: 100}}));
-        }
+    }
+
+    notifyCompleted() {
+        this.completed = true;
+        this.dispatchEvent(new CustomEvent("progresschange", {detail: {completed: true, percent: 100}}));
     }
 }
