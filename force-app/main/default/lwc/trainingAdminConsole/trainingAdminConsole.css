@@ -387,6 +387,7 @@
 }
 .dashboard-media {
   min-height: 0;
+  height: clamp(18rem, 46vh, 24rem);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 35.5%);
   gap: 0.8rem;
@@ -795,6 +796,7 @@
     grid-template-columns: 250px minmax(0, 1fr);
   }
   .dashboard-media {
+    height: auto;
     grid-template-columns: 1fr;
   }
   .engagement-card {
