@@ -138,6 +138,9 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         return this.form.status === "Published" ? "Publish tutorial" : "Save tutorial";
     }
 
+    get showPublishActions() { return this.form.status === "Published"; }
+    get quietPublishLabel() { return !this.createdDraft && this.originalStatus === "Published" ? "Save changes" : "Publish"; }
+
     get fileDisplayName() {
         return this.fileName || "No video selected yet";
     }
@@ -343,9 +346,10 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get publishChannelOptions() { return this.channelChoices("publishNotificationChannel"); }
     get assignmentChannelOptions() { return this.channelChoices("assignmentNotificationChannel"); }
-    get lifecycleNotificationType() { return this.createdDraft ? "First Publish" : "Update"; }
+    get lifecycleNotificationType() { return this.createdDraft || this.originalStatus !== "Published" ? "First Publish" : "Update"; }
     get isUpdateNotification() { return this.lifecycleNotificationType === "Update"; }
     get publicationNoticeLabel() { return this.isUpdateNotification ? "Notify when updated" : "Notify when first published"; }
+    get requiredNoticeLabel() { return this.isUpdateNotification ? "Notify when updated" : "Notify when first published"; }
     get lifecycleNoticeTitle() { return this.isUpdateNotification ? "Tutorial updated" : "First publish"; }
     get lifecycleEmailDefault() { return this.isUpdateNotification ? this.settings.updateEmailTemplate : this.settings.firstPublishEmailTemplate; }
     get lifecycleMessageDefault() { return this.isUpdateNotification ? this.settings.updateInAppMessage : this.settings.firstPublishInAppMessage; }
@@ -626,7 +630,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.showRecorder = false;
     }
 
-    async handleSave() {
+    async handleSave(event) {
+        const shouldSendNotifications = event?.currentTarget?.dataset.notify !== "false";
         const inputs = [...this.template.querySelectorAll("lightning-input, lightning-textarea, lightning-combobox")];
         if (!inputs.reduce((valid, input) => input.reportValidity() && valid, true)) return;
         const titleInput = this.template.querySelector('lightning-input[data-field="title"]');
@@ -673,10 +678,11 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             const videoId = await saveTutorialJson({inputJson: JSON.stringify(payload), title: currentTitle});
             const notices = [];
             const isLifecycleEvent = this.form.status === "Published";
-            if (isLifecycleEvent && ["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleNotification({videoId, notificationType: this.lifecycleNotificationType, templateName: this.lifecycleEmailTemplate}));
-            if (isLifecycleEvent && ["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleInAppNotification({videoId, notificationType: this.lifecycleNotificationType, messageTemplate: this.lifecycleInAppMessage}));
-            if (["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendNotification({videoId, notificationType: "Assignment"}));
-            if (["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: "Assignment"}));
+            if (shouldSendNotifications && isLifecycleEvent && ["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleNotification({videoId, notificationType: this.lifecycleNotificationType, templateName: this.lifecycleEmailTemplate}));
+            if (shouldSendNotifications && isLifecycleEvent && ["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleInAppNotification({videoId, notificationType: this.lifecycleNotificationType, messageTemplate: this.lifecycleInAppMessage}));
+            const requiredNotificationType = this.isUpdateNotification ? "Required Update" : "Assignment";
+            if (shouldSendNotifications && ["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendNotification({videoId, notificationType: requiredNotificationType}));
+            if (shouldSendNotifications && ["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: requiredNotificationType}));
             let notificationFailed = false;
             const counts = notices.length ? await Promise.all(notices.map((notice) => notice.catch(() => {
                 notificationFailed = true;
@@ -684,7 +690,9 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             }))) : [];
             const emailed = counts.reduce((sum, count) => sum + count, 0);
             this.createdDraft = false;
-            const saveMessage = notificationFailed
+            const saveMessage = !shouldSendNotifications
+                ? "Tutorial changes saved without notifications."
+                : notificationFailed
                 ? "Tutorial saved, but one or more notifications could not be sent."
                 : emailed ? `Tutorial saved and ${emailed} email${emailed === 1 ? " was" : "s were"} sent.` : "Tutorial saved.";
             this.toast("Saved", saveMessage, notificationFailed ? "warning" : "success");

@@ -114,6 +114,11 @@ public with sharing class TrainingNotificationService {
         String type = String.isBlank(notificationType) ? 'Assignment' : notificationType;
         String purpose = new Set<String>{'New Video','First Publish','Update'}.contains(type) ? 'Visibility' : 'Required';
         Set<Id> recipientIds = LogicLearnAudienceService.usersForVideo(videoId, purpose);
+        Training_Video__c video = [
+            SELECT Id, Name, Publish_Notification_Channel__c
+            FROM Training_Video__c WHERE Id = :videoId LIMIT 1
+        ];
+        removeViewerDuplicates(videoId, type, video.Publish_Notification_Channel__c, 'Email', recipientIds);
         if (recipientIds.isEmpty()) return 0;
 
         if (type == 'Reminder') {
@@ -127,7 +132,7 @@ public with sharing class TrainingNotificationService {
         LogicLearn_Settings__c settings = LogicLearnAdminController.settingsRow();
         String selectedTemplate = String.isNotBlank(templateOverride) ? templateOverride :
             type == 'Reminder' ? settings.Reminder_Template_Name__c :
-            type == 'Update' ? settings.Update_Email_Template__c :
+            type == 'Update' || type == 'Required Update' ? settings.Update_Email_Template__c :
             type == 'First Publish' || type == 'New Video' ? settings.First_Publish_Email_Template__c :
             settings.Assignment_Template_Name__c;
         List<EmailTemplate> templates = [
@@ -137,7 +142,6 @@ public with sharing class TrainingNotificationService {
         ];
         if (templates.isEmpty()) throw new AuraHandledException('Active email template not found: ' + selectedTemplate);
 
-        Training_Video__c video = [SELECT Id, Name FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
         List<User> users = [SELECT Id, Name, Email FROM User WHERE Id IN :recipientIds AND IsActive = TRUE AND Email != null];
         String libraryUrl = buildLibraryUrl();
         String videoLink = libraryUrl + '?c__videoId=' + video.Id;
@@ -229,12 +233,43 @@ public with sharing class TrainingNotificationService {
         return QA_REDIRECT_USER.equalsIgnoreCase(userName) ? QA_REDIRECT_EMAIL : originalEmail;
     }
 
+    /**
+     * A learner can belong to both audiences. When the same channel is enabled for the viewer
+     * announcement, that announcement wins and the required-audience send skips the learner.
+     */
+    private static void removeViewerDuplicates(
+        Id videoId,
+        String notificationType,
+        String viewerChannel,
+        String medium,
+        Set<Id> recipients
+    ) {
+        if (recipients == null || recipients.isEmpty() ||
+            !new Set<String>{'Assignment', 'Required Update'}.contains(notificationType) ||
+            !channelIncludes(viewerChannel, medium)) return;
+        recipients.removeAll(LogicLearnAudienceService.usersForVideo(videoId, 'Visibility'));
+    }
+
+    private static Boolean channelIncludes(String channel, String medium) {
+        return channel == 'Both' || channel == medium;
+    }
+
     /** Absolute URL to the Training Library tab, correct for the current org/sandbox. */
     private static String buildLibraryUrl() {
         String base = URL.getOrgDomainUrl().toExternalForm();
         // The Lightning nav path lives on the lightning.force.com host, not my.salesforce.com.
         String lightningBase = base.replace('.my.salesforce.com', '.lightning.force.com');
-        return lightningBase + '/lightning/n/Training_Library';
+        return lightningBase + '/lightning/n/' + libraryTabApiName();
+    }
+
+    /** Uses the installed package namespace when the tab is running from a managed package. */
+    public static String libraryTabApiName() {
+        String objectApiName = Training_Video__c.SObjectType.getDescribe().getName();
+        String objectSuffix = 'Training_Video__c';
+        String namespacePrefix = objectApiName.endsWith(objectSuffix)
+            ? objectApiName.substring(0, objectApiName.length() - objectSuffix.length())
+            : '';
+        return namespacePrefix + 'Training_Library';
     }
 }
 

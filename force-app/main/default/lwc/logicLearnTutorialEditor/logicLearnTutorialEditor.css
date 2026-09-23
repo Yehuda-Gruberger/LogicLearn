@@ -342,9 +342,9 @@
   font-size: 0.59rem;
 }
 .upload-tray {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 0.6rem;
   margin-top: 0.65rem;
   padding: 0.55rem 0.65rem;
@@ -361,10 +361,11 @@
 .upload-control {
   flex: 0 0 auto;
 }
-.upload-actions { display: flex; align-items: center; gap: 0.6rem; }
-.upload-control { display: flex; align-items: center; }
+.upload-actions { min-height: 2.75rem; display: grid; grid-template-columns: auto auto; align-items: center; gap: 0.6rem; }
+.upload-control { min-height: 2.75rem; display: flex; align-items: center; margin: 0; }
 .native-uploader {
   display: block;
+  margin: 0;
   --slds-c-button-radius-border: 999px;
   --slds-c-button-color-background: #1595a6;
   --slds-c-button-color-background-hover: #087f90;
@@ -379,7 +380,7 @@
   --slds-c-button-neutral-text-color: #fff;
   --slds-c-button-neutral-text-color-hover: #fff;
 }
-.record-screen { min-height: 2.25rem; display: inline-flex; align-items: center; justify-content:center; gap: 0.38rem; padding: 0.4rem 0.9rem; border: 1px solid #8d9baa; border-radius: 999px; background: #fff; color: #17354b; font: inherit; font-size: 0.68rem; font-weight: 700; line-height:1; cursor: pointer; }
+.record-screen { height: 2.25rem; min-height: 2.25rem; align-self:center; display: inline-flex; align-items: center; justify-content:center; gap: 0.38rem; margin:0; padding: 0.4rem 0.9rem; border: 1px solid #8d9baa; border-radius: 999px; background: #fff; color: #17354b; font: inherit; font-size: 0.68rem; font-weight: 700; line-height:1; cursor: pointer; }
 .record-screen > span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5d6670; }
 .recorder-backdrop { position: absolute; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgba(8,26,38,.58); backdrop-filter: blur(2px); }
 .recorder-modal { width: min(760px,100%); overflow: hidden; border-radius: .8rem; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }

@@ -676,6 +676,14 @@ public without sharing class LogicLearnAdminController {
         if (videoId == null) throw new AuraHandledException('A tutorial is required.');
         String purpose = new Set<String>{'New Video','First Publish','Update'}.contains(notificationType) ? 'Visibility' : 'Required';
         Set<Id> recipients = LogicLearnAudienceService.usersForVideo(videoId, purpose);
+        Training_Video__c video = [
+            SELECT Id, Name, Due_Date__c, Publish_Notification_Channel__c
+            FROM Training_Video__c WHERE Id = :videoId LIMIT 1
+        ];
+        if (new Set<String>{'Assignment', 'Required Update'}.contains(notificationType) &&
+            (video.Publish_Notification_Channel__c == 'In-app' || video.Publish_Notification_Channel__c == 'Both')) {
+            recipients.removeAll(LogicLearnAudienceService.usersForVideo(videoId, 'Visibility'));
+        }
         if (notificationType == 'Reminder' && !recipients.isEmpty()) {
             for (Training_View__c completed : [
                 SELECT User__c FROM Training_View__c
@@ -683,18 +691,18 @@ public without sharing class LogicLearnAdminController {
             ]) recipients.remove(completed.User__c);
         }
         if (recipients.isEmpty()) return 0;
-        Training_Video__c video = [SELECT Id, Name, Due_Date__c FROM Training_Video__c WHERE Id = :videoId LIMIT 1];
         List<CustomNotificationType> types = [
             SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'LogicLearn_Notification' LIMIT 1
         ];
         if (types.isEmpty()) throw new AuraHandledException('The LogicLearn in-app notification type is not configured.');
         Messaging.CustomNotification notice = new Messaging.CustomNotification();
         notice.setNotificationTypeId(types[0].Id);
-        notice.setTargetPageRef('{"type":"standard__navItemPage","attributes":{"apiName":"Training_Library"},"state":{"c__videoId":"' + video.Id + '"}}');
-        notice.setTitle(notificationType == 'Reminder' ? 'LogicLearn reminder' : notificationType == 'Assignment' ? 'New required tutorial' : notificationType == 'Update' ? 'Tutorial updated' : 'New LogicLearn tutorial');
+        notice.setTargetPageRef('{"type":"standard__navItemPage","attributes":{"apiName":"' +
+            TrainingNotificationService.libraryTabApiName() + '"},"state":{"c__videoId":"' + video.Id + '"}}');
+        notice.setTitle(notificationType == 'Reminder' ? 'LogicLearn reminder' : notificationType == 'Assignment' ? 'New required tutorial' : notificationType == 'Update' || notificationType == 'Required Update' ? 'Tutorial updated' : 'New LogicLearn tutorial');
         LogicLearn_Settings__c settings = settingsRow();
         String configuredMessage = String.isNotBlank(messageTemplate) ? messageTemplate :
-            notificationType == 'Update' ? settings.Update_In_App_Message__c :
+            notificationType == 'Update' || notificationType == 'Required Update' ? settings.Update_In_App_Message__c :
             notificationType == 'First Publish' || notificationType == 'New Video' ? settings.First_Publish_In_App_Message__c :
             notificationType == 'Assignment' ? settings.Assignment_In_App_Message__c :
             notificationType == 'Reminder' ? settings.Reminder_In_App_Message__c : null;

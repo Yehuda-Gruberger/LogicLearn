@@ -12,6 +12,7 @@
             <value><fullName>New Video</fullName><default>false</default><label>New Video</label></value>
             <value><fullName>First Publish</fullName><default>false</default><label>First Publish</label></value>
             <value><fullName>Update</fullName><default>false</default><label>Update</label></value>
+            <value><fullName>Required Update</fullName><default>false</default><label>Required Update</label></value>
             <value><fullName>Reminder</fullName><default>false</default><label>Reminder</label></value>
         </valueSetDefinition>
     </valueSet>
