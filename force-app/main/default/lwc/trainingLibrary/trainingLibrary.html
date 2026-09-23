@@ -46,13 +46,15 @@
 
         <!-- ===== Main ===== -->
         <div class="main">
-            <div class="topbar">
-                <div class="titles">
-                    <div class="eyebrow">LogicLearn</div>
-                    <h1 class="h1">{pageTitle}</h1>
+            <template lwc:if={showLibraryHeader}>
+                <div class="topbar">
+                    <div class="titles">
+                        <div class="eyebrow">LogicLearn</div>
+                        <h1 class="h1">{pageTitle}</h1>
+                    </div>
+                    <div class="topbar-spacer"></div>
                 </div>
-                <div class="topbar-spacer"></div>
-            </div>
+            </template>
 
             <div class="scroll">
                 <template lwc:if={isAdminMode}>
