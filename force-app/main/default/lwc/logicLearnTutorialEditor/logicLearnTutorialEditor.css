@@ -53,6 +53,8 @@
 .hint { font-size: 0.72rem; color: #718096; margin: 0.45rem 0 0; }
 .notice { display: flex; gap: 0.45rem; align-items: center; margin-top: 0.6rem; padding: 0.65rem; background: #f1f6f8; border-radius: 0.45rem; color: #435166; font-size: 0.78rem; }
 .checks { display: grid; gap: 0.25rem; margin-top: 0.8rem; }
+.override-input { display: block; margin-top: 0.55rem; }
+.global-note { margin: 0.65rem 0 0; color: #718096; font-size: 0.72rem; }
 
 .editor-foot {
     flex: 0 0 auto;

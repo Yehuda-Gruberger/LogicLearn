@@ -46,7 +46,7 @@ public without sharing class LogicLearnAdminController {
             Description__c='Sample draft. Upload your own content and select an audience before publishing.');
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static SettingsDto getSettings() {
         LogicLearnAudienceService.requireAdmin();
         LogicLearn_Settings__c row = settingsRow();

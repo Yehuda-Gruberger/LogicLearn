@@ -3,6 +3,7 @@ import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import createTutorialDraft from "@salesforce/apex/LogicLearnAdminController.createTutorialDraft";
 import discardTutorialDraft from "@salesforce/apex/LogicLearnAdminController.discardTutorialDraft";
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
+import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
 import saveTutorial from "@salesforce/apex/LogicLearnAdminController.saveTutorial";
 import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
@@ -36,6 +37,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     @api recordId;
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: []};
+    settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: ""};
+    completionMode = "global";
     loading = true;
     saving = false;
     createdDraft = false;
@@ -45,16 +48,19 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     async connectedCallback() {
         try {
-            const [catalog, id] = await Promise.all([
+            const [catalog, settings, id] = await Promise.all([
                 getCatalog(),
+                getSettings(),
                 this.recordId ? Promise.resolve(this.recordId) : createTutorialDraft()
             ]);
             this.catalog = catalog;
+            this.settings = settings;
             this.createdDraft = !this.recordId;
             this.recordId = id;
             const tutorial = await getTutorial({videoId: id});
             this.fileName = tutorial.fileName;
             this.form = this.normalize({...EMPTY_FORM, ...tutorial, videoId: id});
+            this.completionMode = tutorial.completionThreshold == null ? "global" : "custom";
         } catch (error) {
             this.toast("Unable to open tutorial", this.message(error), "error");
             this.dispatchEvent(new CustomEvent("close"));
@@ -101,7 +107,27 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     get skipOptions() {
-        return ["Use Global Default", "Enabled", "Disabled"].map((value) => ({label: value, value}));
+        const globalValue = this.settings.preventSkipping ? "Enabled" : "Disabled";
+        return [
+            {label: `Use global default (${globalValue})`, value: "Use Global Default"},
+            {label: "Enabled", value: "Enabled"},
+            {label: "Disabled", value: "Disabled"}
+        ];
+    }
+
+    get completionModeOptions() {
+        return [
+            {label: `Use global default (${this.settings.completionThreshold}%)`, value: "global"},
+            {label: "Custom threshold", value: "custom"}
+        ];
+    }
+
+    get isCustomThreshold() {
+        return this.completionMode === "custom";
+    }
+
+    get emailTemplateHelp() {
+        return `Email uses “${this.settings.assignmentTemplateName}”; reminders use “${this.settings.reminderTemplateName}”.`;
     }
 
     get statusOptions() {
@@ -129,6 +155,14 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     handlePicker(event) {
         const field = event.currentTarget.dataset.field;
         this.form = {...this.form, [field]: event.detail.value};
+    }
+
+    handleCompletionMode(event) {
+        this.completionMode = event.detail.value;
+        const threshold = this.completionMode === "global"
+            ? null
+            : this.form.completionThreshold ?? this.settings.completionThreshold;
+        this.form = {...this.form, completionThreshold: threshold};
     }
 
     async handleUpload(event) {
