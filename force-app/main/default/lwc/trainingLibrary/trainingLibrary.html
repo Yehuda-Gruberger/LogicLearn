@@ -5,8 +5,8 @@
             <template lwc:else>
                 <header class="learner-brand"><span><lightning-icon icon-name="utility:video" size="small" variant="inverse"></lightning-icon></span><div><small>Training</small><strong>LogicLearn</strong></div></header>
                 <div class="rail-title">Folders</div>
-                <template for:each={folderItems} for:item="folder"><div key={folder.id} class={folder.itemClass} style={folder.indentStyle} data-id={folder.id} onclick={handleFolderSelect}><lightning-icon icon-name="utility:open_folder" size="x-small" class="rail-ico"></lightning-icon><span class="rail-name">{folder.name}</span><span class="rail-count">{folder.count}</span></div></template>
-                <div class="rail-progress"><div class="rp-label"><span>Your progress</span><span class="tnum">{progressCountLabel}</span></div><div class="bar"><span style={progressStyle}></span></div><small>{overallProgressLabel.total} total tutorials</small></div>
+                <template for:each={folderItems} for:item="folder"><div key={folder.id} class={folder.itemClass} style={folder.indentStyle} data-id={folder.id} onclick={handleFolderSelect}><lightning-icon icon-name="utility:folder" size="x-small" class="rail-ico"></lightning-icon><span class="rail-name">{folder.name}</span><span class="rail-count">{folder.count}</span></div></template>
+                <div class="rail-progress"><div class="rp-label"><span>Your progress</span><span class="tnum">{progressCountLabel}</span></div><div class="bar"><span style={progressStyle}></span></div><small>{remainingProgressLabel}</small></div>
                 <div class="rail-mode-toggle" role="group" aria-label="Workspace view"><button class="active">Library</button><template lwc:if={isAdmin}><button onclick={showAdminMode}>Admin</button></template></div>
             </template>
         </aside>

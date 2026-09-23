@@ -504,6 +504,8 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String category { get; set; }
         @AuraEnabled public String status { get; set; }
         @AuraEnabled public Datetime createdDate { get; set; }
+        @AuraEnabled public String createdByName { get; set; }
+        @AuraEnabled public Boolean isMine { get; set; }
         @AuraEnabled public String previewUrl { get; set; }
         @AuraEnabled public Integer assignedCount { get; set; }
         @AuraEnabled public Integer completedCount { get; set; }
@@ -540,7 +542,7 @@ public without sharing class TrainingVideoController {
 
         List<VideoAdminRow> rows = new List<VideoAdminRow>();
         for (Training_Video__c v : [
-            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c, CreatedDate,
+            SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c, CreatedDate, CreatedById, CreatedBy.Name,
                 Content_Type__c, Video_Content_Version_Id__c
             FROM Training_Video__c
             ORDER BY CreatedDate DESC
@@ -553,6 +555,8 @@ public without sharing class TrainingVideoController {
             r.category = v.Category__c;
             r.status = v.Status__c;
             r.createdDate = v.CreatedDate;
+            r.createdByName = v.CreatedBy.Name;
+            r.isMine = v.CreatedById == UserInfo.getUserId();
             r.previewUrl = v.Content_Type__c != 'External Link' && String.isNotBlank(v.Video_Content_Version_Id__c)
                 ? '/sfc/servlet.shepherd/version/download/' + v.Video_Content_Version_Id__c
                 : null;

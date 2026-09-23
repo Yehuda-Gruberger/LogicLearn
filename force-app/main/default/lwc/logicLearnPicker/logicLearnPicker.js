@@ -56,9 +56,7 @@ export default class LogicLearnPicker extends LightningElement {
                     selected,
                     excluded,
                     canExclude: this.actionMode && this._excludableValues.includes(item.value),
-                    addIcon: selected ? "utility:check" : "utility:add",
                     excludeIcon: excluded ? "utility:check" : "utility:dash",
-                    addClass: selected ? "option-action active" : "option-action",
                     excludeClass: excluded ? "option-action exclude active" : "option-action exclude"
                 };
             });
@@ -126,16 +124,6 @@ export default class LogicLearnPicker extends LightningElement {
             this._value = [selected];
             this.open = false;
         }
-        this.query = "";
-        this.emitChange();
-    }
-
-    handleAdd(event) {
-        event.stopPropagation();
-        const selected = event.currentTarget.dataset.value;
-        this._value = this._value.includes(selected)
-            ? this._value.filter((value) => value !== selected)
-            : [...this._value, selected];
         this.query = "";
         this.emitChange();
     }

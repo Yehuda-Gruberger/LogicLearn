@@ -164,6 +164,7 @@
   grid-column: 1 / -1;
 }
 .browser-label {
+  align-items: center;
   display: flex;
   justify-content: space-between;
   margin: 0.82rem 0.15rem 0.38rem;
@@ -173,6 +174,34 @@
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
+.tutorial-scope {
+  display: flex;
+  gap: 0.12rem;
+  padding: 0.13rem;
+  border-radius: 0.42rem;
+  background: rgba(255, 255, 255, 0.08);
+  text-transform: none;
+}
+.tutorial-scope button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.24rem 0.38rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: #a9c8d2;
+  font: inherit;
+  font-size: 0.57rem;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.tutorial-scope button.active {
+  background: #fff;
+  color: #14384e;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+}
+.tutorial-scope strong { font-size: 0.53rem; }
 .browser-list {
   flex: 1 1 auto;
   min-height: 0;

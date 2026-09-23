@@ -297,6 +297,11 @@ export default class TrainingLibrary extends LightningElement {
     return `${p.done} / ${p.total}`;
   }
 
+  get remainingProgressLabel() {
+    const remaining = Math.max(0, this.overallProgressLabel.total - this.overallProgressLabel.done);
+    return remaining ? `${remaining} left to finish` : "All training complete";
+  }
+
   // ───────── Sections + cards ─────────
 
   get displaySections() {

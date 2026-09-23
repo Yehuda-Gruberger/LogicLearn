@@ -154,11 +154,39 @@
   gap: 0.2rem;
 }
 .help-icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   color: #8796a7;
   cursor: help;
   --slds-c-icon-color-foreground-default: #8796a7;
+}
+.help-icon::after {
+  position: absolute;
+  z-index: 9500;
+  top: calc(100% + 0.3rem);
+  left: 50%;
+  width: max-content;
+  max-width: 16rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.35rem;
+  background: #172434;
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(13, 31, 45, 0.22);
+  content: attr(data-help);
+  font-size: 0.58rem;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -2px);
+  transition: opacity 0.06s linear, transform 0.08s ease-out;
+  white-space: normal;
+}
+.help-icon:hover::after,
+.help-icon:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 .panel-head p {
   margin: 0.1rem 0 0;

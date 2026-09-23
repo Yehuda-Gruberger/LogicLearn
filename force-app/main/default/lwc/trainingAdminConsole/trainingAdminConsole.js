@@ -55,6 +55,7 @@ export default class TrainingAdminConsole extends LightningElement {
     folderFilter = [];
     categoryFilter = [];
     statusFilter = [];
+    tutorialScope = "all";
     activitySummary = {totalOpens: 0, started: 0, completed: 0, averageWatch: 0, opensStyle: "width:0%", startedStyle: "width:0%", completedStyle: "width:0%", averageStyle: "width:0%"};
     heroOverlayVisible = true;
     showSettingsModal = false;
@@ -165,6 +166,9 @@ export default class TrainingAdminConsole extends LightningElement {
     get publishedCount() { return this.videos.filter((video) => video.status === "Published").length; }
     get draftCount() { return this.videos.filter((video) => video.status === "Draft").length; }
     get completionCount() { return this.videos.reduce((total, video) => total + (video.completedCount || 0), 0); }
+    get mineCount() { return this.videos.filter((video) => video.isMine).length; }
+    get allScopeClass() { return this.tutorialScope === "all" ? "active" : ""; }
+    get mineScopeClass() { return this.tutorialScope === "mine" ? "active" : ""; }
 
     get tutorialRows() {
         const gradients = {
@@ -180,6 +184,7 @@ export default class TrainingAdminConsole extends LightningElement {
             completedCount: video.completedCount || 0,
             meta: [video.folderName, video.category].filter(Boolean).join(" / ") || "Uncategorized",
             createdLabel: video.createdDate ? new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric", year: "numeric"}).format(new Date(video.createdDate)) : "",
+            creatorLabel: video.isMine ? "you" : (video.createdByName || "Unknown"),
             statusClass: `status-pill ${(video.status || "Draft").toLowerCase()}`,
             thumbStyle: `background:${gradients[video.category] || "linear-gradient(135deg,#334155,#4d6e7a)"}`,
             rowClass: video.id === this.selectedVideoId ? "browser-item active" : "browser-item"
@@ -192,12 +197,22 @@ export default class TrainingAdminConsole extends LightningElement {
             (!search || video.title?.toLowerCase().includes(search)) &&
             (!this.folderFilter.length || this.folderFilter.includes(video.folderId)) &&
             (!this.categoryFilter.length || this.categoryFilter.includes(video.category)) &&
-            (!this.statusFilter.length || this.statusFilter.includes(video.status))
+            (!this.statusFilter.length || this.statusFilter.includes(video.status)) &&
+            (this.tutorialScope !== "mine" || video.isMine)
         );
     }
 
     get hasFilteredVideos() { return this.filteredTutorialRows.length > 0; }
     get filteredVideoCount() { return this.filteredTutorialRows.length; }
+
+    handleTutorialScope(event) {
+        this.tutorialScope = event.currentTarget.dataset.scope;
+        const visible = this.filteredTutorialRows;
+        if (!visible.some((video) => video.id === this.selectedVideoId)) {
+            if (visible.length) this.selectTutorial(visible[0].id);
+            else { this.selectedVideoId = undefined; this.selectedTutorial = undefined; }
+        }
+    }
 
     get browserFolderOptions() {
         return this.folders.map((folder) => ({value: folder.id, label: folder.name}));
