@@ -38,20 +38,10 @@
                         <div class="dashboard-actions"><lightning-button-icon icon-name="utility:delete" alternative-text="Delete tutorial" title="Delete tutorial" variant="bare" onclick={handleDeleteSelected}></lightning-button-icon><lightning-button variant="brand" label="Edit tutorial" icon-name="utility:edit" onclick={handleEditSelected}></lightning-button></div>
                     </header>
 
-                    <section class="overview-grid">
+                    <section class="video-stage">
                         <div class="video-hero" style={selectedRow.thumbStyle}>
                             <span class="hero-play"><lightning-icon icon-name="utility:play" size="medium" variant="inverse"></lightning-icon></span>
                             <div class="hero-caption"><span>{selectedTutorial.contentType}</span><strong>{selectedTutorial.fileName}</strong></div>
-                        </div>
-                        <div class="tutorial-info">
-                            <div class="info-top"><span class={selectedRow.statusClass}>{selectedTutorial.status}</span><small>{selectedTutorial.contentType}</small></div>
-                            <p>{selectedTutorial.description}</p>
-                            <dl>
-                                <div><dt>Completion</dt><dd>{selectedTutorial.completionLabel}</dd></div>
-                                <div><dt>Skipping</dt><dd>{selectedTutorial.skipLabel}</dd></div>
-                                <div><dt>Due date</dt><dd>{selectedTutorial.dueDate}</dd></div>
-                                <div><dt>Required audience</dt><dd>{selectedTutorial.requiredSummary}</dd></div>
-                            </dl>
                         </div>
                     </section>
 
@@ -68,12 +58,25 @@
                         <div><small>Notifications</small><strong>{selectedTutorial.notificationSummary}</strong></div>
                     </section>
 
-                    <c-logic-learn-tracking compact video-id={selectedVideoId} ontrackingloaded={handleTrackingLoaded}></c-logic-learn-tracking>
+                    <section class="tutorial-info">
+                        <div class="info-top"><span class={selectedRow.statusClass}>{selectedTutorial.status}</span><small>{selectedTutorial.contentType}</small></div>
+                        <p>{selectedTutorial.description}</p>
+                        <dl>
+                            <div><dt>Completion</dt><dd>{selectedTutorial.completionLabel}</dd></div>
+                            <div><dt>Skipping</dt><dd>{selectedTutorial.skipLabel}</dd></div>
+                            <div><dt>Due date</dt><dd>{selectedTutorial.dueDate}</dd></div>
+                            <div><dt>Required audience</dt><dd>{selectedTutorial.requiredSummary}</dd></div>
+                        </dl>
+                    </section>
                 </template>
                 <template lwc:else>
                     <div class="dashboard-empty"><span><lightning-icon icon-name="utility:video" size="large" variant="inverse"></lightning-icon></span><h2>Create your first tutorial</h2><p>Add a video, choose its audience, and track engagement from this workspace.</p><lightning-button variant="brand" label="Create tutorial" icon-name="utility:add" onclick={handleNewVideo}></lightning-button></div>
                 </template>
             </main>
+            <aside class="people-sidebar">
+                <template lwc:if={selectedTutorial}><c-logic-learn-tracking people compact video-id={selectedVideoId} ontrackingloaded={handleTrackingLoaded}></c-logic-learn-tracking></template>
+                <template lwc:else><div class="people-placeholder"><lightning-icon icon-name="utility:people" size="medium"></lightning-icon><span>Select a tutorial to see its learners.</span></div></template>
+            </aside>
         </div>
     </template>
     <template lwc:elseif={isGroups}><c-logic-learn-group-manager></c-logic-learn-group-manager></template>

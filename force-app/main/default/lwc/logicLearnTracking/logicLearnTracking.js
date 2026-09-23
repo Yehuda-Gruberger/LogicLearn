@@ -19,7 +19,9 @@ export default class LogicLearnTracking extends LightningElement {
     _videoId;
     _connected = false;
     @api compact = false;
+    @api people = false;
     rows = [];
+    peopleSearch = "";
     loading = true;
     reminderChannel = "In-app";
     sending = false;
@@ -49,6 +51,18 @@ export default class LogicLearnTracking extends LightningElement {
     get hasRows() { return this.rows.length > 0; }
     get toolbarClass() { return this.compact ? "toolbar compact" : "toolbar"; }
     get channelOptions() { return ["In-app", "Email", "Both"].map((value) => ({label: value, value})); }
+    get filteredPeople() {
+        const search = this.peopleSearch.trim().toLowerCase();
+        return this.rows
+            .filter((row) => !search || row.userName?.toLowerCase().includes(search) || row.status?.toLowerCase().includes(search))
+            .map((row) => ({
+                ...row,
+                initials: (row.userName || "?").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
+                statusClass: `person-status ${(row.status || "not-started").toLowerCase().replaceAll(" ", "-")}`,
+                activityLabel: row.viewCount ? `${row.watchPercent || 0}% watched / ${row.viewCount} open${row.viewCount === 1 ? "" : "s"}` : "Not opened yet"
+            }));
+    }
+    get peopleCountLabel() { return `${this.rows.length} ${this.rows.length === 1 ? "learner" : "learners"}`; }
 
     async handleVideo(event) {
         this.videoId = event.detail.value;
@@ -72,6 +86,7 @@ export default class LogicLearnTracking extends LightningElement {
     }
 
     handleChannel(event) { this.reminderChannel = event.detail.value; }
+    handlePeopleSearch(event) { this.peopleSearch = event.target.value; }
 
     async sendReminder() {
         if (!this.videoId) return;
