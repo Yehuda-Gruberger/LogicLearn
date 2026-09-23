@@ -81,7 +81,7 @@ export default class LogicLearnSettings extends LightningElement {
 
     async openEditTemplate(event) {
         const field = event.currentTarget.dataset.field;
-        const selected = this.settings?.[field];
+        const selected = event.detail?.value || this.settings?.[field];
         if (!selected) { this.toast("Choose a template", "Select an email template before editing it.", "info"); return; }
         this.creatingTemplate = true;
         try {

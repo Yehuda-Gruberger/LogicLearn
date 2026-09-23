@@ -9,7 +9,7 @@
                         <span class="chip" key={item.value}>
                             <template lwc:if={showMetaInChip}><small>{item.meta}</small></template>
                             {item.label}
-                            <template lwc:if={editable}><lightning-icon class="editable-icon" icon-name="utility:edit" size="xx-small" title="Editable"></lightning-icon></template>
+                            <template lwc:if={editable}><button type="button" class="inline-edit" data-value={item.value} onclick={handleEdit} title="Edit template"><lightning-icon class="editable-icon" icon-name="utility:edit" size="xx-small"></lightning-icon></button></template>
                             <button type="button" data-value={item.value} onclick={handleRemove} title="Remove">×</button>
                         </span>
                     </template>
@@ -31,7 +31,10 @@
                     <template lwc:if={actionMode}>
                         <div key={item.value} class={item.rowClass} data-value={item.value} onmousedown={handleOptionMouseDown} onclick={handleSelect}><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span><template lwc:if={editable}><lightning-icon class="editable-icon option-editable" icon-name="utility:edit" size="xx-small" title="Editable"></lightning-icon></template><template lwc:if={item.canExclude}><span class="option-actions"><button type="button" class={item.excludeClass} data-value={item.value} onmousedown={handleOptionMouseDown} onclick={handleExclude} title="Exclude"><lightning-icon icon-name={item.excludeIcon} size="xx-small"></lightning-icon></button></span></template></div>
                     </template>
-                    <template lwc:else><button type="button" key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}><template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span><template lwc:if={editable}><lightning-icon class="editable-icon option-editable" icon-name="utility:edit" size="xx-small" title="Editable"></lightning-icon></template></button></template>
+                    <template lwc:else>
+                        <template lwc:if={editable}><div key={item.value} class={item.rowClass}><button type="button" class="option-choice" data-value={item.value} onclick={handleSelect}><template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span></button><button type="button" class="inline-option-edit" data-value={item.value} onmousedown={handleOptionMouseDown} onclick={handleEdit} title="Edit template"><lightning-icon class="editable-icon" icon-name="utility:edit" size="xx-small"></lightning-icon></button></div></template>
+                        <template lwc:else><button type="button" key={item.value} class={item.rowClass} data-value={item.value} onclick={handleSelect}><template lwc:if={item.selected}><lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon></template><span><strong>{item.label}</strong><template lwc:if={item.meta}><small>{item.meta}</small></template></span></button></template>
+                    </template>
                 </template>
                 <template lwc:if={hasOptions}></template>
                 <template lwc:else>

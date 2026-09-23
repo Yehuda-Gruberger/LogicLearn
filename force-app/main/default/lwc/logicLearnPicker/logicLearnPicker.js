@@ -146,6 +146,13 @@ export default class LogicLearnPicker extends LightningElement {
         this.emitChange();
     }
 
+    handleEdit(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.open = false;
+        this.dispatchEvent(new CustomEvent("edit", {detail: {value: event.currentTarget.dataset.value}}));
+    }
+
     handleRemove(event) {
         event.stopPropagation();
         const selected = event.currentTarget.dataset.value;

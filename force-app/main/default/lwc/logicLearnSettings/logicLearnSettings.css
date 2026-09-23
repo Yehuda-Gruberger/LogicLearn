@@ -27,5 +27,9 @@
 .reading-default-grid{padding:.1rem}
 .lifecycle-grid article,.template-grid>div{border:1px solid #d8e3e9;border-radius:.58rem;background:#fbfcfd}
 .template-grid>div{padding:.72rem}
+.notification-subheading{margin:.1rem 0 .62rem}
+.notification-subheading strong{color:#263b4d;font-size:.74rem}
+.notification-subheading p{margin:.15rem 0 0;color:#687e90;font-size:.64rem;line-height:1.4}
+.notification-divider{height:1px;margin:.9rem 0;background:#dce5ea}
 .settings-content>footer{position:sticky;z-index:30;bottom:0;margin-top:.75rem;padding:.72rem 1.25rem;background:rgba(255,255,255,.97);border-top:1px solid #cfdae1;box-shadow:0 -5px 16px rgba(19,44,62,.09);backdrop-filter:blur(8px)}
 @media(max-width:620px){.settings-content .settings-section{margin-inline:.55rem;padding:.8rem}.section-heading{gap:.5rem}.section-icon{width:1.8rem;height:1.8rem}}
