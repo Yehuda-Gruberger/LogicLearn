@@ -25,6 +25,7 @@ export default class TrainingLibrary extends LightningElement {
     @track activeAutoplay = false;
     isAdmin = false;
     _deepLinkHandled;
+    _openTutorialAfterModeChange = false;
 
     sections = [];
     folders = [];
@@ -276,6 +277,24 @@ export default class TrainingLibrary extends LightningElement {
         return this.displaySections.length > 0;
     }
 
+    get isLibraryEmpty() {
+        return this.totalVideoCount === 0;
+    }
+
+    get showAdminEmptyAction() {
+        return this.isAdmin && this.isLibraryEmpty;
+    }
+
+    get emptyTitle() {
+        return this.isLibraryEmpty ? "Build your training library" : "No tutorials found";
+    }
+
+    get emptyMessage() {
+        return this.isLibraryEmpty
+            ? "Create a polished tutorial, add its video, and choose the right audience in one place."
+            : "Try another search or select a different folder.";
+    }
+
     decorate(video) {
         const meta = this.statusMeta(video);
         // Highlight mandatory videos that still need attention (not yet completed).
@@ -341,6 +360,20 @@ export default class TrainingLibrary extends LightningElement {
 
     handleRefresh() {
         return refreshApex(this._wired);
+    }
+
+    handleCreateFirstTutorial() {
+        this._openTutorialAfterModeChange = true;
+        this.mode = "admin";
+    }
+
+    renderedCallback() {
+        if (!this._openTutorialAfterModeChange) return;
+        const adminConsole = this.template.querySelector("c-training-admin-console");
+        if (adminConsole) {
+            this._openTutorialAfterModeChange = false;
+            adminConsole.openNewTutorial();
+        }
     }
 
     // ───────── Utils ─────────

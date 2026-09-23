@@ -182,8 +182,16 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     handleStage(event) {
         const target = event.currentTarget.dataset.target;
         this.activeStage = target;
+        const scroller = this.template.querySelector(".body");
         const panel = this.template.querySelector(`[data-panel="${target}"]`);
-        if (panel) panel.scrollIntoView({behavior: "smooth", block: "start"});
+        if (scroller && panel) {
+            const panelTop = panel.getBoundingClientRect().top;
+            const scrollerTop = scroller.getBoundingClientRect().top;
+            scroller.scrollTo({
+                top: scroller.scrollTop + panelTop - scrollerTop - 12,
+                behavior: "smooth"
+            });
+        }
     }
 
     async handleUpload(event) {

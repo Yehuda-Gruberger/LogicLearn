@@ -133,9 +133,19 @@
                     </template>
 
                     <template lwc:else>
-                        <div class="empty">
-                            <lightning-icon icon-name="utility:video" size="large"></lightning-icon>
-                            <p>No training videos to show yet.</p>
+                        <div class="empty empty-library">
+                            <div class="empty-art" aria-hidden="true">
+                                <span class="empty-play"><lightning-icon icon-name="utility:play" size="small" variant="inverse"></lightning-icon></span>
+                                <span class="empty-line one"></span>
+                                <span class="empty-line two"></span>
+                            </div>
+                            <div class="empty-copy">
+                                <h2>{emptyTitle}</h2>
+                                <p>{emptyMessage}</p>
+                            </div>
+                            <template lwc:if={showAdminEmptyAction}>
+                                <lightning-button variant="brand" icon-name="utility:add" label="Add your first tutorial" onclick={handleCreateFirstTutorial}></lightning-button>
+                            </template>
                         </div>
                     </template>
                 </template>

@@ -1,4 +1,4 @@
-import {LightningElement, wire, track} from "lwc";
+import {LightningElement, api, wire, track} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import LightningConfirm from "lightning/confirm";
 import {refreshApex} from "@salesforce/apex";
@@ -188,6 +188,12 @@ export default class TrainingAdminConsole extends LightningElement {
     handleNewVideo() {
         this.tutorialRecordId = null;
         this.showTutorialEditor = true;
+    }
+
+    @api
+    openNewTutorial() {
+        this.activeSection = "tutorials";
+        this.handleNewVideo();
     }
 
     handleVideoRowAction(event) {

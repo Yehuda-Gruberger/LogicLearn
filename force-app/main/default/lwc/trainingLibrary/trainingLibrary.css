@@ -434,6 +434,56 @@
     color: var(--mandatory);
 }
 
+.empty-library {
+    width: min(100%, 680px);
+    margin: 2rem auto;
+    padding: 2.5rem 2rem;
+    gap: 1rem;
+    background: linear-gradient(145deg, #f8fbfc, #eef6f7);
+    border: 1px solid #d7e6e9;
+    border-radius: 1rem;
+    box-shadow: 0 12px 32px rgba(17, 55, 70, 0.08);
+}
+
+.empty-art {
+    position: relative;
+    width: 8rem;
+    height: 5rem;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    border-radius: 0.75rem;
+    background: linear-gradient(145deg, #102f46, #08798a);
+    box-shadow: 0 10px 24px rgba(8, 82, 98, 0.2);
+}
+
+.empty-play {
+    position: relative;
+    z-index: 1;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    padding-left: 0.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.empty-line {
+    position: absolute;
+    width: 5rem;
+    height: 5rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+}
+
+.empty-line.one { left: -2.5rem; top: -2rem; }
+.empty-line.two { right: -2rem; bottom: -3rem; }
+.empty-copy { max-width: 34rem; }
+.empty-copy h2 { margin: 0; color: var(--ink); font-size: 1.15rem; letter-spacing: -0.015em; }
+.empty-copy p { margin: 0.4rem 0 0; color: var(--ink-faint); font-size: 0.82rem; line-height: 1.5; }
+
 /* ── Player modal ── */
 .modal-backdrop {
     position: fixed;
