@@ -44,7 +44,7 @@ export default class LogicLearnSettings extends LightningElement {
     get documentCompletionModeOptions() { return [{label: "Finish on last page", value: "Finish on last page"}, {label: "Automatically", value: "Automatic"}]; }
     get changeLabel() { return this.originalSettings === JSON.stringify(this.settings) ? "No changes" : "Unsaved changes"; }
     get templateModalKicker() { return this.editingTemplateId ? "Edit template" : "Create template"; }
-    get templateModalTitle() { return this.editingTemplateId ? this.templateForm.name : "New LogicLearn email template"; }
+    get templateModalTitle() { return this.editingTemplateId ? this.templateForm.name : "New email template"; }
     get templateSaveLabel() { return this.creatingTemplate ? "Saving…" : this.editingTemplateId ? "Save template" : "Create template"; }
     get templatePreviewSubject() { return this.previewTokens(this.templateForm.subject || "Your email subject"); }
     get templatePreviewBody() { return this.previewTokens(this.templateForm.htmlBody || "<p>Your email message will appear here.</p>"); }
@@ -128,7 +128,7 @@ export default class LogicLearnSettings extends LightningElement {
         try {
             const created = await saveEmailTemplate({templateId: this.editingTemplateId, name: this.templateForm.name, subject: this.templateForm.subject, htmlBody: this.templateForm.htmlBody});
             const originalName = this.templateOriginalName;
-            this.templates = [...this.templates.filter((item) => item.value !== originalName && item.value !== created.value), created].sort((left, right) => left.label.localeCompare(right.label));
+            this.templates = await getEmailTemplates();
             const updatedSettings = {...this.settings};
             if (originalName) TEMPLATE_FIELDS.forEach((field) => { if (updatedSettings[field] === originalName) updatedSettings[field] = created.value; });
             updatedSettings[this.templateTargetField] = created.value;
@@ -148,7 +148,7 @@ export default class LogicLearnSettings extends LightningElement {
         try {
             await saveSettings({input: this.settings});
             this.originalSettings = JSON.stringify(this.settings);
-            this.toast("Saved", "LogicLearn settings updated.", "success");
+            this.toast("Saved", "Global settings updated.", "success");
             this.dispatchEvent(new CustomEvent("close"));
         } catch (error) { this.toast("Could not save", this.message(error), "error"); }
         finally { this.saving = false; }

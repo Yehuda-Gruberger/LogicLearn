@@ -2,20 +2,20 @@ import {LightningElement, api} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import createTutorialDraft from "@salesforce/apex/LogicLearnAdminController.createTutorialDraft";
 import discardTutorialDraft from "@salesforce/apex/LogicLearnAdminController.discardTutorialDraft";
-import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
+import getFreshCatalog from "@salesforce/apex/LogicLearnAdminController.getFreshCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
-import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
-import getTutorialPages from "@salesforce/apex/LogicLearnAdminController.getTutorialPages";
+import getFreshTutorial from "@salesforce/apex/LogicLearnAdminController.getFreshTutorial";
+import getFreshTutorialPages from "@salesforce/apex/LogicLearnAdminController.getFreshTutorialPages";
 import getAudienceMembers from "@salesforce/apex/LogicLearnAdminController.getAudienceMembers";
 import getEmailTemplates from "@salesforce/apex/LogicLearnAdminController.getEmailTemplates";
-import saveTutorialWithTitle from "@salesforce/apex/LogicLearnAdminController.saveTutorialWithTitle";
-import saveTutorialPages from "@salesforce/apex/LogicLearnAdminController.saveTutorialPages";
+import saveTutorialJson from "@salesforce/apex/LogicLearnAdminController.saveTutorialJson";
+import saveTutorialPagesJson from "@salesforce/apex/LogicLearnAdminController.saveTutorialPagesJson";
 import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
 import sendInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendInAppNotification";
 import sendLifecycleNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleNotification";
 import sendLifecycleInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
-import saveGroup from "@salesforce/apex/LogicLearnAdminController.saveGroup";
+import saveGroupJson from "@salesforce/apex/LogicLearnAdminController.saveGroupJson";
 import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
 
 const EMPTY_FORM = {
@@ -54,7 +54,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     @api initialContentType = "Salesforce File";
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: [], categories: []};
-    settings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page", assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated."};
+    settings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page", assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated.", assignmentInAppMessage: "[VIDEO_NAME] has been assigned to you.", reminderInAppMessage: "Reminder: complete [VIDEO_NAME]."};
     emailTemplates = [];
     completionMode = "global";
     loading = true;
@@ -77,6 +77,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     activePageIndex = 0;
     showRecorder = false;
     recording = false;
+    recordingStopping = false;
     recordingReady = false;
     recordingSeconds = 0;
     recordingPreviewUrl;
@@ -89,7 +90,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     async connectedCallback() {
         try {
             const [catalog, settings, templates, id] = await Promise.all([
-                getCatalog(),
+                getFreshCatalog(),
                 getSettings(),
                 getEmailTemplates(),
                 this.recordId ? Promise.resolve(this.recordId) : createTutorialDraft()
@@ -99,11 +100,11 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.emailTemplates = templates || [];
             this.createdDraft = !this.recordId;
             this.recordId = id;
-            const tutorial = await getTutorial({videoId: id});
+            const tutorial = await getFreshTutorial({videoId: id});
             this.fileName = tutorial.fileName;
             this.form = this.normalize({...EMPTY_FORM, ...tutorial, videoId: id});
             if (this.createdDraft && this.initialContentType) this.form = {...this.form, contentType: this.initialContentType};
-            const savedPages = await getTutorialPages({videoId: id});
+            const savedPages = await getFreshTutorialPages({videoId: id});
             this.pages = savedPages?.length ? savedPages.map((page, index) => ({...page, clientKey: page.pageId || `page-${index + 1}`})) : [this.newPage(1)];
             this.originalStatus = tutorial.status || "Draft";
             this.resetLifecycleNoticeDefaults();
@@ -424,7 +425,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.creatingFolder = true;
         try {
             const folderId = await saveFolder({input: {name}});
-            this.catalog = await getCatalog();
+            this.catalog = await getFreshCatalog();
             this.form = {...this.form, folderId};
             this.toast("Folder created", `${name} is ready and selected.`, "success");
         } catch (error) {
@@ -486,14 +487,21 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         if (!name?.reportValidity()) return;
         this.groupSaving = true;
         try {
-            const groupId = await saveGroup({input: this.groupForm});
-            this.catalog = await getCatalog();
+            const groupId = await saveGroupJson({inputJson: JSON.stringify(this.groupForm)});
+            const createdGroup = {value: groupId, label: this.groupForm.name, meta: this.groupForm.description || "Group"};
+            this.catalog = {
+                ...this.catalog,
+                groups: [...(this.catalog.groups || []).filter((group) => group.value !== groupId), createdGroup]
+                    .sort((left, right) => left.label.localeCompare(right.label))
+            };
             if (this.groupTargetField) {
                 const selected = this.form[this.groupTargetField] || [];
-                this.form = {...this.form, [this.groupTargetField]: [...selected, groupId]};
+                this.form = {...this.form, [this.groupTargetField]: [...new Set([...selected, groupId])]};
             }
             this.showGroupCreator = false;
             this.toast("Group created", `${this.groupForm.name} is ready and selected.`, "success");
+            try { this.catalog = await getFreshCatalog(); }
+            catch (refreshError) { this.toast("Refresh needed", "The group was created and selected, but the audience list could not be refreshed.", "warning"); }
         } catch (error) {
             this.toast("Could not create group", this.message(error), "error");
         } finally {
@@ -541,9 +549,17 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
             this.mediaRecorder.ondataavailable = (event) => { if (event.data?.size) chunks.push(event.data); };
             this.mediaRecorder.onstop = () => this.finishRecording(chunks, mimeType || "video/webm");
+            this.mediaRecorder.onerror = () => {
+                this.recording = false;
+                this.recordingStopping = false;
+                this.recordingStream?.getTracks().forEach((track) => track.stop());
+                this.toast("Recording failed", "The browser could not finish this recording. Please try again.", "error");
+            };
             stream.getVideoTracks()[0].onended = () => this.stopRecording();
             this.showRecorder = true;
             this.recording = true;
+            this.recordingStopping = false;
+            this.recordingReady = false;
             this.recordingSeconds = 0;
             this.mediaRecorder.start(1000);
             this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
@@ -558,15 +574,24 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     stopRecording() {
-        if (this.mediaRecorder?.state === "recording") this.mediaRecorder.stop();
-        this.recordingStream?.getTracks().forEach((track) => track.stop());
+        if (this.mediaRecorder?.state !== "recording") return;
+        this.recordingStopping = true;
+        try { this.mediaRecorder.requestData(); } catch (error) { /* The final data event still fires on stop. */ }
+        this.mediaRecorder.stop();
         window.clearInterval(this.recordingTimer);
         this.recording = false;
     }
 
     finishRecording(chunks, mimeType) {
         window.clearInterval(this.recordingTimer);
+        this.recordingStream?.getTracks().forEach((track) => track.stop());
         this.recordedBlob = new Blob(chunks, {type: mimeType});
+        this.recordingStopping = false;
+        if (!this.recordedBlob.size) {
+            this.recordingReady = false;
+            this.toast("Recording unavailable", "No video was captured. Select Record again and retry.", "error");
+            return;
+        }
         if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
         this.recordingPreviewUrl = URL.createObjectURL(this.recordedBlob);
         this.recordingReady = true;
@@ -591,6 +616,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
         this.recordingPreviewUrl = undefined;
         this.recordedBlob = undefined;
+        this.recordingStopping = false;
         this.recordingReady = false;
         if (this.showRecorder) this.showRecorder = false;
     }
@@ -640,20 +666,28 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.saving = true;
         try {
             if (this.isDocument) {
-                await saveTutorialPages({videoId: this.recordId, pages: this.pages.map((page, index) => ({pageId: page.pageId, title: page.title, body: page.body, pageNumber: index + 1}))});
+                const pagePayload = this.pages.map((page, index) => ({pageId: page.pageId, title: page.title, body: page.body, pageNumber: index + 1}));
+                await saveTutorialPagesJson({videoId: this.recordId, pagesJson: JSON.stringify(pagePayload)});
             }
             const payload = {...this.form, videoId: this.recordId, fileName: null, title: currentTitle};
-            const videoId = await saveTutorialWithTitle({input: payload, title: currentTitle});
+            const videoId = await saveTutorialJson({inputJson: JSON.stringify(payload), title: currentTitle});
             const notices = [];
             const isLifecycleEvent = this.form.status === "Published";
             if (isLifecycleEvent && ["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleNotification({videoId, notificationType: this.lifecycleNotificationType, templateName: this.lifecycleEmailTemplate}));
             if (isLifecycleEvent && ["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleInAppNotification({videoId, notificationType: this.lifecycleNotificationType, messageTemplate: this.lifecycleInAppMessage}));
             if (["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendNotification({videoId, notificationType: "Assignment"}));
             if (["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: "Assignment"}));
-            const counts = notices.length ? await Promise.all(notices) : [];
+            let notificationFailed = false;
+            const counts = notices.length ? await Promise.all(notices.map((notice) => notice.catch(() => {
+                notificationFailed = true;
+                return 0;
+            }))) : [];
             const emailed = counts.reduce((sum, count) => sum + count, 0);
             this.createdDraft = false;
-            this.toast("Saved", emailed ? `Tutorial saved and ${emailed} email${emailed === 1 ? " was" : "s were"} sent.` : "Tutorial saved.", "success");
+            const saveMessage = notificationFailed
+                ? "Tutorial saved, but one or more notifications could not be sent."
+                : emailed ? `Tutorial saved and ${emailed} email${emailed === 1 ? " was" : "s were"} sent.` : "Tutorial saved.";
+            this.toast("Saved", saveMessage, notificationFailed ? "warning" : "success");
             this.dispatchEvent(new CustomEvent("saved", {detail: {videoId}}));
         } catch (error) {
             this.toast("Could not save", this.message(error), "error");

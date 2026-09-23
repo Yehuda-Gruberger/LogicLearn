@@ -9,6 +9,7 @@ public without sharing class LogicLearnAdminController {
         @AuraEnabled public String assignmentTemplateName; @AuraEnabled public String reminderTemplateName;
         @AuraEnabled public String firstPublishEmailTemplate; @AuraEnabled public String updateEmailTemplate;
         @AuraEnabled public String firstPublishInAppMessage; @AuraEnabled public String updateInAppMessage;
+        @AuraEnabled public String assignmentInAppMessage; @AuraEnabled public String reminderInAppMessage;
         @AuraEnabled public String documentPageRequirement; @AuraEnabled public String documentReadingOrder; @AuraEnabled public String documentCompletionMode;
     }
     public class TutorialInput {
@@ -46,6 +47,7 @@ public without sharing class LogicLearnAdminController {
                 Assignment_Template_Name__c='LogicLearn Assignment', Reminder_Template_Name__c='LogicLearn Reminder',
                 First_Publish_Email_Template__c='LogicLearn Assignment', Update_Email_Template__c='LogicLearn Assignment',
                 First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.', Update_In_App_Message__c='[VIDEO_NAME] has been updated.',
+                Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.', Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',
                 Document_Page_Requirement__c='Every page', Document_Reading_Order__c='In order', Document_Completion_Mode__c='Finish on last page');
         }
         if ([SELECT COUNT() FROM Training_Folder__c] == 0 && [SELECT COUNT() FROM Training_Video__c] == 0) {
@@ -134,6 +136,8 @@ public without sharing class LogicLearnAdminController {
         dto.updateEmailTemplate=String.isBlank(row.Update_Email_Template__c)?row.Assignment_Template_Name__c:row.Update_Email_Template__c;
         dto.firstPublishInAppMessage=String.isBlank(row.First_Publish_In_App_Message__c)?'[VIDEO_NAME] is now available.':row.First_Publish_In_App_Message__c;
         dto.updateInAppMessage=String.isBlank(row.Update_In_App_Message__c)?'[VIDEO_NAME] has been updated.':row.Update_In_App_Message__c;
+        dto.assignmentInAppMessage=String.isBlank(row.Assignment_In_App_Message__c)?'[VIDEO_NAME] has been assigned to you.':row.Assignment_In_App_Message__c;
+        dto.reminderInAppMessage=String.isBlank(row.Reminder_In_App_Message__c)?'Reminder: complete [VIDEO_NAME].':row.Reminder_In_App_Message__c;
         dto.documentPageRequirement=String.isBlank(row.Document_Page_Requirement__c)?'Every page':row.Document_Page_Requirement__c;
         dto.documentReadingOrder=String.isBlank(row.Document_Reading_Order__c)?'In order':row.Document_Reading_Order__c;
         dto.documentCompletionMode=String.isBlank(row.Document_Completion_Mode__c)?'Finish on last page':row.Document_Completion_Mode__c;
@@ -150,12 +154,13 @@ public without sharing class LogicLearnAdminController {
         row.Assignment_Template_Name__c=input.assignmentTemplateName; row.Reminder_Template_Name__c=input.reminderTemplateName;
         row.First_Publish_Email_Template__c=input.firstPublishEmailTemplate; row.Update_Email_Template__c=input.updateEmailTemplate;
         row.First_Publish_In_App_Message__c=input.firstPublishInAppMessage; row.Update_In_App_Message__c=input.updateInAppMessage;
+        row.Assignment_In_App_Message__c=input.assignmentInAppMessage; row.Reminder_In_App_Message__c=input.reminderInAppMessage;
         row.Document_Page_Requirement__c=input.documentPageRequirement; row.Document_Reading_Order__c=input.documentReadingOrder;
         row.Document_Completion_Mode__c=input.documentCompletionMode;
         upsert row;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<Option> getEmailTemplates() {
         LogicLearnAudienceService.requireAdmin();
         List<Option> result = new List<Option>();
@@ -168,7 +173,7 @@ public without sharing class LogicLearnAdminController {
         return result;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static EmailTemplateDto getEmailTemplate(String templateName) {
         LogicLearnAudienceService.requireAdmin();
         if (String.isBlank(templateName)) throw new AuraHandledException('Choose an email template to edit.');
@@ -237,12 +242,21 @@ public without sharing class LogicLearnAdminController {
     }
 
     public static LogicLearn_Settings__c settingsRow() {
-        List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c,Document_Page_Requirement__c,Document_Reading_Order__c,Document_Completion_Mode__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
-        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
+        List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c,Assignment_In_App_Message__c,Reminder_In_App_Message__c,Document_Page_Requirement__c,Document_Reading_Order__c,Document_Completion_Mode__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
+        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.',Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
     }
 
     @AuraEnabled(cacheable=true)
     public static Catalog getCatalog() {
+        return buildCatalog();
+    }
+
+    @AuraEnabled
+    public static Catalog getFreshCatalog() {
+        return buildCatalog();
+    }
+
+    private static Catalog buildCatalog() {
         LogicLearnAudienceService.requireAdmin(); Catalog c=new Catalog(); c.users=new List<Option>(); c.profiles=new List<Option>(); c.groups=new List<Option>(); c.folders=new List<Option>(); c.categories=new List<Option>();
         for(User u:[SELECT Id,Name,Profile.Name FROM User WHERE IsActive=TRUE ORDER BY Name LIMIT 2000]) c.users.add(opt(u.Id,u.Name,u.Profile.Name));
         for(Profile p:[SELECT Id,Name FROM Profile ORDER BY Name]) c.profiles.add(opt(p.Id,p.Name,'Profile'));
@@ -298,6 +312,15 @@ public without sharing class LogicLearnAdminController {
 
     @AuraEnabled(cacheable=true)
     public static TutorialInput getTutorial(Id videoId) {
+        return buildTutorial(videoId);
+    }
+
+    @AuraEnabled
+    public static TutorialInput getFreshTutorial(Id videoId) {
+        return buildTutorial(videoId);
+    }
+
+    private static TutorialInput buildTutorial(Id videoId) {
         LogicLearnAudienceService.requireAdmin();
         if (videoId == null) throw new AuraHandledException('A tutorial is required.');
         Training_Video__c video = [
@@ -356,6 +379,15 @@ public without sharing class LogicLearnAdminController {
 
     @AuraEnabled(cacheable=true)
     public static List<TutorialPageInput> getTutorialPages(Id videoId) {
+        return buildTutorialPages(videoId);
+    }
+
+    @AuraEnabled
+    public static List<TutorialPageInput> getFreshTutorialPages(Id videoId) {
+        return buildTutorialPages(videoId);
+    }
+
+    private static List<TutorialPageInput> buildTutorialPages(Id videoId) {
         LogicLearnAudienceService.requireAdmin();
         List<TutorialPageInput> result = new List<TutorialPageInput>();
         if (videoId == null) return result;
@@ -389,6 +421,18 @@ public without sharing class LogicLearnAdminController {
             position++;
         }
         if (!rows.isEmpty()) insert rows;
+    }
+
+    @AuraEnabled
+    public static void saveTutorialPagesJson(Id videoId, String pagesJson) {
+        try {
+            List<TutorialPageInput> pages = String.isBlank(pagesJson)
+                ? new List<TutorialPageInput>()
+                : (List<TutorialPageInput>)JSON.deserialize(pagesJson, List<TutorialPageInput>.class);
+            saveTutorialPages(videoId, pages);
+        } catch (Exception error) {
+            throw new AuraHandledException('Could not save tutorial pages: ' + error.getMessage());
+        }
     }
 
     @AuraEnabled
@@ -449,6 +493,18 @@ public without sharing class LogicLearnAdminController {
         input.title = title;
         return saveTutorial(input);
     }
+
+    @AuraEnabled
+    public static Id saveTutorialJson(String inputJson, String title) {
+        try {
+            TutorialInput input = String.isBlank(inputJson)
+                ? new TutorialInput()
+                : (TutorialInput)JSON.deserialize(inputJson, TutorialInput.class);
+            return saveTutorialWithTitle(input, title);
+        } catch (Exception error) {
+            throw new AuraHandledException('Could not save tutorial: ' + error.getMessage());
+        }
+    }
     private static Integer size(List<String> values){return values==null?0:values.size();}
     private static void addRules(List<Training_Audience__c> out,Id videoId,String purpose,String type,List<String> ids){
         if(ids==null)return;for(String raw:ids){if(String.isBlank(raw))continue;Training_Audience__c r=new Training_Audience__c(Training_Video__c=videoId,Purpose__c=purpose,Audience_Type__c=type);
@@ -494,6 +550,17 @@ public without sharing class LogicLearnAdminController {
         if (createsGroupCycle(g.Id, input.groups)) throw new AuraHandledException('That nested group would create a circular group relationship.');
         delete [SELECT Id FROM Training_Group_Member__c WHERE Group__c=:g.Id];List<Training_Group_Member__c> members=new List<Training_Group_Member__c>();
         addMembers(members,g.Id,'User',input.users);addMembers(members,g.Id,'Profile',input.profiles);addMembers(members,g.Id,'LogicLearn Group',input.groups);if(!members.isEmpty())insert members;return g.Id;}
+    @AuraEnabled
+    public static Id saveGroupJson(String inputJson) {
+        try {
+            GroupInput input = String.isBlank(inputJson)
+                ? new GroupInput()
+                : (GroupInput)JSON.deserialize(inputJson, GroupInput.class);
+            return saveGroup(input);
+        } catch (Exception error) {
+            throw new AuraHandledException('Could not save group: ' + error.getMessage());
+        }
+    }
     private static void addMembers(List<Training_Group_Member__c> out,Id groupId,String type,List<String> ids){if(ids==null)return;for(String raw:ids){if(String.isBlank(raw))continue;Training_Group_Member__c m=new Training_Group_Member__c(Group__c=groupId,Member_Type__c=type);if(type=='User')m.User__c=(Id)raw;else if(type=='Profile')m.Profile_Id__c=raw;else m.Nested_Group__c=(Id)raw;out.add(m);}}
     private static Boolean createsGroupCycle(Id rootId, List<String> selectedGroups) {
         if (selectedGroups == null || selectedGroups.isEmpty()) return false;
@@ -628,7 +695,9 @@ public without sharing class LogicLearnAdminController {
         LogicLearn_Settings__c settings = settingsRow();
         String configuredMessage = String.isNotBlank(messageTemplate) ? messageTemplate :
             notificationType == 'Update' ? settings.Update_In_App_Message__c :
-            notificationType == 'First Publish' || notificationType == 'New Video' ? settings.First_Publish_In_App_Message__c : null;
+            notificationType == 'First Publish' || notificationType == 'New Video' ? settings.First_Publish_In_App_Message__c :
+            notificationType == 'Assignment' ? settings.Assignment_In_App_Message__c :
+            notificationType == 'Reminder' ? settings.Reminder_In_App_Message__c : null;
         String body = String.isNotBlank(configuredMessage) ? configuredMessage.replace('[VIDEO_NAME]', video.Name) :
             notificationType == 'Reminder' ? 'Reminder: complete ' + video.Name :
             notificationType == 'Assignment' ? video.Name + ' has been assigned to you' : video.Name + ' is now available';

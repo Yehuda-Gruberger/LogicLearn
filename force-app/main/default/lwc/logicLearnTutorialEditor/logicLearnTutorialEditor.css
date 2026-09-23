@@ -361,7 +361,8 @@
 .upload-control {
   flex: 0 0 auto;
 }
-.upload-actions { display: flex; align-items: flex-end; gap: 0.5rem; }
+.upload-actions { display: flex; align-items: center; gap: 0.6rem; }
+.upload-control { display: flex; align-items: center; }
 .native-uploader {
   display: block;
   --slds-c-button-radius-border: 999px;
@@ -378,7 +379,7 @@
   --slds-c-button-neutral-text-color: #fff;
   --slds-c-button-neutral-text-color-hover: #fff;
 }
-.record-screen { min-height: 2rem; display: inline-flex; align-items: center; gap: 0.38rem; padding: 0.4rem 0.8rem; border: 1px solid #8d9baa; border-radius: 999px; background: #fff; color: #17354b; font: inherit; font-size: 0.68rem; font-weight: 700; cursor: pointer; }
+.record-screen { min-height: 2.25rem; display: inline-flex; align-items: center; justify-content:center; gap: 0.38rem; padding: 0.4rem 0.9rem; border: 1px solid #8d9baa; border-radius: 999px; background: #fff; color: #17354b; font: inherit; font-size: 0.68rem; font-weight: 700; line-height:1; cursor: pointer; }
 .record-screen > span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5d6670; }
 .recorder-backdrop { position: absolute; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgba(8,26,38,.58); backdrop-filter: blur(2px); }
 .recorder-modal { width: min(760px,100%); overflow: hidden; border-radius: .8rem; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
@@ -391,6 +392,7 @@
 .recording-status span { margin-left:auto;color:#526b7d;font-variant-numeric:tabular-nums; }
 .recording-ready { margin-top:.7rem;padding:.75rem;border-radius:.5rem;background:#e3f2f4;color:#24495d; }
 .recording-ready p { margin:.25rem 0 .65rem;font-size:.68rem;line-height:1.45; }
+.recording-processing,.recording-empty{min-height:8rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;color:#496276;text-align:center}.recording-processing{position:relative}.recording-processing lightning-spinner{position:relative;width:2.5rem;height:2.5rem}.recording-empty p{margin:0;font-size:.68rem}
 .download-recording { display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .75rem;border:0;border-radius:999px;background:#0b8798;color:#fff;font:inherit;font-size:.67rem;font-weight:750;cursor:pointer; }
 .recorder-modal>footer { display:flex;justify-content:flex-end;gap:.5rem;padding:.75rem 1rem;border-top:1px solid #dce5ea;background:#fff; }
 .app-button.danger { border-color:#d0a3a0;color:#a52a20; }

@@ -27,6 +27,7 @@
 .reading-default-grid{padding:.1rem}
 .lifecycle-grid article,.template-grid>div{border:1px solid #d8e3e9;border-radius:.58rem;background:#fbfcfd}
 .template-grid>div{padding:.72rem}
+.template-grid lightning-textarea{margin-top:.6rem;--slds-c-textarea-sizing-min-height:3.6rem}
 .notification-subheading{margin:.1rem 0 .62rem}
 .notification-subheading strong{color:#263b4d;font-size:.74rem}
 .notification-subheading p{margin:.15rem 0 0;color:#687e90;font-size:.64rem;line-height:1.4}

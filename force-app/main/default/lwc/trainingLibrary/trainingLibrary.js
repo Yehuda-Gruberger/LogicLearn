@@ -36,6 +36,7 @@ export default class TrainingLibrary extends LightningElement {
   folders = [];
   error;
   _wired;
+  _wiredFolders;
   _resizeHandler;
 
   connectedCallback() {
@@ -137,12 +138,18 @@ export default class TrainingLibrary extends LightningElement {
       : "admin-nav-item";
   }
 
-  showLibraryMode() {
+  async showLibraryMode() {
     this.mode = "library";
+    await Promise.all([
+      this._wired ? refreshApex(this._wired) : Promise.resolve(),
+      this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
+    ]);
   }
 
-  showAdminMode() {
+  async showAdminMode() {
     this.mode = "admin";
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await this.template.querySelector("c-training-admin-console")?.refreshData();
   }
 
   handleAdminSection(event) {
@@ -161,9 +168,10 @@ export default class TrainingLibrary extends LightningElement {
   }
 
   @wire(getFolders)
-  wiredFolders({ data }) {
-    if (data) {
-      this.folders = data;
+  wiredFolders(result) {
+    this._wiredFolders = result;
+    if (result.data) {
+      this.folders = result.data;
     }
   }
 
@@ -596,7 +604,10 @@ export default class TrainingLibrary extends LightningElement {
   }
 
   handleRefresh() {
-    return refreshApex(this._wired);
+    return Promise.all([
+      this._wired ? refreshApex(this._wired) : Promise.resolve(),
+      this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
+    ]);
   }
 
   handleLibraryFilter(event) {

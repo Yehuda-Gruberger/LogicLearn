@@ -8,7 +8,7 @@ import getAdminVideos from "@salesforce/apex/TrainingVideoController.getAdminVid
 import initializeLogicLearn from "@salesforce/apex/LogicLearnAdminController.initializeLogicLearn";
 import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
 import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
-import getTutorial from "@salesforce/apex/LogicLearnAdminController.getTutorial";
+import getFreshTutorial from "@salesforce/apex/LogicLearnAdminController.getFreshTutorial";
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
 import getEngagementDetails from "@salesforce/apex/LogicLearnAdminController.getEngagementDetails";
@@ -42,6 +42,8 @@ export default class TrainingAdminConsole extends LightningElement {
     @track videos = [];
     _wiredFolders;
     _wiredVideos;
+    _wiredCatalog;
+    _wiredSettings;
 
     @track showFolderForm = false;
     @track showTutorialEditor = false;
@@ -134,9 +136,10 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     @wire(getCatalog)
-    wiredCatalog({data}) {
-        if (!data) return;
-        this.catalog = data;
+    wiredCatalog(result) {
+        this._wiredCatalog = result;
+        if (!result.data) return;
+        this.catalog = result.data;
         if (this.selectedTutorial) {
             this.selectedTutorial = {
                 ...this.selectedTutorial,
@@ -148,10 +151,23 @@ export default class TrainingAdminConsole extends LightningElement {
     }
 
     @wire(getSettings)
-    wiredSettings({data}) {
-        if (!data) return;
-        this.globalSettings = data;
+    wiredSettings(result) {
+        this._wiredSettings = result;
+        if (!result.data) return;
+        this.globalSettings = result.data;
         if (this.selectedTutorial) this.applyResolvedSettingLabels();
+    }
+
+    @api
+    async refreshData() {
+        const selectedVideoId = this.selectedVideoId;
+        await Promise.all([
+            this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
+            this._wiredVideos ? refreshApex(this._wiredVideos) : Promise.resolve(),
+            this._wiredCatalog ? refreshApex(this._wiredCatalog) : Promise.resolve(),
+            this._wiredSettings ? refreshApex(this._wiredSettings) : Promise.resolve()
+        ]);
+        if (selectedVideoId) await this.selectTutorial(selectedVideoId);
     }
 
     // Hierarchical, indented folder list.
@@ -381,7 +397,7 @@ export default class TrainingAdminConsole extends LightningElement {
         this.activitySummary = this.buildActivitySummary({totalOpens: 0, started: 0, completed: 0, averageWatch: 0});
         this.detailLoading = true;
         try {
-            const detail = await getTutorial({videoId});
+            const detail = await getFreshTutorial({videoId});
             if (this.selectedVideoId !== videoId) return;
             const row = this.videos.find((video) => video.id === videoId) || {};
             this.selectedTutorial = {

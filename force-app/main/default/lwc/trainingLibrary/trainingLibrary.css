@@ -202,10 +202,27 @@
   margin-bottom: 0.1rem;
 }
 .rail .rail-ico {
-  --slds-c-icon-color-foreground-default: #9db9c4;
+  position: relative;
+  width: 1rem;
+  height: 0.72rem;
+  display: block;
+  border: 1.5px solid #9db9c4;
+  border-radius: 0.14rem;
 }
-.rail-item.active .rail-ico {
-  --slds-c-icon-color-foreground-default: #dff8fb;
+.rail .rail-ico::before {
+  content: "";
+  position: absolute;
+  left: 0.08rem;
+  top: -0.32rem;
+  width: 0.48rem;
+  height: 0.3rem;
+  border: 1.5px solid #9db9c4;
+  border-bottom: 0;
+  border-radius: 0.14rem 0.14rem 0 0;
+}
+.rail-item.active .rail-ico,
+.rail-item.active .rail-ico::before {
+  border-color: #dff8fb;
 }
 
 .rail-item:hover {
@@ -224,9 +241,8 @@
   font-weight: 500;
 }
 
-.rail-item.child .rail-ico {
-  --slds-c-icon-color-foreground-default: var(--ink-faint);
-}
+.rail-item.child .rail-ico,
+.rail-item.child .rail-ico::before { border-color: var(--ink-faint); }
 
 .rail-name {
   font-weight: 550;
@@ -857,9 +873,8 @@
   font-size: 0.58rem;
   font-weight: 700;
 }
-.rail .rail-item.child .rail-ico {
-  --slds-c-icon-color-foreground-default: #9db9c4;
-}
+.rail .rail-item.child .rail-ico,
+.rail .rail-item.child .rail-ico::before { border-color: #9db9c4; }
 .rail-sep {
   border-color: rgba(255, 255, 255, 0.12);
 }

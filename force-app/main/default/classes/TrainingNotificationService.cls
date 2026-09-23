@@ -8,6 +8,9 @@
  * the video passed as whatId. If the template is missing or the send fails, nothing is stamped.
  */
 public with sharing class TrainingNotificationService {
+    // Temporary QA routing: keep test notifications for this learner out of their real inbox.
+    @TestVisible private static final String QA_REDIRECT_USER = 'Shalom Eisenbach';
+    @TestVisible private static final String QA_REDIRECT_EMAIL = 'dev@logicfold.com';
     // The email template's NAME (not API name), from a Custom Label so admins can point it at
     // whatever template they built — Lightning builder auto-generates an unhelpful API name.
     @TestVisible
@@ -64,7 +67,8 @@ public with sharing class TrainingNotificationService {
                 // [VIDEO_LINK] deep-links straight to this video in the library.
                 String videoLink = libraryUrl + '?c__videoId=' + v.Training_Video__c;
                 applyTokens(msg, v.Training_Video__r.Name, v.User__r.Name, libraryUrl, videoLink);
-                msg.setToAddresses(new List<String>{v.User__r.Email});
+                msg.setTreatTargetObjectAsRecipient(false);
+                msg.setToAddresses(new List<String>{recipientEmail(v.User__r.Name, v.User__r.Email)});
                 msg.setSaveAsActivity(false);
                 msgs.add(msg);
                 stamped.add(new Training_View__c(Id = v.Id, Notified_At__c = System.now()));
@@ -144,7 +148,8 @@ public with sharing class TrainingNotificationService {
             try {
                 Messaging.SingleEmailMessage message = Messaging.renderStoredEmailTemplate(templates[0].Id, user.Id, video.Id);
                 applyTokens(message, video.Name, user.Name, libraryUrl, videoLink);
-                message.setToAddresses(new List<String>{user.Email});
+                message.setTreatTargetObjectAsRecipient(false);
+                message.setToAddresses(new List<String>{recipientEmail(user.Name, user.Email)});
                 message.setSaveAsActivity(false);
                 messages.add(message);
                 messageUsers.add(user);
@@ -180,7 +185,9 @@ public with sharing class TrainingNotificationService {
                 ));
             }
         }
-        if (!logs.isEmpty()) insert logs;
+        // A reporting-log problem must never turn a successfully saved tutorial or sent email
+        // into a false failure in the editor.
+        if (!logs.isEmpty()) Database.insert(logs, false);
         return sent;
     }
 
@@ -215,6 +222,11 @@ public with sharing class TrainingNotificationService {
             text = text.replace(key, tokens.get(key));
         }
         return text;
+    }
+
+    @TestVisible
+    private static String recipientEmail(String userName, String originalEmail) {
+        return QA_REDIRECT_USER.equalsIgnoreCase(userName) ? QA_REDIRECT_EMAIL : originalEmail;
     }
 
     /** Absolute URL to the Training Library tab, correct for the current org/sandbox. */

@@ -19,11 +19,13 @@
     <objectPermissions><object>Training_Video__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <objectPermissions><object>Training_View__c</object><allowRead>true</allowRead><allowCreate>true</allowCreate><allowEdit>true</allowEdit><allowDelete>true</allowDelete><viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords></objectPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Assignment_Template_Name__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.Assignment_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Completion_Threshold__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.First_Publish_Email_Template__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.First_Publish_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Prevent_Skipping__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Reminder_Template_Name__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>LogicLearn_Settings__c.Reminder_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Update_Email_Template__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>LogicLearn_Settings__c.Update_In_App_Message__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Training_Audience__c.LogicLearn_Group__c</field><readable>true</readable><editable>true</editable></fieldPermissions>

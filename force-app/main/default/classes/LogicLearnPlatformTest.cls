@@ -61,7 +61,7 @@ private class LogicLearnPlatformTest {
         String userId=String.valueOf(UserInfo.getUserId());
         input.visibilityUsers=new List<String>{userId}; input.requiredUsers=new List<String>{userId}; input.notificationUsers=new List<String>{userId};
         input.title=null;
-        Test.startTest(); Id videoId=LogicLearnAdminController.saveTutorialWithTitle(input, 'Saved tutorial'); Test.stopTest();
+        Test.startTest(); Id videoId=LogicLearnAdminController.saveTutorialJson(JSON.serialize(input), 'Saved tutorial'); Test.stopTest();
         System.assertEquals('Saved tutorial', [SELECT Name FROM Training_Video__c WHERE Id=:videoId].Name);
         Training_Video__c savedVideo=[SELECT Status__c,Publish_Notification_Channel__c,Assignment_Notification_Channel__c FROM Training_Video__c WHERE Id=:videoId];
         System.assertEquals('Published',savedVideo.Status__c);
@@ -146,9 +146,14 @@ private class LogicLearnPlatformTest {
         settings.assignmentTemplateName = 'Custom Assignment'; settings.reminderTemplateName = 'Custom Reminder';
         settings.firstPublishEmailTemplate = 'Custom Publish'; settings.updateEmailTemplate = 'Custom Update';
         settings.firstPublishInAppMessage = '[VIDEO_NAME] is ready.'; settings.updateInAppMessage = '[VIDEO_NAME] changed.';
+        settings.assignmentInAppMessage = 'Assigned: [VIDEO_NAME]'; settings.reminderInAppMessage = 'Reminder: [VIDEO_NAME]';
         LogicLearnAdminController.saveSettings(settings);
         System.assertEquals(85, LogicLearnAdminController.getSettings().completionThreshold);
         System.assertEquals('Custom Update', LogicLearnAdminController.getSettings().updateEmailTemplate);
+        System.assertEquals('Assigned: [VIDEO_NAME]', LogicLearnAdminController.getSettings().assignmentInAppMessage);
+        System.assertEquals('Reminder: [VIDEO_NAME]', LogicLearnAdminController.getSettings().reminderInAppMessage);
+        System.assertEquals('dev@logicfold.com', TrainingNotificationService.recipientEmail('Shalom Eisenbach', 'shalome@logicfold.com'));
+        System.assertEquals('other@example.com', TrainingNotificationService.recipientEmail('Other Learner', 'other@example.com'));
 
         LogicLearnAdminController.FolderInput folder = new LogicLearnAdminController.FolderInput();
         folder.name='Advanced'; folder.sortOrder=90; folder.description='Advanced material';
@@ -163,7 +168,7 @@ private class LogicLearnPlatformTest {
         groupInput.name='Dynamic team'; groupInput.description='Live membership';
         groupInput.users=new List<String>{String.valueOf(UserInfo.getUserId())};
         groupInput.profiles=new List<String>{String.valueOf(UserInfo.getProfileId())}; groupInput.groups=new List<String>();
-        Id groupId=LogicLearnAdminController.saveGroup(groupInput);
+        Id groupId=LogicLearnAdminController.saveGroupJson(JSON.serialize(groupInput));
         System.assertEquals(2,LogicLearnAdminController.getGroup(groupId).users.size()+LogicLearnAdminController.getGroup(groupId).profiles.size());
         System.assertEquals(1,LogicLearnAdminController.getGroups().size());
 
