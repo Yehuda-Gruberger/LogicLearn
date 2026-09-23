@@ -301,9 +301,9 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     get publishChannelOptions() { return this.channelChoices("publishNotificationChannel"); }
     get assignmentChannelOptions() { return this.channelChoices("assignmentNotificationChannel"); }
-    get lifecycleNotificationType() { return this.originalStatus === "Published" ? "Update" : "First Publish"; }
+    get lifecycleNotificationType() { return this.createdDraft ? "First Publish" : "Update"; }
     get isUpdateNotification() { return this.lifecycleNotificationType === "Update"; }
-    get publicationNoticeLabel() { return this.isUpdateNotification ? "Notify viewers about update" : "Notify when first published"; }
+    get publicationNoticeLabel() { return this.isUpdateNotification ? "Notify when updated" : "Notify when first published"; }
     get lifecycleNoticeTitle() { return this.isUpdateNotification ? "Tutorial updated" : "First publish"; }
     get lifecycleEmailDefault() { return this.isUpdateNotification ? this.settings.updateEmailTemplate : this.settings.firstPublishEmailTemplate; }
     get lifecycleMessageDefault() { return this.isUpdateNotification ? this.settings.updateInAppMessage : this.settings.firstPublishInAppMessage; }

@@ -99,8 +99,9 @@
   align-items: start;
 }
 .setup-grid.document-layout {
-  grid-template-columns: minmax(0, 1fr) 22rem;
+  grid-template-columns: minmax(0, 1fr) 25rem;
   grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.65rem;
   align-items: stretch;
   overflow: hidden;
 }
@@ -119,7 +120,7 @@
   grid-column: 2;
   grid-row: 3;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
 }
 .document-layout .video-card > .panel-head { min-height: 2.75rem; }
 .document-layout .video-card > .video-body {
@@ -129,7 +130,45 @@
   padding: 0;
 }
 .document-layout .document-builder { min-height: 0; flex: 1; }
-.publishing-grid.document-publishing { grid-template-columns: minmax(12rem, 0.55fr); }
+.document-layout .details-card > .panel-head,
+.document-layout .publishing-card > .panel-head,
+.document-layout .audience-card > .panel-head {
+  min-height: 2.5rem;
+  padding-block: 0.45rem;
+}
+.document-layout .details-body {
+  gap: 0.25rem;
+  padding: 0.48rem 0.7rem 0.58rem;
+}
+.document-layout .details-body lightning-textarea {
+  --slds-c-textarea-sizing-min-height: 2.35rem;
+}
+.document-layout .publishing-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9.75rem;
+  grid-template-rows: auto auto;
+  column-gap: 0.65rem;
+  padding: 0.48rem 0.7rem 0.58rem;
+}
+.document-layout .publishing-body > .field-label {
+  grid-column: 1;
+  grid-row: 1;
+}
+.document-layout .publishing-body > .status-selector {
+  grid-column: 1;
+  grid-row: 2;
+}
+.document-layout .publishing-body > .publishing-grid {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  margin-top: 0;
+}
+.document-layout .audience-section {
+  padding: 0.58rem 0.7rem;
+}
+.document-layout .channel-setting { margin-top: 0.42rem; }
+.document-layout .channel-option { padding-block: 0.28rem; }
+.publishing-grid.document-publishing { grid-template-columns: minmax(0, 1fr); }
 .editor-column {
   min-width: 0;
   min-height: 0;

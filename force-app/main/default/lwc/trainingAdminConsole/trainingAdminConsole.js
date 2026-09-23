@@ -193,6 +193,7 @@ export default class TrainingAdminConsole extends LightningElement {
         };
         return this.videos.map((video) => ({
             ...video,
+            isDocument: video.contentType === "Document",
             assignedCount: video.assignedCount || 0,
             completedCount: video.completedCount || 0,
             meta: [video.folderName, video.category].filter(Boolean).join(" / ") || "Uncategorized",

@@ -270,6 +270,25 @@
   padding-left: 0.08rem;
   pointer-events: none;
 }
+.admin-doc-page {
+  width: 1.45rem;
+  height: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.13rem;
+  padding: 0.42rem 0.27rem 0;
+  border-radius: 0.1rem;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.28);
+}
+.admin-doc-page i {
+  height: 1px;
+  display: block;
+  border-radius: 1px;
+  background: #cbdbe3;
+}
+.admin-doc-page i:nth-child(2) { width: 78%; }
+.admin-doc-page i:nth-child(3) { width: 90%; }
 .browser-copy {
   min-width: 0;
   display: flex;
