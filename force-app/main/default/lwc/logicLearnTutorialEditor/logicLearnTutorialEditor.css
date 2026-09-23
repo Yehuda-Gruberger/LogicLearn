@@ -145,18 +145,22 @@
   box-shadow: 0 2px 7px rgba(20, 43, 61, 0.04);
 }
 .panel-card.section-highlight {
-  animation: sectionFocus 1.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: sectionFocus 3.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes sectionFocus {
   0% {
     border-color: var(--line);
     box-shadow: 0 2px 7px rgba(20, 43, 61, 0.04);
   }
-  32% {
+  14% {
     border-color: #23a8b8;
     box-shadow: 0 0 0 3px rgba(35, 168, 184, 0.18), 0 7px 18px rgba(14, 104, 119, 0.12);
   }
-  65% {
+  58% {
+    border-color: #23a8b8;
+    box-shadow: 0 0 0 3px rgba(35, 168, 184, 0.16), 0 7px 18px rgba(14, 104, 119, 0.11);
+  }
+  82% {
     border-color: #72c7d0;
     box-shadow: 0 0 0 2px rgba(35, 168, 184, 0.1), 0 4px 12px rgba(14, 104, 119, 0.08);
   }
