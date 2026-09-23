@@ -1,5 +1,6 @@
 /** Administrative API for setup, groups, the tutorial wizard, settings, and tracking. */
 public without sharing class LogicLearnAdminController {
+    private static final String EMAIL_TEMPLATE_FOLDER_DEVELOPER_NAME = 'LogicLearn_Email_Templates';
     public class Option { @AuraEnabled public String value; @AuraEnabled public String label; @AuraEnabled public String meta; @AuraEnabled public String id; }
     public class EmailTemplateDto { @AuraEnabled public Id templateId; @AuraEnabled public String name; @AuraEnabled public String subject; @AuraEnabled public String htmlBody; }
     public class Catalog { @AuraEnabled public List<Option> users; @AuraEnabled public List<Option> profiles; @AuraEnabled public List<Option> groups; @AuraEnabled public List<Option> folders; @AuraEnabled public List<Option> categories; }
@@ -39,6 +40,7 @@ public without sharing class LogicLearnAdminController {
     @AuraEnabled
     public static void initializeLogicLearn() {
         LogicLearnAudienceService.requireAdmin();
+        Id emailTemplateFolderId = findEmailTemplateFolder();
         if ([SELECT COUNT() FROM LogicLearn_Settings__c] == 0) {
             insert new LogicLearn_Settings__c(Name='Global', Completion_Threshold__c=90, Prevent_Skipping__c=true,
                 Assignment_Template_Name__c='LogicLearn Assignment', Reminder_Template_Name__c='LogicLearn Reminder',
@@ -59,6 +61,60 @@ public without sharing class LogicLearnAdminController {
                 sample('Security Awareness', folders[2].Id, 'Compliance', 30), sample('Product Overview', folders[3].Id, 'Products', 40)
             };
         }
+        ensureDefaultEmailTemplates(emailTemplateFolderId);
+        moveConfiguredEmailTemplates(emailTemplateFolderId);
+    }
+
+    private static Id findEmailTemplateFolder() {
+        List<Folder> folders = [
+            SELECT Id FROM Folder
+            WHERE Type = 'Email' AND DeveloperName = :EMAIL_TEMPLATE_FOLDER_DEVELOPER_NAME
+            LIMIT 1
+        ];
+        return folders.isEmpty() ? null : folders[0].Id;
+    }
+
+    private static void ensureDefaultEmailTemplates(Id folderId) {
+        if (folderId == null) return;
+        Set<String> existing = new Set<String>();
+        for (EmailTemplate templateRow : [
+            SELECT DeveloperName FROM EmailTemplate
+            WHERE FolderId = :folderId AND DeveloperName IN ('LogicLearn_Assignment', 'LogicLearn_Reminder')
+        ]) existing.add(templateRow.DeveloperName);
+        List<EmailTemplate> templates = new List<EmailTemplate>();
+        if (!existing.contains('LogicLearn_Assignment')) templates.add(new EmailTemplate(
+            Name = 'LogicLearn Assignment', DeveloperName = 'LogicLearn_Assignment', FolderId = folderId,
+            TemplateType = 'custom', Subject = 'You have been assigned [VIDEO_NAME]',
+            HtmlValue = '<p>Hi <strong>[USER_NAME]</strong>,</p><p>You have been assigned <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Start the tutorial</a></p><p>View all assignments in your <a href="[LIBRARY_LINK]">training library</a>.</p>',
+            Body = 'Hi [USER_NAME],\n\nYou have been assigned [VIDEO_NAME].\n\nStart the tutorial: [VIDEO_LINK]\n\nTraining library: [LIBRARY_LINK]',
+            IsActive = true, Encoding = 'UTF-8'
+        ));
+        if (!existing.contains('LogicLearn_Reminder')) templates.add(new EmailTemplate(
+            Name = 'LogicLearn Reminder', DeveloperName = 'LogicLearn_Reminder', FolderId = folderId,
+            TemplateType = 'custom', Subject = 'Reminder: complete [VIDEO_NAME]',
+            HtmlValue = '<p>Hi <strong>[USER_NAME]</strong>,</p><p>This is a reminder to complete <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Continue tutorial</a></p><p>Visit your <a href="[LIBRARY_LINK]">LogicLearn library</a> to see all assigned tutorials.</p>',
+            Body = 'Hi [USER_NAME],\n\nThis is a reminder to complete [VIDEO_NAME].\n\nContinue tutorial: [VIDEO_LINK]\n\nLogicLearn library: [LIBRARY_LINK]',
+            IsActive = true, Encoding = 'UTF-8'
+        ));
+        if (!templates.isEmpty()) insert templates;
+    }
+
+    private static void moveConfiguredEmailTemplates(Id folderId) {
+        if (folderId == null) return;
+        LogicLearn_Settings__c settings = settingsRow();
+        Set<String> configuredNames = new Set<String>{
+            settings.Assignment_Template_Name__c, settings.Reminder_Template_Name__c,
+            settings.First_Publish_Email_Template__c, settings.Update_Email_Template__c
+        };
+        configuredNames.remove(null);
+        configuredNames.remove('');
+        if (configuredNames.isEmpty()) return;
+        List<EmailTemplate> templatesToMove = [
+            SELECT Id, FolderId FROM EmailTemplate
+            WHERE (Name IN :configuredNames OR DeveloperName IN :configuredNames) AND FolderId != :folderId
+        ];
+        for (EmailTemplate templateRow : templatesToMove) templateRow.FolderId = folderId;
+        if (!templatesToMove.isEmpty()) Database.update(templatesToMove, false);
     }
 
     private static Training_Video__c sample(String title, Id folderId, String category, Decimal orderValue) {
@@ -103,7 +159,9 @@ public without sharing class LogicLearnAdminController {
     public static List<Option> getEmailTemplates() {
         LogicLearnAudienceService.requireAdmin();
         List<Option> result = new List<Option>();
-        for (EmailTemplate templateRow : [SELECT Id, Name, Subject FROM EmailTemplate WHERE IsActive = TRUE ORDER BY Name LIMIT 500]) {
+        Id folderId = findEmailTemplateFolder();
+        if (folderId == null) return result;
+        for (EmailTemplate templateRow : [SELECT Id, Name, Subject FROM EmailTemplate WHERE IsActive = TRUE AND FolderId = :folderId ORDER BY Name LIMIT 500]) {
             Option item = new Option(); item.id = templateRow.Id; item.value = templateRow.Name; item.label = templateRow.Name; item.meta = templateRow.Subject;
             result.add(item);
         }
@@ -114,10 +172,12 @@ public without sharing class LogicLearnAdminController {
     public static EmailTemplateDto getEmailTemplate(String templateName) {
         LogicLearnAudienceService.requireAdmin();
         if (String.isBlank(templateName)) throw new AuraHandledException('Choose an email template to edit.');
+        Id folderId = findEmailTemplateFolder();
+        if (folderId == null) throw new AuraHandledException('The LogicLearn email template folder is unavailable.');
         List<EmailTemplate> templates = [
             SELECT Id, Name, Subject, HtmlValue, Body
             FROM EmailTemplate
-            WHERE (Name = :templateName OR DeveloperName = :templateName) AND IsActive = TRUE
+            WHERE (Name = :templateName OR DeveloperName = :templateName) AND IsActive = TRUE AND FolderId = :folderId
             ORDER BY LastModifiedDate DESC LIMIT 1
         ];
         if (templates.isEmpty()) throw new AuraHandledException('Email template not found: ' + templateName);
@@ -141,24 +201,24 @@ public without sharing class LogicLearnAdminController {
         LogicLearnAudienceService.requireAdmin();
         if (String.isBlank(name) || String.isBlank(subject) || String.isBlank(htmlBody))
             throw new AuraHandledException('Template name, subject, and message are required.');
+        Id folderId = findEmailTemplateFolder();
+        if (folderId == null) throw new AuraHandledException('The LogicLearn email template folder is unavailable.');
         String safeHtmlBody = sanitizeEmailHtml(htmlBody);
         String plainBody = safeHtmlBody.replaceAll('(?i)<br\\s*/?>', '\n')
             .replaceAll('(?i)</p>', '\n\n').stripHtmlTags().unescapeHtml4().trim();
         EmailTemplate templateRow;
         if (templateId != null) {
-            templateRow = [SELECT Id, Name FROM EmailTemplate WHERE Id = :templateId LIMIT 1];
+            templateRow = [SELECT Id, Name FROM EmailTemplate WHERE Id = :templateId AND FolderId = :folderId LIMIT 1];
             templateRow.Name = name.trim(); templateRow.Subject = subject.trim();
             templateRow.HtmlValue = safeHtmlBody; templateRow.Body = plainBody; templateRow.IsActive = true;
             update templateRow;
         } else {
-            List<Folder> folders = [SELECT Id FROM Folder WHERE Type = 'Email' AND DeveloperName = 'unfiled$public' LIMIT 1];
-            if (folders.isEmpty()) throw new AuraHandledException('The public email template folder is unavailable.');
             String developerName = name.trim().replaceAll('[^A-Za-z0-9_]', '_').replaceAll('_+', '_');
             if (String.isBlank(developerName)) developerName = 'LogicLearn_Template';
             if ([SELECT COUNT() FROM EmailTemplate WHERE DeveloperName = :developerName] > 0)
                 developerName += '_' + String.valueOf(Datetime.now().getTime());
             templateRow = new EmailTemplate(
-                Name = name.trim(), DeveloperName = developerName, FolderId = folders[0].Id,
+                Name = name.trim(), DeveloperName = developerName, FolderId = folderId,
                 TemplateType = 'custom', Subject = subject.trim(), HtmlValue = safeHtmlBody,
                 Body = plainBody, IsActive = true, Encoding = 'UTF-8'
             );

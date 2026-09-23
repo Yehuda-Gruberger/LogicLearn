@@ -7,3 +7,25 @@
 @media(max-width:620px){.template-control{grid-template-columns:1fr}.template-actions{justify-content:flex-end}.template-basics{grid-template-columns:1fr}.token-toolbar{flex-direction:column}.token-toolbar>div{justify-content:flex-start}}
 .reading-default-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}
 @media(max-width:760px){.reading-default-grid{grid-template-columns:1fr}}
+
+/* Unified settings page */
+.settings-content{min-height:100%;padding:.1rem 0 .01rem;background:#eef3f5}
+.settings-content .settings-section{margin:.75rem 1rem 0;padding:1rem 1.05rem;border:1px solid #d9e3e8;border-radius:.72rem;background:#fff;box-shadow:0 2px 7px rgba(20,43,61,.04)}
+.settings-content .settings-section+.settings-section{border-top:1px solid #d9e3e8}
+.section-heading{display:flex;align-items:flex-start;gap:.68rem;margin-bottom:.75rem}
+.section-heading>div{min-width:0}
+.settings-content .section-heading h3{margin:.05rem 0 0;color:#172f43;font-size:.83rem;font-weight:800;letter-spacing:0;text-transform:none}
+.section-heading p{margin:.18rem 0 0;color:#64798b;font-size:.67rem;line-height:1.4}
+.section-icon{width:2rem;height:2rem;flex:0 0 auto;display:grid;place-items:center;border-radius:.5rem;background:#e4f4f5;color:#08798a}
+.section-icon.document{background:#fff1dc;color:#95601c}
+.section-icon.notification{background:#eee9f8;color:#684d94}
+.section-icon.email{background:#e7eef8;color:#3d6998}
+.setting-row{padding:.72rem .1rem}
+.setting-row strong{color:#24384b;font-size:.75rem}
+.setting-row p,.template-grid p{color:#687e90;font-size:.64rem}
+.threshold-control>span{margin-left:-.45rem;color:#526b7d;font-size:.7rem;font-weight:750}
+.reading-default-grid{padding:.1rem}
+.lifecycle-grid article,.template-grid>div{border:1px solid #d8e3e9;border-radius:.58rem;background:#fbfcfd}
+.template-grid>div{padding:.72rem}
+.settings-content>footer{position:sticky;z-index:30;bottom:0;margin-top:.75rem;padding:.72rem 1.25rem;background:rgba(255,255,255,.97);border-top:1px solid #cfdae1;box-shadow:0 -5px 16px rgba(19,44,62,.09);backdrop-filter:blur(8px)}
+@media(max-width:620px){.settings-content .settings-section{margin-inline:.55rem;padding:.8rem}.section-heading{gap:.5rem}.section-icon{width:1.8rem;height:1.8rem}}

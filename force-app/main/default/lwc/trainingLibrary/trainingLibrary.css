@@ -763,6 +763,7 @@
   }
 }
 .app { border-radius: 0.85rem; overflow: hidden; clip-path: inset(0 round 0.85rem); }
+.app.admin-view { overflow: visible; clip-path: none; }
 
 @media (max-width: 640px) {
   .app {

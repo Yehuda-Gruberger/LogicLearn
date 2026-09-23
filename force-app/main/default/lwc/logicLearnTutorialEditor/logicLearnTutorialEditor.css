@@ -88,11 +88,13 @@
 .body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0.75rem 1rem;
 }
 .setup-grid {
-  height: 100%;
+  min-height: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
@@ -103,13 +105,8 @@
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 0.65rem;
   align-items: stretch;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: #9aacb8 transparent;
+  overflow: visible;
 }
-.setup-grid.document-layout::-webkit-scrollbar { width: 6px; }
-.setup-grid.document-layout::-webkit-scrollbar-thumb { border-radius: 999px; background: #9aacb8; }
 .document-layout > .editor-column { display: contents; }
 .document-layout .video-card {
   grid-column: 1;
@@ -365,7 +362,22 @@
   flex: 0 0 auto;
 }
 .upload-actions { display: flex; align-items: flex-end; gap: 0.5rem; }
-.native-uploader { display: block; --slds-c-button-radius-border: 999px; --slds-c-button-color-border: #8d9baa; }
+.native-uploader {
+  display: block;
+  --slds-c-button-radius-border: 999px;
+  --slds-c-button-color-background: #1595a6;
+  --slds-c-button-color-background-hover: #087f90;
+  --slds-c-button-color-border: #1595a6;
+  --slds-c-button-color-border-hover: #087f90;
+  --slds-c-button-text-color: #fff;
+  --slds-c-button-text-color-hover: #fff;
+  --slds-c-button-neutral-color-background: #1595a6;
+  --slds-c-button-neutral-color-background-hover: #087f90;
+  --slds-c-button-neutral-color-border: #1595a6;
+  --slds-c-button-neutral-color-border-hover: #087f90;
+  --slds-c-button-neutral-text-color: #fff;
+  --slds-c-button-neutral-text-color-hover: #fff;
+}
 .record-screen { min-height: 2rem; display: inline-flex; align-items: center; gap: 0.38rem; padding: 0.4rem 0.8rem; border: 1px solid #8d9baa; border-radius: 999px; background: #fff; color: #17354b; font: inherit; font-size: 0.68rem; font-weight: 700; cursor: pointer; }
 .record-screen > span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5d6670; }
 .recorder-backdrop { position: absolute; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgba(8,26,38,.58); backdrop-filter: blur(2px); }
