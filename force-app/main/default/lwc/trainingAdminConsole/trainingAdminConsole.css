@@ -304,7 +304,9 @@
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 0.85rem 1.2rem 1rem;
   background: #eef2f5;
 }
