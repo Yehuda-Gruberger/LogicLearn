@@ -65,7 +65,7 @@
     <template lwc:if={showSettingsModal}>
         <section class="settings-backdrop" onclick={closeSettings}>
             <div class="settings-modal" onclick={stopPropagation}>
-                <header><div><span class="eyebrow">LogicLearn</span><h2>Global settings</h2><p>Default behavior for tutorials and notifications</p></div><lightning-button-icon icon-name="utility:close" alternative-text="Close settings" title="Close" variant="bare" onclick={closeSettings}></lightning-button-icon></header>
+                <header><div class="settings-heading"><span class="settings-mark"><lightning-icon icon-name="utility:settings" size="x-small"></lightning-icon></span><div><span class="eyebrow">LogicLearn</span><h2>Global settings</h2><p>Organization-wide defaults. Individual tutorials can override completion and skipping.</p></div></div><lightning-button-icon icon-name="utility:close" alternative-text="Close settings" title="Close" variant="bare" onclick={closeSettings}></lightning-button-icon></header>
                 <div class="settings-modal-body"><c-logic-learn-settings onclose={closeSettings}></c-logic-learn-settings></div>
             </div>
         </section>

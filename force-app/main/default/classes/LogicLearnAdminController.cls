@@ -89,10 +89,12 @@ public without sharing class LogicLearnAdminController {
         if (String.isBlank(developerName)) developerName = 'LogicLearn_Template';
         if ([SELECT COUNT() FROM EmailTemplate WHERE DeveloperName = :developerName] > 0)
             developerName += '_' + String.valueOf(Datetime.now().getTime());
+        String plainBody = htmlBody.trim();
+        String safeHtmlBody = plainBody.escapeHtml4().replace('\r\n', '\n').replace('\n', '<br/>');
         EmailTemplate templateRow = new EmailTemplate(
             Name = name.trim(), DeveloperName = developerName, FolderId = folders[0].Id,
-            TemplateType = 'custom', Subject = subject.trim(), HtmlValue = htmlBody,
-            Body = htmlBody.replaceAll('<[^>]+>', ''), IsActive = true, Encoding = 'UTF-8'
+            TemplateType = 'custom', Subject = subject.trim(), HtmlValue = safeHtmlBody,
+            Body = plainBody, IsActive = true, Encoding = 'UTF-8'
         );
         insert templateRow;
         Option result = new Option(); result.value = templateRow.Name; result.label = templateRow.Name; result.meta = templateRow.Subject;

@@ -144,6 +144,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get visibilityAudience() { return this.combinedAudience("visibility"); }
     get requiredAudience() { return this.combinedAudience("required"); }
     get notificationAudience() { return this.combinedAudience("notification"); }
+    get hasVisibilityAudience() { return this.visibilityAudience.length > 0; }
+    get hasRequiredAudience() { return this.requiredAudience.length > 0; }
     get draftStatusClass() { return this.form.status === "Draft" ? "status-option active" : "status-option"; }
     get publishedStatusClass() { return this.form.status === "Published" ? "status-option active" : "status-option"; }
     get archivedStatusClass() { return this.form.status === "Archived" ? "status-option active" : "status-option"; }
@@ -188,7 +190,12 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     get channelOptions() {
-        return ["None", "In-app", "Email", "Both"].map((value) => ({label: value, value}));
+        return [
+            {label: "Don’t notify", value: "None"},
+            {label: "In-app", value: "In-app"},
+            {label: "Email", value: "Email"},
+            {label: "Both", value: "Both"}
+        ];
     }
 
     handleField(event) {
@@ -220,6 +227,18 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             [`${prefix}Profiles`]: valuesFor("Profile"),
             [`${prefix}Groups`]: valuesFor("Group")
         };
+    }
+
+    handleCopyAudience(event) {
+        const source = event.currentTarget.dataset.source;
+        const target = event.currentTarget.dataset.target;
+        const additions = {};
+        ["Users", "Profiles", "Groups"].forEach((suffix) => {
+            additions[`${target}${suffix}`] = [
+                ...new Set([...(this.form[`${target}${suffix}`] || []), ...(this.form[`${source}${suffix}`] || [])])
+            ];
+        });
+        this.form = {...this.form, ...additions};
     }
 
     handleStatusSelect(event) {

@@ -306,9 +306,39 @@
 .audience-label {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 0.2rem;
   margin-bottom: 0.42rem;
+}
+.audience-title,
+.copy-actions,
+.copy-audience {
+  display: flex;
+  align-items: center;
+}
+.audience-title {
+  gap: 0.2rem;
+}
+.copy-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+.copy-audience {
+  gap: 0.25rem;
+  padding: 0.23rem 0.45rem;
+  border: 1px solid #c8d5dd;
+  border-radius: 0.36rem;
+  background: #fff;
+  color: #08798a;
+  font: inherit;
+  font-size: 0.56rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.copy-audience:hover {
+  border-color: #1595a6;
+  background: #edf7f8;
 }
 .audience-label strong {
   font-size: 0.67rem;
