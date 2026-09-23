@@ -1,5 +1,5 @@
 <template>
-    <div class="picker" onfocusout={handleFocusOut}>
+    <div class={pickerClass} onfocusout={handleFocusOut}>
         <template lwc:if={hideLabel}><span class="assistive-label">{label}</span></template>
         <template lwc:else><label class="label">{label}<template lwc:if={required}><span class="required"> *</span></template></label></template>
         <div class={inputClass} onclick={handleOpen}>

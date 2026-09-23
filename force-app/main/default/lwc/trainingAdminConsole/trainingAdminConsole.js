@@ -44,6 +44,7 @@ export default class TrainingAdminConsole extends LightningElement {
     editingFolderId = null;
     editingVideoId = null;
     tutorialRecordId = null;
+    editorHighlight = null;
     showTutorialDetails = false;
     selectedTutorial;
     detailLoading = false;
@@ -277,6 +278,7 @@ export default class TrainingAdminConsole extends LightningElement {
 
     handleNewVideo() {
         this.tutorialRecordId = null;
+        this.editorHighlight = null;
         this.showTutorialEditor = true;
     }
 
@@ -291,6 +293,7 @@ export default class TrainingAdminConsole extends LightningElement {
         const row = event.detail.row;
         if (action === "edit") {
             this.tutorialRecordId = row.id;
+            this.editorHighlight = null;
             this.showTutorialEditor = true;
         } else if (action === "delete") {
             this.confirmAndDeleteTutorial(row);
@@ -299,6 +302,7 @@ export default class TrainingAdminConsole extends LightningElement {
 
     handleEditTutorial(event) {
         this.tutorialRecordId = event.currentTarget.dataset.id;
+        this.editorHighlight = null;
         this.showTutorialEditor = true;
     }
 
@@ -393,6 +397,21 @@ export default class TrainingAdminConsole extends LightningElement {
     handleEditSelected() {
         if (!this.selectedVideoId) return;
         this.tutorialRecordId = this.selectedVideoId;
+        this.editorHighlight = null;
+        this.showTutorialEditor = true;
+    }
+
+    handleEditAudience() {
+        if (!this.selectedVideoId) return;
+        this.tutorialRecordId = this.selectedVideoId;
+        this.editorHighlight = "audience";
+        this.showTutorialEditor = true;
+    }
+
+    handleEditSettings() {
+        if (!this.selectedVideoId) return;
+        this.tutorialRecordId = this.selectedVideoId;
+        this.editorHighlight = "settings";
         this.showTutorialEditor = true;
     }
 
@@ -454,6 +473,7 @@ export default class TrainingAdminConsole extends LightningElement {
     closeTutorialEditor() {
         this.showTutorialEditor = false;
         this.tutorialRecordId = null;
+        this.editorHighlight = null;
     }
 
     async handleTutorialSaved() {

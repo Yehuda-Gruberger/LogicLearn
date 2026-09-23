@@ -769,6 +769,14 @@
   background: #eef3f5;
   border-radius: 0;
 }
+.app:not(.admin-view) {
+  animation: libraryRailContract 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes libraryRailContract {
+  from {
+    grid-template-columns: 335px minmax(0, 1fr);
+  }
+}
 .rail {
   min-height: 0;
   padding: 0.9rem 0.75rem;
@@ -1106,5 +1114,10 @@
   }
   .library-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app:not(.admin-view) {
+    animation: none;
   }
 }

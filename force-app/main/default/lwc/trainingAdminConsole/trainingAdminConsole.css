@@ -9,6 +9,12 @@
   grid-template-columns: 335px minmax(700px, 1fr) 290px;
   overflow: visible;
   background: #f4f7f9;
+  animation: adminRailExpand 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes adminRailExpand {
+  from {
+    grid-template-columns: 236px minmax(700px, 1fr) 290px;
+  }
 }
 .video-browser {
   min-height: 0;
@@ -387,7 +393,7 @@
 }
 .dashboard-media {
   min-height: 0;
-  height: clamp(18rem, 46vh, 24rem);
+  height: clamp(17.5rem, 44vh, 23.5rem);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 35.5%);
   gap: 0.8rem;
@@ -765,6 +771,9 @@
   .modal-backdrop,
   .settings-modal,
   .modal-editor {
+    animation: none;
+  }
+  .master-detail {
     animation: none;
   }
 }

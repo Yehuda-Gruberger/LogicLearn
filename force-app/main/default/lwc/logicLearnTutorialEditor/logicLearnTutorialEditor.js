@@ -36,6 +36,7 @@ const EMPTY_FORM = {
 
 export default class LogicLearnTutorialEditor extends LightningElement {
     @api recordId;
+    @api highlightSection;
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: []};
     settings = {completionThreshold: 90, preventSkipping: true, assignmentTemplateName: "", reminderTemplateName: ""};
@@ -146,6 +147,14 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get notificationAudience() { return this.combinedAudience("notification"); }
     get hasVisibilityAudience() { return this.visibilityAudience.length > 0; }
     get hasRequiredAudience() { return this.requiredAudience.length > 0; }
+    get videoCardClass() { return this.cardClass("video", "panel-card video-card"); }
+    get detailsCardClass() { return this.cardClass("details", "panel-card details-card"); }
+    get publishingCardClass() { return this.cardClass("settings", "panel-card publishing-card"); }
+    get audienceCardClass() { return this.cardClass("audience", "panel-card audience-card"); }
+
+    cardClass(section, baseClass) {
+        return this.highlightSection === section ? `${baseClass} section-highlight` : baseClass;
+    }
     get draftStatusClass() { return this.form.status === "Draft" ? "status-option active" : "status-option"; }
     get publishedStatusClass() { return this.form.status === "Published" ? "status-option active" : "status-option"; }
     get archivedStatusClass() { return this.form.status === "Archived" ? "status-option active" : "status-option"; }

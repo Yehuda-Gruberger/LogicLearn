@@ -13,6 +13,7 @@ export default class LogicLearnPicker extends LightningElement {
     _value = [];
     query = "";
     open = false;
+    openUp = false;
 
     @api
     get options() {
@@ -70,12 +71,20 @@ export default class LogicLearnPicker extends LightningElement {
         return this.open ? "picker-input open" : "picker-input";
     }
 
+    get pickerClass() {
+        return this.openUp ? "picker drop-up" : "picker";
+    }
+
     handleFocus() {
-        if (!this.disabled) this.open = true;
+        if (!this.disabled) {
+            this.chooseDirection();
+            this.open = true;
+        }
     }
 
     handleSearch(event) {
         this.query = event.target.value;
+        this.chooseDirection();
         this.open = true;
     }
 
@@ -102,9 +111,18 @@ export default class LogicLearnPicker extends LightningElement {
 
     handleOpen() {
         if (this.disabled) return;
+        this.chooseDirection();
         this.open = true;
         const input = this.template.querySelector("input");
         if (input && this.template.activeElement !== input) input.focus();
+    }
+
+    chooseDirection() {
+        const picker = this.template.querySelector(".picker");
+        if (!picker) return;
+        const rect = picker.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        this.openUp = spaceBelow < 230 && rect.top > spaceBelow;
     }
 
     handleFocusOut(event) {
