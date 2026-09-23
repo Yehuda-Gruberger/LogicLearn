@@ -3,11 +3,11 @@
   color: #172434;
 }
 .master-detail {
-  height: 100%;
-  min-height: 0;
+  height: auto;
+  min-height: 100%;
   display: grid;
   grid-template-columns: 335px minmax(700px, 1fr) 290px;
-  overflow: hidden;
+  overflow: visible;
   background: #f4f7f9;
 }
 .video-browser {
@@ -19,6 +19,10 @@
   background: #0d3449;
   color: #fff;
   font-family: "Salesforce Sans", Arial, sans-serif;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: var(--logic-learn-available-height, 100vh);
 }
 .browser-brand {
   display: flex;
@@ -298,21 +302,9 @@
   min-width: 0;
   min-height: 0;
   display: block;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  overflow: visible;
   padding: 0.85rem 1.2rem 1rem;
   background: #eef2f5;
-}
-.video-dashboard::-webkit-scrollbar {
-  width: 8px;
-}
-.video-dashboard::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #b8c5ce;
-}
-.video-dashboard::-webkit-scrollbar-track {
-  background: transparent;
 }
 .dashboard-loading {
   position: relative;
@@ -607,6 +599,10 @@
   overflow: hidden;
   border-left: 1px solid #d7dee6;
   background: #fff;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: var(--logic-learn-available-height, 100vh);
 }
 .people-sidebar c-logic-learn-tracking {
   display: block;
@@ -809,11 +805,15 @@
     grid-column: 1/-1;
   }
   .people-sidebar {
+    position: static;
+    height: auto;
     grid-column: 2;
     min-height: 28rem;
     border-top: 1px solid #d7dee6;
   }
   .video-browser {
+    position: static;
+    height: auto;
     grid-row: 1 / span 2;
   }
   .video-dashboard {

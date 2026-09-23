@@ -872,8 +872,12 @@
 }
 .admin-scroll {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 0;
+}
+.admin-view .main {
+  overflow: hidden;
 }
 .library-shell {
   width: min(960px, calc(100% - 2rem));
