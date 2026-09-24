@@ -374,7 +374,7 @@
 }
 .native-uploader {
   display: block;
-  margin: 0;
+  margin: -1.125rem 0 0;
   --slds-c-button-radius-border: 999px;
   --slds-c-button-color-background: #1595a6;
   --slds-c-button-color-background-hover: #087f90;

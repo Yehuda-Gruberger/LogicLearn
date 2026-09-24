@@ -10,8 +10,6 @@ import getAudienceMembers from "@salesforce/apex/LogicLearnAdminController.getAu
 import getEmailTemplates from "@salesforce/apex/LogicLearnAdminController.getEmailTemplates";
 import saveTutorialJson from "@salesforce/apex/LogicLearnAdminController.saveTutorialJson";
 import saveTutorialPagesJson from "@salesforce/apex/LogicLearnAdminController.saveTutorialPagesJson";
-import sendNotification from "@salesforce/apex/LogicLearnAdminController.sendNotification";
-import sendInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendInAppNotification";
 import sendLifecycleNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleNotification";
 import sendLifecycleInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
@@ -54,7 +52,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     @api initialContentType = "Salesforce File";
     form = {...EMPTY_FORM};
     catalog = {users: [], profiles: [], groups: [], folders: [], categories: []};
-    settings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page", assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated.", assignmentInAppMessage: "[VIDEO_NAME] has been assigned to you.", reminderInAppMessage: "Reminder: complete [VIDEO_NAME]."};
+    settings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page", assignmentTemplateName: "", reminderTemplateName: "", firstPublishEmailTemplate: "", updateEmailTemplate: "", requiredUpdateEmailTemplate: "", firstPublishInAppMessage: "[VIDEO_NAME] is now available.", updateInAppMessage: "[VIDEO_NAME] has been updated.", assignmentInAppMessage: "[VIDEO_NAME] has been assigned to you.", requiredUpdateInAppMessage: "[VIDEO_NAME] has been updated.", reminderInAppMessage: "Reminder: complete [VIDEO_NAME]."};
     emailTemplates = [];
     completionMode = "global";
     loading = true;
@@ -73,6 +71,9 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     lifecycleEmailTemplate = "";
     lifecycleInAppMessage = "";
     customizingLifecycleNotice = false;
+    requiredEmailTemplate = "";
+    requiredInAppMessage = "";
+    customizingRequiredNotice = false;
     pages = [];
     activePageIndex = 0;
     showRecorder = false;
@@ -353,9 +354,16 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get lifecycleNoticeTitle() { return this.isUpdateNotification ? "Tutorial updated" : "First publish"; }
     get lifecycleEmailDefault() { return this.isUpdateNotification ? this.settings.updateEmailTemplate : this.settings.firstPublishEmailTemplate; }
     get lifecycleMessageDefault() { return this.isUpdateNotification ? this.settings.updateInAppMessage : this.settings.firstPublishInAppMessage; }
+    get requiredEmailDefault() { return this.isUpdateNotification ? this.settings.requiredUpdateEmailTemplate : this.settings.assignmentTemplateName; }
+    get requiredMessageDefault() { return this.isUpdateNotification ? this.settings.requiredUpdateInAppMessage : this.settings.assignmentInAppMessage; }
     get lifecycleTemplateOptions() {
         const options = [...this.emailTemplates];
         if (this.lifecycleEmailTemplate && !options.some((item) => item.value === this.lifecycleEmailTemplate)) options.unshift({value: this.lifecycleEmailTemplate, label: this.lifecycleEmailTemplate});
+        return options;
+    }
+    get requiredTemplateOptions() {
+        const options = [...this.emailTemplates];
+        if (this.requiredEmailTemplate && !options.some((item) => item.value === this.requiredEmailTemplate)) options.unshift({value: this.requiredEmailTemplate, label: this.requiredEmailTemplate});
         return options;
     }
     get showLifecycleNotice() { return this.form.publishNotificationChannel !== "None"; }
@@ -363,10 +371,17 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get showLifecycleInApp() { return ["In-app", "Both"].includes(this.form.publishNotificationChannel); }
     get lifecycleCustomizationLabel() { return this.customizingLifecycleNotice ? "Use defaults" : "Override"; }
     get lifecycleNoticeClass() { return this.customizingLifecycleNotice ? "notice-defaults editing" : "notice-defaults"; }
+    get showRequiredNotice() { return this.form.assignmentNotificationChannel !== "None"; }
+    get showRequiredEmail() { return ["Email", "Both"].includes(this.form.assignmentNotificationChannel); }
+    get showRequiredInApp() { return ["In-app", "Both"].includes(this.form.assignmentNotificationChannel); }
+    get requiredCustomizationLabel() { return this.customizingRequiredNotice ? "Use defaults" : "Override"; }
+    get requiredNoticeClass() { return this.customizingRequiredNotice ? "notice-defaults editing" : "notice-defaults"; }
 
     resetLifecycleNoticeDefaults() {
         this.lifecycleEmailTemplate = this.lifecycleEmailDefault || "";
         this.lifecycleInAppMessage = this.lifecycleMessageDefault || "";
+        this.requiredEmailTemplate = this.requiredEmailDefault || "";
+        this.requiredInAppMessage = this.requiredMessageDefault || "";
     }
 
     toggleLifecycleCustomization() {
@@ -376,6 +391,15 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     handleLifecycleTemplate(event) { this.lifecycleEmailTemplate = event.detail.value; }
     handleLifecycleMessage(event) { this.lifecycleInAppMessage = event.currentTarget.value; }
+    toggleRequiredCustomization() {
+        if (this.customizingRequiredNotice) {
+            this.requiredEmailTemplate = this.requiredEmailDefault || "";
+            this.requiredInAppMessage = this.requiredMessageDefault || "";
+        }
+        this.customizingRequiredNotice = !this.customizingRequiredNotice;
+    }
+    handleRequiredTemplate(event) { this.requiredEmailTemplate = event.detail.value; }
+    handleRequiredMessage(event) { this.requiredInAppMessage = event.currentTarget.value; }
 
     handleField(event) {
         const field = event.currentTarget.dataset.field;
@@ -681,8 +705,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             if (shouldSendNotifications && isLifecycleEvent && ["Email", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleNotification({videoId, notificationType: this.lifecycleNotificationType, templateName: this.lifecycleEmailTemplate}));
             if (shouldSendNotifications && isLifecycleEvent && ["In-app", "Both"].includes(this.form.publishNotificationChannel)) notices.push(sendLifecycleInAppNotification({videoId, notificationType: this.lifecycleNotificationType, messageTemplate: this.lifecycleInAppMessage}));
             const requiredNotificationType = this.isUpdateNotification ? "Required Update" : "Assignment";
-            if (shouldSendNotifications && ["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendNotification({videoId, notificationType: requiredNotificationType}));
-            if (shouldSendNotifications && ["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendInAppNotification({videoId, notificationType: requiredNotificationType}));
+            if (shouldSendNotifications && ["Email", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendLifecycleNotification({videoId, notificationType: requiredNotificationType, templateName: this.requiredEmailTemplate}));
+            if (shouldSendNotifications && ["In-app", "Both"].includes(this.form.assignmentNotificationChannel)) notices.push(sendLifecycleInAppNotification({videoId, notificationType: requiredNotificationType, messageTemplate: this.requiredInAppMessage}));
             let notificationFailed = false;
             const counts = notices.length ? await Promise.all(notices.map((notice) => notice.catch(() => {
                 notificationFailed = true;
