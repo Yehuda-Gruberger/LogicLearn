@@ -737,14 +737,13 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.discardRecording();
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
-            const mimeType = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
-                .find((type) => MediaRecorder.isTypeSupported(type));
-            const chunks = [];
+            let capturedBlob;
             this.recordingStream = stream;
-            this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
-            const recordingMimeType = this.mediaRecorder.mimeType || mimeType || "video/webm";
-            this.mediaRecorder.ondataavailable = (event) => { if (event.data?.size) chunks.push(event.data); };
-            this.mediaRecorder.onstop = () => this.finishRecording(chunks, recordingMimeType);
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data?.size) capturedBlob = event.data;
+            };
+            this.mediaRecorder.onstop = () => this.finishRecording(capturedBlob);
             this.mediaRecorder.onerror = () => {
                 this.recording = false;
                 this.recordingStopping = false;
@@ -757,7 +756,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.recordingStopping = false;
             this.recordingReady = false;
             this.recordingSeconds = 0;
-            this.mediaRecorder.start(1000);
+            this.mediaRecorder.start();
             this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
             requestAnimationFrame(() => {
                 const preview = this.template.querySelector(".recording-live");
@@ -780,14 +779,14 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.recordingStopping = false;
             this.toast("Recording failed", "The browser could not stop this recording. Please try again.", "error");
         }
-        this.recordingStream?.getTracks().forEach((track) => track.stop());
     }
 
-    finishRecording(chunks, mimeType) {
+    finishRecording(blob) {
         window.clearInterval(this.recordingTimer);
-        this.recordedBlob = new Blob(chunks, {type: mimeType});
+        this.recordingStream?.getTracks().forEach((track) => track.stop());
+        this.recordedBlob = blob;
         this.recordingStopping = false;
-        if (!this.recordedBlob.size) {
+        if (!this.recordedBlob?.size) {
             this.recordingReady = false;
             this.toast("Recording unavailable", "No video was captured. Select Record again and retry.", "error");
             return;
