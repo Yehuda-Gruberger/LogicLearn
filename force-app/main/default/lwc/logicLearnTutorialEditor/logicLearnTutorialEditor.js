@@ -99,10 +99,6 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     mediaRecorder;
     recordingStream;
     recordingTimer;
-    recordingFinalizeTimer;
-    recordingStopTimer;
-    recordingStopPending = false;
-    recordingSessionId = 0;
     richTextFormats = ["font", "size", "bold", "italic", "underline", "strike", "list", "indent", "align", "link", "image", "header", "color", "background", "clean"];
 
     async connectedCallback() {
@@ -738,38 +734,18 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.toast("Screen recording unavailable", "This browser does not support screen recording.", "error");
             return;
         }
-        this.resetRecordedMedia();
-        const sessionId = ++this.recordingSessionId;
+        this.discardRecording();
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
-            if (sessionId !== this.recordingSessionId) {
-                stream.getTracks().forEach((track) => track.stop());
-                return;
-            }
             const mimeType = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
                 .find((type) => MediaRecorder.isTypeSupported(type));
             const chunks = [];
             this.recordingStream = stream;
             this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
-            const recorder = this.mediaRecorder;
             const recordingMimeType = this.mediaRecorder.mimeType || mimeType || "video/webm";
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (sessionId === this.recordingSessionId && event.data?.size) chunks.push(event.data);
-                if (sessionId === this.recordingSessionId && this.recordingStopPending) {
-                    this.commitRecorderStop(recorder);
-                }
-            };
-            this.mediaRecorder.onstop = () => {
-                window.clearTimeout(this.recordingFinalizeTimer);
-                this.recordingFinalizeTimer = window.setTimeout(
-                    () => this.finishRecording(chunks, recordingMimeType, sessionId),
-                    200
-                );
-            };
+            this.mediaRecorder.ondataavailable = (event) => { if (event.data?.size) chunks.push(event.data); };
+            this.mediaRecorder.onstop = () => this.finishRecording(chunks, recordingMimeType);
             this.mediaRecorder.onerror = () => {
-                if (sessionId !== this.recordingSessionId) return;
-                window.clearTimeout(this.recordingStopTimer);
-                this.recordingStopPending = false;
                 this.recording = false;
                 this.recordingStopping = false;
                 this.recordingStream?.getTracks().forEach((track) => track.stop());
@@ -779,7 +755,6 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.showRecorder = true;
             this.recording = true;
             this.recordingStopping = false;
-            this.recordingStopPending = false;
             this.recordingReady = false;
             this.recordingSeconds = 0;
             this.mediaRecorder.start(1000);
@@ -795,33 +770,21 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     stopRecording() {
-        const recorder = this.mediaRecorder;
-        if (recorder?.state !== "recording" || this.recordingStopPending) return;
+        if (this.mediaRecorder?.state !== "recording") return;
         this.recordingStopping = true;
         window.clearInterval(this.recordingTimer);
         this.recording = false;
-        this.recordingStopPending = true;
-        window.clearTimeout(this.recordingStopTimer);
-        this.recordingStopTimer = window.setTimeout(() => this.commitRecorderStop(recorder), 750);
         try {
-            recorder.requestData();
+            this.mediaRecorder.stop();
         } catch (error) {
-            this.commitRecorderStop(recorder);
+            this.recordingStopping = false;
+            this.toast("Recording failed", "The browser could not stop this recording. Please try again.", "error");
         }
-    }
-
-    commitRecorderStop(recorder) {
-        window.clearTimeout(this.recordingStopTimer);
-        this.recordingStopPending = false;
-        if (recorder?.state === "recording") recorder.stop();
-    }
-
-    finishRecording(chunks, mimeType, sessionId) {
-        if (sessionId !== this.recordingSessionId) return;
-        window.clearInterval(this.recordingTimer);
-        window.clearTimeout(this.recordingStopTimer);
-        this.recordingStopPending = false;
         this.recordingStream?.getTracks().forEach((track) => track.stop());
+    }
+
+    finishRecording(chunks, mimeType) {
+        window.clearInterval(this.recordingTimer);
         this.recordedBlob = new Blob(chunks, {type: mimeType});
         this.recordingStopping = false;
         if (!this.recordedBlob.size) {
@@ -849,19 +812,13 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     discardRecording() {
-        if (this.recording || this.recordingStopping) {
-            this.recordingSessionId += 1;
-            if (this.mediaRecorder?.state === "recording") this.mediaRecorder.stop();
-            this.recordingStream?.getTracks().forEach((track) => track.stop());
-        }
+        if (this.mediaRecorder?.state === "recording") this.mediaRecorder.stop();
+        this.recordingStream?.getTracks().forEach((track) => track.stop());
         this.resetRecordedMedia();
         this.showRecorder = false;
     }
 
     resetRecordedMedia() {
-        window.clearTimeout(this.recordingFinalizeTimer);
-        window.clearTimeout(this.recordingStopTimer);
-        this.recordingStopPending = false;
         if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
         this.recordingPreviewUrl = undefined;
         this.recordedBlob = undefined;
