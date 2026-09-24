@@ -11,6 +11,7 @@ export default class LogicLearnPicker extends LightningElement {
     @api showMetaInChip = false;
     @api actionMode = false;
     @api editable = false;
+    @api deletable = false;
     _options = [];
     _value = [];
     _exclusions = [];
@@ -51,12 +52,17 @@ export default class LogicLearnPicker extends LightningElement {
             .map((item) => {
                 const selected = this._value.includes(item.value);
                 const excluded = this._exclusions.includes(item.value);
+                const canEdit = this.editable && item.editable !== false;
+                const canDelete = this.deletable && item.deletable !== false;
                 return {
                     ...item,
                     rowClass: selected || excluded ? "option selected" : "option",
                     selected,
                     excluded,
                     canExclude: this.actionMode && this._excludableValues.includes(item.value),
+                    canEdit,
+                    canDelete,
+                    hasActions: canEdit || canDelete,
                     excludeIcon: excluded ? "utility:check" : "utility:dash",
                     excludeClass: excluded ? "option-action exclude active" : "option-action exclude"
                 };
@@ -65,7 +71,10 @@ export default class LogicLearnPicker extends LightningElement {
 
     get selectedItems() {
         const selected = new Set(this._value);
-        return this._options.filter((item) => selected.has(item.value));
+        return this._options.filter((item) => selected.has(item.value)).map((item) => ({
+            ...item,
+            canEdit: this.editable && item.editable !== false
+        }));
     }
 
     get hasSelected() {
@@ -151,6 +160,13 @@ export default class LogicLearnPicker extends LightningElement {
         event.stopPropagation();
         this.open = false;
         this.dispatchEvent(new CustomEvent("edit", {detail: {value: event.currentTarget.dataset.value}}));
+    }
+
+    handleDelete(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.open = false;
+        this.dispatchEvent(new CustomEvent("delete", {detail: {value: event.currentTarget.dataset.value}}));
     }
 
     handleRemove(event) {

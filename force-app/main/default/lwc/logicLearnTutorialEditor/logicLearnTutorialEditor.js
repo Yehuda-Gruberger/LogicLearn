@@ -1,5 +1,6 @@
 import {LightningElement, api} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
+import LightningConfirm from "lightning/confirm";
 import createTutorialDraft from "@salesforce/apex/LogicLearnAdminController.createTutorialDraft";
 import discardTutorialDraft from "@salesforce/apex/LogicLearnAdminController.discardTutorialDraft";
 import getFreshCatalog from "@salesforce/apex/LogicLearnAdminController.getFreshCatalog";
@@ -14,7 +15,13 @@ import sendLifecycleNotification from "@salesforce/apex/LogicLearnAdminControlle
 import sendLifecycleInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
 import saveGroupJson from "@salesforce/apex/LogicLearnAdminController.saveGroupJson";
+import getGroup from "@salesforce/apex/LogicLearnAdminController.getGroup";
+import deleteGroup from "@salesforce/apex/LogicLearnAdminController.deleteGroup";
 import saveFolderJson from "@salesforce/apex/LogicLearnAdminController.saveFolderJson";
+import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
+import deleteFolder from "@salesforce/apex/LogicLearnAdminController.deleteFolder";
+import saveCategory from "@salesforce/apex/LogicLearnAdminController.saveCategory";
+import deleteCategory from "@salesforce/apex/LogicLearnAdminController.deleteCategory";
 
 const EMPTY_FORM = {
     videoId: null,
@@ -66,6 +73,12 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     groupTargetField;
     groupForm = {groupId: null, name: "", description: "", users: [], profiles: [], groups: []};
     creatingFolder = false;
+    showFolderEditor = false;
+    folderSaving = false;
+    folderForm = {folderId: null, name: "", parentId: null, sortOrder: null, icon: "", description: ""};
+    showCategoryEditor = false;
+    categorySaving = false;
+    categoryForm = {originalName: "", name: ""};
     draftTitle = "";
     originalStatus = "Draft";
     lifecycleEmailTemplate = "";
@@ -211,13 +224,31 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     get audienceOptions() {
-        const typed = (items, type, meta) => (items || []).map((item) => ({...item, value: `${type}:${item.value}`, meta}));
+        const typed = (items, type, meta) => (items || []).map((item) => ({
+            ...item,
+            value: `${type}:${item.value}`,
+            meta,
+            editable: type === "Group",
+            deletable: type === "Group"
+        }));
         return [
             ...typed(this.catalog.groups, "Group", "Group"),
             ...typed(this.catalog.profiles, "Profile", "Profile"),
             ...typed(this.catalog.users, "User", "User")
         ];
     }
+
+    get folderParentOptions() {
+        return (this.catalog.folders || []).filter((folder) => folder.value !== this.folderForm.folderId);
+    }
+
+    get availableNestedGroupOptions() {
+        return (this.catalog.groups || []).filter((group) => group.value !== this.groupForm.groupId);
+    }
+
+    get groupModalTitle() { return this.groupForm.groupId ? "Edit LogicLearn group" : "New LogicLearn group"; }
+    get groupSaveLabel() { return this.groupForm.groupId ? "Save group" : "Create group"; }
+    get folderModalTitle() { return this.folderForm.folderId ? "Edit folder" : "New folder"; }
 
     combinedAudience(prefix) {
         return [
@@ -355,7 +386,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     get isUpdateNotification() { return this.lifecycleNotificationType === "Update"; }
     get publicationNoticeLabel() { return this.isUpdateNotification ? "Notify when updated" : "Notify when first published"; }
     get requiredNoticeLabel() { return this.isUpdateNotification ? "Notify when updated" : "Notify when first published"; }
-    get lifecycleNoticeTitle() { return this.isUpdateNotification ? "Tutorial updated" : "First publish"; }
+    get lifecycleNoticeTitle() { return this.isUpdateNotification ? "Tutorial updated notification template" : "First publish notification template"; }
     get lifecycleEmailDefault() { return this.isUpdateNotification ? this.settings.updateEmailTemplate : this.settings.firstPublishEmailTemplate; }
     get lifecycleMessageDefault() { return this.isUpdateNotification ? this.settings.updateInAppMessage : this.settings.firstPublishInAppMessage; }
     get requiredEmailDefault() { return this.isUpdateNotification ? this.settings.requiredUpdateEmailTemplate : this.settings.assignmentTemplateName; }
@@ -467,16 +498,112 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         }
     }
 
-    handleCreateCategory(event) {
+    async handleEditFolder(event) {
+        try {
+            this.folderForm = await getFolder({folderId: event.detail.value});
+            this.showFolderEditor = true;
+        } catch (error) {
+            this.toast("Could not open folder", this.message(error), "error");
+        }
+    }
+
+    async handleDeleteFolder(event) {
+        const folderId = event.detail.value;
+        const folderName = this.catalog.folders.find((folder) => folder.value === folderId)?.label || "this folder";
+        const confirmed = await LightningConfirm.open({
+            label: "Delete folder?",
+            message: `Delete "${folderName}"? Tutorials in it will move to All Training, and subfolders will become top-level folders.`,
+            theme: "warning"
+        });
+        if (!confirmed) return;
+        try {
+            const movedCount = await deleteFolder({folderId});
+            if (this.form.folderId === folderId) this.form = {...this.form, folderId: null};
+            this.catalog = await getFreshCatalog();
+            this.toast("Folder deleted", `${folderName} was deleted. ${movedCount || 0} tutorial(s) moved to All Training.`, "success");
+        } catch (error) {
+            this.toast("Could not delete folder", this.message(error), "error");
+        }
+    }
+
+    closeFolderEditor() { this.showFolderEditor = false; }
+    handleFolderField(event) { this.folderForm = {...this.folderForm, [event.currentTarget.dataset.field]: event.target.value}; }
+    handleFolderParent(event) { this.folderForm = {...this.folderForm, parentId: event.detail.value}; }
+
+    async handleFolderSave() {
+        const name = this.template.querySelector('.quick-folder-modal lightning-input[data-field="name"]');
+        if (!name?.reportValidity()) return;
+        this.folderSaving = true;
+        try {
+            const folderId = await saveFolderJson({inputJson: JSON.stringify(this.folderForm)});
+            this.catalog = await getFreshCatalog();
+            if (this.form.folderId === this.folderForm.folderId) this.form = {...this.form, folderId};
+            this.showFolderEditor = false;
+            this.toast("Folder saved", `${this.folderForm.name} was updated.`, "success");
+        } catch (error) {
+            this.toast("Could not save folder", this.message(error), "error");
+        } finally {
+            this.folderSaving = false;
+        }
+    }
+
+    async handleCreateCategory(event) {
         const category = event.detail?.query?.trim();
         if (!category) return;
-        const categories = [...(this.catalog.categories || [])];
-        if (!categories.some((item) => item.label.toLowerCase() === category.toLowerCase())) {
-            categories.push({label: category, value: category});
-            categories.sort((left, right) => left.label.localeCompare(right.label));
+        try {
+            const savedName = await saveCategory({originalName: null, name: category});
+            this.catalog = await getFreshCatalog();
+            this.form = {...this.form, category: savedName};
+            this.toast("Category created", `${savedName} is ready and selected.`, "success");
+        } catch (error) {
+            this.toast("Could not create category", this.message(error), "error");
         }
-        this.catalog = {...this.catalog, categories};
-        this.form = {...this.form, category};
+    }
+
+    handleEditCategory(event) {
+        this.categoryForm = {originalName: event.detail.value, name: event.detail.value};
+        this.showCategoryEditor = true;
+    }
+
+    async handleDeleteCategory(event) {
+        const category = event.detail.value;
+        const confirmed = await LightningConfirm.open({
+            label: "Delete category?",
+            message: `Delete "${category}"? Tutorials using it will move to Other, or become uncategorized if Other is deleted.`,
+            theme: "warning"
+        });
+        if (!confirmed) return;
+        try {
+            const movedCount = await deleteCategory({name: category});
+            this.catalog = await getFreshCatalog();
+            if (this.form.category === category) {
+                const replacement = category !== "Other" && this.catalog.categories.some((item) => item.value === "Other") ? "Other" : null;
+                this.form = {...this.form, category: replacement};
+            }
+            this.toast("Category deleted", `${category} was deleted. ${movedCount || 0} tutorial(s) were updated.`, "success");
+        } catch (error) {
+            this.toast("Could not delete category", this.message(error), "error");
+        }
+    }
+
+    closeCategoryEditor() { this.showCategoryEditor = false; }
+    handleCategoryName(event) { this.categoryForm = {...this.categoryForm, name: event.target.value}; }
+
+    async handleCategorySave() {
+        const input = this.template.querySelector('.quick-category-modal lightning-input[data-field="name"]');
+        if (!input?.reportValidity()) return;
+        this.categorySaving = true;
+        try {
+            const savedName = await saveCategory(this.categoryForm);
+            if (this.form.category === this.categoryForm.originalName) this.form = {...this.form, category: savedName};
+            this.catalog = await getFreshCatalog();
+            this.showCategoryEditor = false;
+            this.toast("Category saved", `${savedName} was updated.`, "success");
+        } catch (error) {
+            this.toast("Could not save category", this.message(error), "error");
+        } finally {
+            this.categorySaving = false;
+        }
     }
 
     async handleCopyAudience(event) {
@@ -502,6 +629,45 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.showGroupCreator = true;
     }
 
+    async handleEditGroup(event) {
+        const [type, groupId] = (event.detail.value || "").split(":");
+        if (type !== "Group" || !groupId) return;
+        this.groupTargetField = event.currentTarget.dataset.field || `${event.currentTarget.dataset.purpose}Groups`;
+        try {
+            this.groupForm = await getGroup({groupId});
+            this.showGroupCreator = true;
+        } catch (error) {
+            this.toast("Could not open group", this.message(error), "error");
+        }
+    }
+
+    async handleDeleteGroup(event) {
+        const [type, groupId] = (event.detail.value || "").split(":");
+        if (type !== "Group" || !groupId) return;
+        const groupName = this.catalog.groups.find((group) => group.value === groupId)?.label || "this group";
+        const confirmed = await LightningConfirm.open({
+            label: "Delete group?",
+            message: `Delete "${groupName}"? It will be removed from all tutorial audiences and nested groups.`,
+            theme: "warning"
+        });
+        if (!confirmed) return;
+        try {
+            await deleteGroup({groupId});
+            const removeGroup = (values) => (values || []).filter((value) => value !== groupId);
+            this.form = {
+                ...this.form,
+                visibilityGroups: removeGroup(this.form.visibilityGroups),
+                requiredGroups: removeGroup(this.form.requiredGroups),
+                notificationGroups: removeGroup(this.form.notificationGroups)
+            };
+            this.catalog = await getFreshCatalog();
+            await Promise.all([this.refreshInheritedAudience("visibility"), this.refreshInheritedAudience("required")]);
+            this.toast("Group deleted", `${groupName} was removed from tutorial audiences.`, "success");
+        } catch (error) {
+            this.toast("Could not delete group", this.message(error), "error");
+        }
+    }
+
     closeGroupCreator() {
         this.showGroupCreator = false;
     }
@@ -519,6 +685,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         if (!name?.reportValidity()) return;
         this.groupSaving = true;
         try {
+            const editing = !!this.groupForm.groupId;
             const groupId = await saveGroupJson({inputJson: JSON.stringify(this.groupForm)});
             const createdGroup = {value: groupId, label: this.groupForm.name, meta: this.groupForm.description || "Group"};
             this.catalog = {
@@ -526,12 +693,12 @@ export default class LogicLearnTutorialEditor extends LightningElement {
                 groups: [...(this.catalog.groups || []).filter((group) => group.value !== groupId), createdGroup]
                     .sort((left, right) => left.label.localeCompare(right.label))
             };
-            if (this.groupTargetField) {
+            if (this.groupTargetField && !editing) {
                 const selected = this.form[this.groupTargetField] || [];
                 this.form = {...this.form, [this.groupTargetField]: [...new Set([...selected, groupId])]};
             }
             this.showGroupCreator = false;
-            this.toast("Group created", `${this.groupForm.name} is ready and selected.`, "success");
+            this.toast(editing ? "Group saved" : "Group created", editing ? `${this.groupForm.name} was updated.` : `${this.groupForm.name} is ready and selected.`, "success");
             try { this.catalog = await getFreshCatalog(); }
             catch (refreshError) { this.toast("Refresh needed", "The group was created and selected, but the audience list could not be refreshed.", "warning"); }
         } catch (error) {

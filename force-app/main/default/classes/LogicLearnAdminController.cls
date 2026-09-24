@@ -65,8 +65,21 @@ public without sharing class LogicLearnAdminController {
                 sample('Security Awareness', folders[2].Id, 'Compliance', 30), sample('Product Overview', folders[3].Id, 'Products', 40)
             };
         }
+        ensureDefaultCategories();
         ensureDefaultEmailTemplates(emailTemplateFolderId);
         moveConfiguredEmailTemplates(emailTemplateFolderId);
+    }
+
+    private static void ensureDefaultCategories() {
+        if ([SELECT COUNT() FROM Training_Category__c] > 0) return;
+        Set<String> names = new Set<String>{'Onboarding', 'Compliance', 'Products', 'Processes', 'Systems', 'Professional Development', 'Other'};
+        for (AggregateResult row : [SELECT Category__c category FROM Training_Video__c WHERE Category__c != null GROUP BY Category__c]) {
+            names.add((String)row.get('category'));
+        }
+        List<String> sortedNames = new List<String>(names); sortedNames.sort();
+        List<Training_Category__c> rows = new List<Training_Category__c>();
+        for (String name : sortedNames) rows.add(new Training_Category__c(Name=name));
+        if (!rows.isEmpty()) insert rows;
     }
 
     private static Id findEmailTemplateFolder() {
@@ -274,8 +287,9 @@ public without sharing class LogicLearnAdminController {
         for(Training_Group__c g:[SELECT Id,Name,Description__c FROM Training_Group__c ORDER BY Name]) c.groups.add(opt(g.Id,g.Name,g.Description__c));
         for(Training_Folder__c f:[SELECT Id,Name,Parent_Folder__r.Name FROM Training_Folder__c ORDER BY Sort_Order__c,Name]) c.folders.add(opt(f.Id,f.Name,f.Parent_Folder__r==null?'Folder':f.Parent_Folder__r.Name));
         Set<String> categoryNames = new Set<String>();
-        for (Schema.PicklistEntry entry : Training_Video__c.Category__c.getDescribe().getPicklistValues()) categoryNames.add(entry.getValue());
+        for (Training_Category__c category : [SELECT Name FROM Training_Category__c ORDER BY Name]) categoryNames.add(category.Name);
         for (AggregateResult row : [SELECT Category__c category FROM Training_Video__c WHERE Category__c != null GROUP BY Category__c]) categoryNames.add((String)row.get('category'));
+        if (categoryNames.isEmpty()) for (Schema.PicklistEntry entry : Training_Video__c.Category__c.getDescribe().getPicklistValues()) categoryNames.add(entry.getValue());
         List<String> sortedCategories = new List<String>(categoryNames); sortedCategories.sort();
         for (String categoryName : sortedCategories) { Option categoryOption = new Option(); categoryOption.value = categoryName; categoryOption.label = categoryName; c.categories.add(categoryOption); }
         return c;
@@ -318,6 +332,60 @@ public without sharing class LogicLearnAdminController {
         } catch (Exception error) {
             throw new AuraHandledException('Could not save folder: ' + error.getMessage());
         }
+    }
+
+    @AuraEnabled
+    public static Integer deleteFolder(Id folderId) {
+        LogicLearnAudienceService.requireAdmin();
+        if (folderId == null) return 0;
+        List<Training_Video__c> tutorials = [SELECT Id, Folder__c FROM Training_Video__c WHERE Folder__c = :folderId];
+        for (Training_Video__c tutorial : tutorials) tutorial.Folder__c = null;
+        if (!tutorials.isEmpty()) update tutorials;
+        List<Training_Folder__c> children = [SELECT Id, Parent_Folder__c FROM Training_Folder__c WHERE Parent_Folder__c = :folderId];
+        for (Training_Folder__c child : children) child.Parent_Folder__c = null;
+        if (!children.isEmpty()) update children;
+        delete [SELECT Id FROM Training_Folder__c WHERE Id = :folderId LIMIT 1];
+        return tutorials.size();
+    }
+
+    @AuraEnabled
+    public static String saveCategory(String originalName, String name) {
+        LogicLearnAudienceService.requireAdmin();
+        String nextName = name == null ? null : name.trim();
+        if (String.isBlank(nextName)) throw new AuraHandledException('Enter a category name.');
+        List<Training_Category__c> existing = [SELECT Id, Name FROM Training_Category__c WHERE Name = :nextName LIMIT 2];
+        Training_Category__c category;
+        if (String.isBlank(originalName)) {
+            if (!existing.isEmpty()) return existing[0].Name;
+            category = new Training_Category__c(Name=nextName);
+            insert category;
+        } else {
+            List<Training_Category__c> current = [SELECT Id, Name FROM Training_Category__c WHERE Name = :originalName LIMIT 1];
+            if (current.isEmpty()) category = new Training_Category__c(Name=nextName);
+            else category = current[0];
+            if (!existing.isEmpty() && existing[0].Id != category.Id) throw new AuraHandledException('A category with that name already exists.');
+            category.Name = nextName;
+            upsert category;
+            if (originalName != nextName) {
+                List<Training_Video__c> tutorials = [SELECT Id, Category__c FROM Training_Video__c WHERE Category__c = :originalName];
+                for (Training_Video__c tutorial : tutorials) tutorial.Category__c = nextName;
+                if (!tutorials.isEmpty()) update tutorials;
+            }
+        }
+        return nextName;
+    }
+
+    @AuraEnabled
+    public static Integer deleteCategory(String name) {
+        LogicLearnAudienceService.requireAdmin();
+        if (String.isBlank(name)) return 0;
+        List<Training_Category__c> categories = [SELECT Id FROM Training_Category__c WHERE Name = :name];
+        List<Training_Video__c> tutorials = [SELECT Id, Category__c FROM Training_Video__c WHERE Category__c = :name];
+        String replacement = name == 'Other' || [SELECT COUNT() FROM Training_Category__c WHERE Name = 'Other'] == 0 ? null : 'Other';
+        for (Training_Video__c tutorial : tutorials) tutorial.Category__c = replacement;
+        if (!tutorials.isEmpty()) update tutorials;
+        if (!categories.isEmpty()) delete categories;
+        return tutorials.size();
     }
 
     @AuraEnabled
@@ -563,7 +631,10 @@ public without sharing class LogicLearnAdminController {
     @AuraEnabled
     public static void deleteGroup(Id groupId) {
         LogicLearnAudienceService.requireAdmin();
-        if (groupId != null) delete [SELECT Id FROM Training_Group__c WHERE Id = :groupId LIMIT 1];
+        if (groupId == null) return;
+        delete [SELECT Id FROM Training_Audience__c WHERE LogicLearn_Group__c = :groupId];
+        delete [SELECT Id FROM Training_Group_Member__c WHERE Nested_Group__c = :groupId];
+        delete [SELECT Id FROM Training_Group__c WHERE Id = :groupId LIMIT 1];
     }
 
     @AuraEnabled

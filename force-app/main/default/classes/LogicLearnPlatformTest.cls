@@ -165,6 +165,13 @@ private class LogicLearnPlatformTest {
         LogicLearnAdminController.FolderInput loadedFolder=LogicLearnAdminController.getFolder(folderId);
         System.assertEquals('Advanced',loadedFolder.name);
 
+        System.assertEquals('Clinical Operations', LogicLearnAdminController.saveCategory(null, 'Clinical Operations'));
+        System.assertEquals('Clinical Education', LogicLearnAdminController.saveCategory('Clinical Operations', 'Clinical Education'));
+        Training_Video__c categorized = new Training_Video__c(Name='Category test', Status__c='Draft', Category__c='Clinical Education');
+        insert categorized;
+        System.assertEquals(1, LogicLearnAdminController.deleteCategory('Clinical Education'));
+        System.assertEquals('Other', [SELECT Category__c FROM Training_Video__c WHERE Id=:categorized.Id].Category__c);
+
         LogicLearnAdminController.Catalog catalog=LogicLearnAdminController.getCatalog();
         System.assert(catalog.users.size()>0); System.assert(catalog.profiles.size()>0); System.assert(catalog.folders.size()>0);
 
@@ -175,6 +182,11 @@ private class LogicLearnPlatformTest {
         Id groupId=LogicLearnAdminController.saveGroupJson(JSON.serialize(groupInput));
         System.assertEquals(2,LogicLearnAdminController.getGroup(groupId).users.size()+LogicLearnAdminController.getGroup(groupId).profiles.size());
         System.assertEquals(1,LogicLearnAdminController.getGroups().size());
+
+        Training_Video__c folderTutorial = new Training_Video__c(Name='Folder test', Status__c='Draft', Folder__c=folderId);
+        insert folderTutorial;
+        System.assertEquals(1, LogicLearnAdminController.deleteFolder(folderId));
+        System.assertEquals(null, [SELECT Folder__c FROM Training_Video__c WHERE Id=:folderTutorial.Id].Folder__c);
 
         Id draftId=LogicLearnAdminController.createTutorialDraft();
         LogicLearnAdminController.TutorialInput draft=LogicLearnAdminController.getTutorial(draftId);
