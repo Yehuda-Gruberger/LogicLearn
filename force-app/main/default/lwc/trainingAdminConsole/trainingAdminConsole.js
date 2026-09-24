@@ -448,10 +448,29 @@ export default class TrainingAdminConsole extends LightningElement {
         video.dataset.hovered = "false";
         video.classList.remove("is-playing");
         video.pause();
-        video.currentTime = 0;
+        video.currentTime = Number(video.dataset.posterTime || 0.01);
     }
 
-    handleThumbnailError(event) { event.currentTarget.style.display = "none"; }
+    handleThumbnailMetadata(event) {
+        const video = event.currentTarget;
+        const duration = Number(video.duration);
+        const posterTime = Number.isFinite(duration) && duration > 0.2 ? Math.min(0.15, duration / 3) : 0.01;
+        video.dataset.posterTime = String(posterTime);
+        try { video.currentTime = posterTime; }
+        catch (error) { video.classList.add("is-poster"); }
+    }
+
+    handleThumbnailSeeked(event) { event.currentTarget.classList.add("is-poster"); }
+
+    handleThumbnailError(event) {
+        const image = event.currentTarget;
+        image.style.display = "none";
+        const video = image.nextElementSibling;
+        if (video?.tagName === "VIDEO") {
+            video.preload = "metadata";
+            video.load();
+        }
+    }
 
     handleHeroPlay() {
         this.heroOverlayVisible = false;

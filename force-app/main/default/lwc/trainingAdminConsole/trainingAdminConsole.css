@@ -273,6 +273,7 @@
   background: #102331;
 }
 .browser-thumb video { opacity: 0; transition: opacity 0.14s ease; }
+.browser-thumb video.is-poster,
 .browser-thumb video.is-playing { opacity: 1; }
 .thumb-play {
   position: relative;
@@ -301,6 +302,19 @@
 }
 .admin-doc-page i:nth-child(2) { width: 78%; }
 .admin-doc-page i:nth-child(3) { width: 90%; }
+.admin-doc-preview {
+  position: absolute;
+  inset: 0.18rem 0.45rem;
+  overflow: hidden;
+  padding: 0.2rem;
+  color: #1f2937;
+  background: #fff;
+  font-size: 0.22rem;
+  line-height: 1.15;
+  text-align: left;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.28);
+}
+.admin-doc-preview lightning-formatted-rich-text { display: block; }
 .browser-copy {
   min-width: 0;
   display: flex;

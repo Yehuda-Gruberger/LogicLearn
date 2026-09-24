@@ -43,6 +43,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public Datetime completedAt { get; set; }
         @AuraEnabled public String contentType { get; set; }
         @AuraEnabled public Integer pageCount { get; set; }
+        @AuraEnabled public String documentPreview { get; set; }
     }
 
     public class FolderInfo {
@@ -114,6 +115,7 @@ public without sharing class TrainingVideoController {
         videos = allowedVideos;
 
         Map<Id, Integer> pageCountsByVideo = new Map<Id, Integer>();
+        Map<Id, String> documentPreviewsByVideo = new Map<Id, String>();
         Set<Id> documentIds = new Set<Id>();
         for (Training_Video__c video : videos) {
             if (video.Content_Type__c == 'Document') documentIds.add(video.Id);
@@ -126,6 +128,16 @@ public without sharing class TrainingVideoController {
                 GROUP BY Training_Video__c
             ]) {
                 pageCountsByVideo.put((Id) row.get('videoId'), (Integer) row.get('pageCount'));
+            }
+            for (Training_Tutorial_Page__c page : [
+                SELECT Training_Video__c, Body__c
+                FROM Training_Tutorial_Page__c
+                WHERE Training_Video__c IN :documentIds
+                ORDER BY Training_Video__c, Page_Number__c, CreatedDate
+            ]) {
+                if (!documentPreviewsByVideo.containsKey(page.Training_Video__c)) {
+                    documentPreviewsByVideo.put(page.Training_Video__c, previewDocumentBody(page.Body__c));
+                }
             }
         }
 
@@ -175,6 +187,7 @@ public without sharing class TrainingVideoController {
             info.thumbnailUrl = buildThumbnailUrl(vid.Video_Content_Version_Id__c);
             info.contentType = vid.Content_Type__c;
             info.pageCount = pageCountsByVideo.containsKey(vid.Id) ? pageCountsByVideo.get(vid.Id) : 0;
+            info.documentPreview = documentPreviewsByVideo.get(vid.Id);
 
             Training_View__c view = viewsByVideo.get(vid.Id);
             // Mandatory is per-user: only when this user was actually assigned the video.
@@ -649,6 +662,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String previewUrl { get; set; }
         @AuraEnabled public String thumbnailUrl { get; set; }
         @AuraEnabled public String contentType { get; set; }
+        @AuraEnabled public String documentPreview { get; set; }
         @AuraEnabled public Integer assignedCount { get; set; }
         @AuraEnabled public Integer completedCount { get; set; }
     }
@@ -682,13 +696,30 @@ public without sharing class TrainingVideoController {
             completedByVideo.put((Id) ar.get('vid'), (Integer) ar.get('c'));
         }
 
-        List<VideoAdminRow> rows = new List<VideoAdminRow>();
-        for (Training_Video__c v : [
+        List<Training_Video__c> adminVideos = [
             SELECT Id, Name, Folder__c, Folder__r.Name, Category__c, Status__c, CreatedDate, CreatedById, CreatedBy.Name,
                 Content_Type__c, Video_Content_Version_Id__c
             FROM Training_Video__c
             ORDER BY CreatedDate DESC
-        ]) {
+        ];
+        Set<Id> adminDocumentIds = new Set<Id>();
+        for (Training_Video__c video : adminVideos) if (video.Content_Type__c == 'Document') adminDocumentIds.add(video.Id);
+        Map<Id, String> adminDocumentPreviews = new Map<Id, String>();
+        if (!adminDocumentIds.isEmpty()) {
+            for (Training_Tutorial_Page__c page : [
+                SELECT Training_Video__c, Body__c
+                FROM Training_Tutorial_Page__c
+                WHERE Training_Video__c IN :adminDocumentIds
+                ORDER BY Training_Video__c, Page_Number__c, CreatedDate
+            ]) {
+                if (!adminDocumentPreviews.containsKey(page.Training_Video__c)) {
+                    adminDocumentPreviews.put(page.Training_Video__c, previewDocumentBody(page.Body__c));
+                }
+            }
+        }
+
+        List<VideoAdminRow> rows = new List<VideoAdminRow>();
+        for (Training_Video__c v : adminVideos) {
             VideoAdminRow r = new VideoAdminRow();
             r.id = v.Id;
             r.title = v.Name;
@@ -704,6 +735,7 @@ public without sharing class TrainingVideoController {
                 ? '/sfc/servlet.shepherd/version/download/' + v.Video_Content_Version_Id__c
                 : null;
             r.thumbnailUrl = buildThumbnailUrl(v.Video_Content_Version_Id__c);
+            r.documentPreview = adminDocumentPreviews.get(v.Id);
             r.assignedCount = assignedByVideo.containsKey(v.Id) ? assignedByVideo.get(v.Id) : 0;
             r.completedCount = completedByVideo.containsKey(v.Id) ? completedByVideo.get(v.Id) : 0;
             rows.add(r);
@@ -715,6 +747,11 @@ public without sharing class TrainingVideoController {
         return String.isBlank(contentVersionId)
             ? null
             : '/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB240BY180&versionId=' + contentVersionId;
+    }
+
+    private static String previewDocumentBody(String body) {
+        if (String.isBlank(body)) return null;
+        return body.length() > 2000 ? body.substring(0, 2000) : body;
     }
 
     // ───────────────────────── Admin: audience & assignments ─────────────────────────
