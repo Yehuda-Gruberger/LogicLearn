@@ -6,7 +6,7 @@
     }
   ],
   "name": "LogicLearn",
-  "namespace": "",
+  "namespace": "logiclearn",
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "64.0"
 }

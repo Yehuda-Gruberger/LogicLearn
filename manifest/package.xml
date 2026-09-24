@@ -8,7 +8,6 @@
     <types><members>LogicLearn_Admin</members><name>CustomPermission</name></types>
     <types><members>*</members><name>CustomObject</name></types>
     <types><members>*</members><name>CustomTab</name></types>
-    <types><members>unfiled$public/LogicLearn_Assignment</members><members>unfiled$public/LogicLearn_Reminder</members><name>EmailTemplate</name></types>
     <types><members>*</members><name>FlexiPage</name></types>
     <types><members>*</members><name>Layout</name></types>
     <types><members>*</members><name>LightningComponentBundle</name></types>

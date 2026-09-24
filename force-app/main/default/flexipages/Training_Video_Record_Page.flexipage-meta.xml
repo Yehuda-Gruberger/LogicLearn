@@ -15,13 +15,13 @@
         <type>Region</type>
         <itemInstances>
             <componentInstance>
-                <componentName>c:trainingVideoPlayer</componentName>
+                <componentName>trainingVideoPlayer</componentName>
                 <identifier>trainingPlayer</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>c:trainingVideoManager</componentName>
+                <componentName>trainingVideoManager</componentName>
                 <identifier>trainingManager</identifier>
             </componentInstance>
         </itemInstances>

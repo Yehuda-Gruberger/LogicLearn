@@ -33,3 +33,9 @@ sf org assign permset --name Training_Library_Access --target-org YOUR_ORG
 Open the LogicLearn app after deployment. The first administrator visit creates global settings and four editable sample drafts. Email template names, the default completion threshold, and skip prevention can be changed on the Admin > Settings screen.
 
 Video files remain in Salesforce Files. The default upload limit is 150 MB; external links must use HTTPS.
+
+## Managed 1GP preparation
+
+The managed 1GP packaging-org setup, readiness checks, and upload commands are documented in [docs/PACKAGING.md](docs/PACKAGING.md). The registered namespace is `logiclearn`, and the existing package ID is recorded in `config/package1.json`.
+
+Email templates and email folders are intentionally not package components. LogicLearn identifies subscriber-managed templates through its template-tagging configuration.

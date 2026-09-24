@@ -1,6 +1,7 @@
 import {LightningElement, wire} from "lwc";
 import {NavigationMixin} from "lightning/navigation";
 import getMyPending from "@salesforce/apex/TrainingVideoController.getMyPending";
+import TRAINING_VIDEO_OBJECT from "@salesforce/schema/Training_Video__c";
 
 export default class MyTrainingPending extends NavigationMixin(LightningElement) {
     items = [];
@@ -36,7 +37,7 @@ export default class MyTrainingPending extends NavigationMixin(LightningElement)
             type: "standard__recordPage",
             attributes: {
                 recordId: videoId,
-                objectApiName: "Training_Video__c",
+                objectApiName: TRAINING_VIDEO_OBJECT.objectApiName,
                 actionName: "view"
             }
         });
