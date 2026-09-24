@@ -37,6 +37,7 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public Date dueDate { get; set; }
         @AuraEnabled public Datetime createdDate { get; set; }
         @AuraEnabled public String previewUrl { get; set; }
+        @AuraEnabled public String thumbnailUrl { get; set; }
         @AuraEnabled public String viewStatus { get; set; } // Pending / In Progress / Completed / null
         @AuraEnabled public Decimal watchPercent { get; set; }
         @AuraEnabled public Datetime completedAt { get; set; }
@@ -100,7 +101,7 @@ public without sharing class TrainingVideoController {
      * @param category Optional Category__c value to filter by
      * @return List<FolderSection> ordered by folder Sort_Order__c, then video Sort_Order__c
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<FolderSection> getLibrary(String folderId, String category) {
         List<Training_Video__c> videos = queryLibraryVideos(folderId, category);
         Set<Id> candidateIds = new Map<Id, Training_Video__c>(videos).keySet();
@@ -171,6 +172,7 @@ public without sharing class TrainingVideoController {
             info.previewUrl = vid.Content_Type__c != 'External Link' && String.isNotBlank(vid.Video_Content_Version_Id__c)
                 ? '/sfc/servlet.shepherd/version/download/' + vid.Video_Content_Version_Id__c
                 : null;
+            info.thumbnailUrl = buildThumbnailUrl(vid.Video_Content_Version_Id__c);
             info.contentType = vid.Content_Type__c;
             info.pageCount = pageCountsByVideo.containsKey(vid.Id) ? pageCountsByVideo.get(vid.Id) : 0;
 
@@ -192,7 +194,7 @@ public without sharing class TrainingVideoController {
      * @description Returns every folder with its parent, so the client can render the folder
      * hierarchy in the library rail. Ordered by Sort_Order__c then Name.
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<FolderInfo> getFolders() {
         List<FolderInfo> result = new List<FolderInfo>();
         for (Training_Folder__c f : [
@@ -572,7 +574,7 @@ public without sharing class TrainingVideoController {
      * @description Returns the running user's outstanding (Pending / In Progress) training for
      * videos still Published or Mandatory, mandatory first. Drives the "My Training" component.
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<VideoInfo> getMyPending() {
         List<Training_Video__c> candidates = [
             SELECT Id, Name, Category__c FROM Training_Video__c
@@ -645,19 +647,20 @@ public without sharing class TrainingVideoController {
         @AuraEnabled public String createdByName { get; set; }
         @AuraEnabled public Boolean isMine { get; set; }
         @AuraEnabled public String previewUrl { get; set; }
+        @AuraEnabled public String thumbnailUrl { get; set; }
         @AuraEnabled public String contentType { get; set; }
         @AuraEnabled public Integer assignedCount { get; set; }
         @AuraEnabled public Integer completedCount { get; set; }
     }
 
     /** @description Whether the running user can manage the library (create Training Videos). */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static Boolean isLibraryAdmin() {
         return LogicLearnAudienceService.isAdmin();
     }
 
     /** @description Every video (all statuses, incl. Draft) with assignment/completion counts. */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<VideoAdminRow> getAdminVideos() {
         LogicLearnAudienceService.requireAdmin();
         Map<Id, Integer> assignedByVideo = new Map<Id, Integer>();
@@ -700,11 +703,18 @@ public without sharing class TrainingVideoController {
             r.previewUrl = v.Content_Type__c != 'External Link' && String.isNotBlank(v.Video_Content_Version_Id__c)
                 ? '/sfc/servlet.shepherd/version/download/' + v.Video_Content_Version_Id__c
                 : null;
+            r.thumbnailUrl = buildThumbnailUrl(v.Video_Content_Version_Id__c);
             r.assignedCount = assignedByVideo.containsKey(v.Id) ? assignedByVideo.get(v.Id) : 0;
             r.completedCount = completedByVideo.containsKey(v.Id) ? completedByVideo.get(v.Id) : 0;
             rows.add(r);
         }
         return rows;
+    }
+
+    private static String buildThumbnailUrl(String contentVersionId) {
+        return String.isBlank(contentVersionId)
+            ? null
+            : '/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB240BY180&versionId=' + contentVersionId;
     }
 
     // ───────────────────────── Admin: audience & assignments ─────────────────────────
@@ -732,7 +742,7 @@ public without sharing class TrainingVideoController {
     }
 
     /** @description Profiles for the audience picker. */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<Option> getProfiles() {
         LogicLearnAudienceService.requireAdmin();
         List<Option> opts = new List<Option>();
@@ -856,7 +866,7 @@ public without sharing class TrainingVideoController {
      * Limited to users the video was ASSIGNED to (Assigned__c = true), so self-initiated views
      * by non-assigned users don't clutter the assignment roster.
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<AssignmentRow> getAssignments(Id videoId) {
         LogicLearnAudienceService.requireAdmin();
         List<AssignmentRow> rows = new List<AssignmentRow>();
@@ -946,7 +956,7 @@ public without sharing class TrainingVideoController {
     // ───────────────────────── Admin: single video file ─────────────────────────
 
     /** @description The current video file for a record (pinned or latest linked), or null. */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static Option getCurrentVideoFile(Id videoId) {
         LogicLearnAudienceService.requireAdmin();
         if (videoId == null) {

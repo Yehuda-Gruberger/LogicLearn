@@ -99,6 +99,9 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     mediaRecorder;
     recordingStream;
     recordingTimer;
+    recordingStopTimer;
+    recordingChunks = [];
+    recordingMimeType = "video/webm";
     richTextFormats = ["font", "size", "bold", "italic", "underline", "strike", "list", "indent", "align", "link", "image", "header", "color", "background", "clean"];
 
     async connectedCallback() {
@@ -734,16 +737,22 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.toast("Screen recording unavailable", "This browser does not support screen recording.", "error");
             return;
         }
-        this.discardRecording();
+        this.prepareNewRecording();
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
-            let capturedBlob;
+            const mimeType = ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp9,opus", "video/webm"]
+                .find((type) => MediaRecorder.isTypeSupported(type));
             this.recordingStream = stream;
-            this.mediaRecorder = new MediaRecorder(stream);
+            this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
+            this.recordingChunks = [];
+            this.recordingMimeType = this.mediaRecorder.mimeType || mimeType || "video/webm";
             this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data?.size) capturedBlob = event.data;
+                if (event.data && event.data.size > 0) this.recordingChunks.push(event.data);
             };
-            this.mediaRecorder.onstop = () => this.finishRecording(capturedBlob);
+            this.mediaRecorder.onstop = () => {
+                window.clearTimeout(this.recordingStopTimer);
+                window.setTimeout(() => this.finishRecording(), 100);
+            };
             this.mediaRecorder.onerror = () => {
                 this.recording = false;
                 this.recordingStopping = false;
@@ -756,7 +765,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             this.recordingStopping = false;
             this.recordingReady = false;
             this.recordingSeconds = 0;
-            this.mediaRecorder.start();
+            this.mediaRecorder.start(500);
             this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
             requestAnimationFrame(() => {
                 const preview = this.template.querySelector(".recording-live");
@@ -770,21 +779,26 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     stopRecording() {
         if (this.mediaRecorder?.state !== "recording") return;
+        const recorder = this.mediaRecorder;
         this.recordingStopping = true;
         window.clearInterval(this.recordingTimer);
         this.recording = false;
+        window.clearTimeout(this.recordingStopTimer);
         try {
-            this.mediaRecorder.stop();
+            recorder.requestData();
+            this.recordingStopTimer = window.setTimeout(() => {
+                if (recorder.state === "recording") recorder.stop();
+            }, 250);
         } catch (error) {
-            this.recordingStopping = false;
-            this.toast("Recording failed", "The browser could not stop this recording. Please try again.", "error");
+            if (recorder.state === "recording") recorder.stop();
         }
     }
 
-    finishRecording(blob) {
+    finishRecording() {
         window.clearInterval(this.recordingTimer);
+        window.clearTimeout(this.recordingStopTimer);
         this.recordingStream?.getTracks().forEach((track) => track.stop());
-        this.recordedBlob = blob;
+        this.recordedBlob = new Blob(this.recordingChunks, {type: this.recordingMimeType});
         this.recordingStopping = false;
         if (!this.recordedBlob?.size) {
             this.recordingReady = false;
@@ -811,13 +825,30 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     }
 
     discardRecording() {
-        if (this.mediaRecorder?.state === "recording") this.mediaRecorder.stop();
-        this.recordingStream?.getTracks().forEach((track) => track.stop());
+        this.prepareNewRecording();
         this.resetRecordedMedia();
         this.showRecorder = false;
     }
 
+    prepareNewRecording() {
+        window.clearInterval(this.recordingTimer);
+        window.clearTimeout(this.recordingStopTimer);
+        if (this.mediaRecorder) {
+            this.mediaRecorder.ondataavailable = null;
+            this.mediaRecorder.onstop = null;
+            this.mediaRecorder.onerror = null;
+            if (this.mediaRecorder.state === "recording") this.mediaRecorder.stop();
+        }
+        this.recordingStream?.getTracks().forEach((track) => track.stop());
+        this.mediaRecorder = undefined;
+        this.recordingStream = undefined;
+        this.recordingChunks = [];
+        this.recording = false;
+        this.recordingStopping = false;
+    }
+
     resetRecordedMedia() {
+        window.clearTimeout(this.recordingStopTimer);
         if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
         this.recordingPreviewUrl = undefined;
         this.recordedBlob = undefined;

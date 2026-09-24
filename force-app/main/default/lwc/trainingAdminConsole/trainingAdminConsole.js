@@ -1,7 +1,6 @@
-import {LightningElement, api, wire, track} from "lwc";
+import {LightningElement, api, track} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import LightningConfirm from "lightning/confirm";
-import {refreshApex} from "@salesforce/apex";
 import {deleteRecord} from "lightning/uiRecordApi";
 import getFolders from "@salesforce/apex/TrainingVideoController.getFolders";
 import getAdminVideos from "@salesforce/apex/TrainingVideoController.getAdminVideos";
@@ -41,11 +40,6 @@ export default class TrainingAdminConsole extends LightningElement {
     catalog = {users: [], profiles: [], groups: []};
     globalSettings = {completionThreshold: 90, preventSkipping: true, documentPageRequirement: "Every page", documentReadingOrder: "In order", documentCompletionMode: "Finish on last page"};
     @track videos = [];
-    _wiredFolders;
-    _wiredVideos;
-    _wiredCatalog;
-    _wiredSettings;
-
     @track showFolderForm = false;
     @track showTutorialEditor = false;
     showCreateMenu = false;
@@ -93,10 +87,7 @@ export default class TrainingAdminConsole extends LightningElement {
         };
         document.addEventListener("click", this.outsideCreateMenuHandler);
         initializeLogicLearn()
-            .then(() => Promise.all([
-                this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
-                this._wiredVideos ? refreshApex(this._wiredVideos) : Promise.resolve()
-            ]))
+            .then(() => this.refreshData())
             .catch((error) => this.showToast("Setup error", this.extractError(error), "error"));
     }
 
@@ -114,63 +105,29 @@ export default class TrainingAdminConsole extends LightningElement {
     get settingsTabClass() { return this.activeSection === "settings" ? "admin-tab active" : "admin-tab"; }
     handleSection(event) { this.activeSection = event.currentTarget.dataset.section; }
 
-    @wire(getFolders)
-    wiredFolders(result) {
-        this._wiredFolders = result;
-        if (result.data) {
-            this.folders = result.data;
-        }
-    }
-
-    @wire(getAdminVideos)
-    wiredVideos(result) {
-        this._wiredVideos = result;
-        if (result.data) {
-            this.videos = [...result.data].sort((left, right) =>
-                new Date(right.createdDate || 0).getTime() - new Date(left.createdDate || 0).getTime());
-            this.resetTutorialWindow();
-            if (!this.selectedVideoId && this.videos.length) this.selectTutorial(this.videos[0].id);
-            else if (this.selectedVideoId && !this.videos.some((video) => video.id === this.selectedVideoId)) {
-                this.selectedVideoId = undefined;
-                this.selectedTutorial = undefined;
-                if (this.videos.length) this.selectTutorial(this.videos[0].id);
-            }
-        }
-    }
-
-    @wire(getCatalog)
-    wiredCatalog(result) {
-        this._wiredCatalog = result;
-        if (!result.data) return;
-        this.catalog = result.data;
-        if (this.selectedTutorial) {
-            this.selectedTutorial = {
-                ...this.selectedTutorial,
-                visibilitySummary: this.audienceSummary(this.selectedTutorial, "visibility"),
-                requiredSummary: this.audienceSummary(this.selectedTutorial, "required"),
-                notificationSummary: this.notificationSummary(this.selectedTutorial)
-            };
-        }
-    }
-
-    @wire(getSettings)
-    wiredSettings(result) {
-        this._wiredSettings = result;
-        if (!result.data) return;
-        this.globalSettings = result.data;
-        if (this.selectedTutorial) this.applyResolvedSettingLabels();
-    }
-
     @api
     async refreshData() {
         const selectedVideoId = this.selectedVideoId;
-        await Promise.all([
-            this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
-            this._wiredVideos ? refreshApex(this._wiredVideos) : Promise.resolve(),
-            this._wiredCatalog ? refreshApex(this._wiredCatalog) : Promise.resolve(),
-            this._wiredSettings ? refreshApex(this._wiredSettings) : Promise.resolve()
+        const [folders, videos, catalog, settings] = await Promise.all([
+            getFolders(),
+            getAdminVideos(),
+            getCatalog(),
+            getSettings()
         ]);
-        if (selectedVideoId) await this.selectTutorial(selectedVideoId);
+        this.folders = folders || [];
+        this.catalog = catalog || {users: [], profiles: [], groups: []};
+        this.globalSettings = settings || this.globalSettings;
+        this.videos = [...(videos || [])].sort((left, right) =>
+            new Date(right.createdDate || 0).getTime() - new Date(left.createdDate || 0).getTime());
+        this.resetTutorialWindow();
+        const nextVideoId = selectedVideoId && this.videos.some((video) => video.id === selectedVideoId)
+            ? selectedVideoId
+            : this.videos[0]?.id;
+        if (nextVideoId) await this.selectTutorial(nextVideoId);
+        else {
+            this.selectedVideoId = undefined;
+            this.selectedTutorial = undefined;
+        }
     }
 
     // Hierarchical, indented folder list.
@@ -332,7 +289,7 @@ export default class TrainingAdminConsole extends LightningElement {
         try {
             await deleteRecord(id);
             this.showToast("Deleted", `${folderName} was deleted. Its tutorials moved to Ungrouped.`, "success");
-            await Promise.all([refreshApex(this._wiredFolders), refreshApex(this._wiredVideos)]);
+            await this.refreshData();
         } catch (error) {
             this.showToast("Error", this.extractError(error), "error");
         }
@@ -357,7 +314,7 @@ export default class TrainingAdminConsole extends LightningElement {
             await saveFolderJson({inputJson: JSON.stringify(this.folderForm)});
             this.showFolderForm = false;
             this.showToast("Saved", "Folder saved.", "success");
-            await refreshApex(this._wiredFolders);
+            this.folders = await getFolders();
         } catch (error) {
             this.showToast("Error", this.extractError(error), "error");
         }
@@ -477,15 +434,24 @@ export default class TrainingAdminConsole extends LightningElement {
     handleThumbnailEnter(event) {
         const video = event.currentTarget;
         video.muted = true;
+        video.dataset.hovered = "true";
         const playPromise = video.play();
-        if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+        if (playPromise && typeof playPromise.then === "function") {
+            playPromise.then(() => {
+                if (video.dataset.hovered === "true") video.classList.add("is-playing");
+            }).catch(() => {});
+        }
     }
 
     handleThumbnailLeave(event) {
         const video = event.currentTarget;
+        video.dataset.hovered = "false";
+        video.classList.remove("is-playing");
         video.pause();
         video.currentTime = 0;
     }
+
+    handleThumbnailError(event) { event.currentTarget.style.display = "none"; }
 
     handleHeroPlay() {
         this.heroOverlayVisible = false;
@@ -676,7 +642,7 @@ export default class TrainingAdminConsole extends LightningElement {
         try {
             await deleteRecord(row.id);
             this.showToast("Deleted", `${row.title} was deleted.`, "success");
-            await refreshApex(this._wiredVideos);
+            await this.refreshData();
         } catch (error) {
             this.showToast("Error", this.extractError(error), "error");
         }
@@ -693,8 +659,7 @@ export default class TrainingAdminConsole extends LightningElement {
         const savedVideoId = event.detail?.videoId || this.tutorialRecordId || this.selectedVideoId;
         this.closeTutorialEditor();
         this.selectedVideoId = savedVideoId;
-        await refreshApex(this._wiredVideos);
-        if (savedVideoId) await this.selectTutorial(savedVideoId);
+        await this.refreshData();
     }
 
     stopPropagation(event) {

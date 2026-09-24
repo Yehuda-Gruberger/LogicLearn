@@ -1,6 +1,5 @@
 import { LightningElement, wire, track } from "lwc";
 import { CurrentPageReference } from "lightning/navigation";
-import { refreshApex } from "@salesforce/apex";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getLibrary from "@salesforce/apex/TrainingVideoController.getLibrary";
 import getFolders from "@salesforce/apex/TrainingVideoController.getFolders";
@@ -37,27 +36,51 @@ export default class TrainingLibrary extends LightningElement {
   sections = [];
   folders = [];
   error;
-  _wired;
-  _wiredFolders;
   _resizeHandler;
 
   connectedCallback() {
     this._resizeHandler = () => this.syncAvailableHeight();
     window.addEventListener("resize", this._resizeHandler);
+    this.loadInitialData();
   }
 
   disconnectedCallback() {
     window.removeEventListener("resize", this._resizeHandler);
   }
 
-  @wire(isLibraryAdmin)
-  wiredAdmin({ data }) {
-    if (data !== undefined) {
-      this.isAdmin = data;
+  async loadInitialData() {
+    try {
+      const [admin, sections, folders] = await Promise.all([
+        isLibraryAdmin(),
+        getLibrary({ folderId: null, category: null }),
+        getFolders(),
+      ]);
+      this.isAdmin = admin;
+      this.sections = sections || [];
+      this.folders = folders || [];
+      this.resetLibraryWindow();
+      this.error = undefined;
       if (!this._modeInitialized) {
         this._modeInitialized = true;
-        if (data && !this._deepLinkHandled) this.mode = "admin";
+        if (admin && !this._deepLinkHandled) this.mode = "admin";
       }
+    } catch (error) {
+      this.error = this.extractError(error);
+    }
+  }
+
+  async loadLibraryData() {
+    try {
+      const [sections, folders] = await Promise.all([
+        getLibrary({ folderId: null, category: null }),
+        getFolders(),
+      ]);
+      this.sections = sections || [];
+      this.folders = folders || [];
+      this.resetLibraryWindow();
+      this.error = undefined;
+    } catch (error) {
+      this.error = this.extractError(error);
     }
   }
 
@@ -142,10 +165,7 @@ export default class TrainingLibrary extends LightningElement {
 
   async showLibraryMode() {
     this.mode = "library";
-    await Promise.all([
-      this._wired ? refreshApex(this._wired) : Promise.resolve(),
-      this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
-    ]);
+    await this.loadLibraryData();
   }
 
   async showAdminMode() {
@@ -156,26 +176,6 @@ export default class TrainingLibrary extends LightningElement {
 
   handleAdminSection(event) {
     this.adminSection = event.currentTarget.dataset.section;
-  }
-
-  @wire(getLibrary, { folderId: "$apexFolderId", category: null })
-  wiredLibrary(result) {
-    this._wired = result;
-    if (result.data) {
-      this.sections = result.data;
-      this.resetLibraryWindow();
-      this.error = undefined;
-    } else if (result.error) {
-      this.error = this.extractError(result.error);
-    }
-  }
-
-  @wire(getFolders)
-  wiredFolders(result) {
-    this._wiredFolders = result;
-    if (result.data) {
-      this.folders = result.data;
-    }
   }
 
   // id -> folder record, for parent lookups.
@@ -195,11 +195,6 @@ export default class TrainingLibrary extends LightningElement {
       counts[key] = (counts[key] || 0) + s.videos.length;
     }
     return counts;
-  }
-
-  // We fetch the whole library once and filter client-side, so the wire always passes null.
-  get apexFolderId() {
-    return null;
   }
 
   // ───────── Folder rail ─────────
@@ -590,23 +585,30 @@ export default class TrainingLibrary extends LightningElement {
   handleThumbnailEnter(event) {
     const video = event.currentTarget;
     video.muted = true;
+    video.dataset.hovered = "true";
     const playPromise = video.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise.then(() => {
+        if (video.dataset.hovered === "true") video.classList.add("is-playing");
+      }).catch(() => {});
     }
   }
 
   handleThumbnailLeave(event) {
     const video = event.currentTarget;
+    video.dataset.hovered = "false";
+    video.classList.remove("is-playing");
     video.pause();
     video.currentTime = 0;
   }
+
+  handleThumbnailError(event) { event.currentTarget.style.display = "none"; }
 
   async handleClosePlayer() {
     this.showPlayer = false;
     this.activeVideoId = undefined;
     // Refresh so the card reflects any new In Progress / Completed status from this watch.
-    await refreshApex(this._wired);
+    await this.loadLibraryData();
   }
 
   async handleDocumentProgress(event) {
@@ -625,10 +627,7 @@ export default class TrainingLibrary extends LightningElement {
   }
 
   handleRefresh() {
-    return Promise.all([
-      this._wired ? refreshApex(this._wired) : Promise.resolve(),
-      this._wiredFolders ? refreshApex(this._wiredFolders) : Promise.resolve(),
-    ]);
+    return this.loadLibraryData();
   }
 
   handleLibraryFilter(event) {

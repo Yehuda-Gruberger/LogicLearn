@@ -455,6 +455,8 @@
   place-items: center;
   overflow: hidden;
 }
+.thumb img,
+.required-thumb img,
 .thumb video,
 .required-thumb video {
   position: absolute;
@@ -464,6 +466,10 @@
   object-fit: cover;
   background: #102331;
 }
+.thumb video,
+.required-thumb video { opacity: 0; transition: opacity 0.14s ease; }
+.thumb video.is-playing,
+.required-thumb video.is-playing { opacity: 1; }
 .play,
 .required-play,
 .dur,

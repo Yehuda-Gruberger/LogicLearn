@@ -263,6 +263,7 @@
   border-radius: 0.34rem;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
 }
+.browser-thumb img,
 .browser-thumb video {
   position: absolute;
   inset: 0;
@@ -271,6 +272,8 @@
   object-fit: cover;
   background: #102331;
 }
+.browser-thumb video { opacity: 0; transition: opacity 0.14s ease; }
+.browser-thumb video.is-playing { opacity: 1; }
 .thumb-play {
   position: relative;
   z-index: 1;

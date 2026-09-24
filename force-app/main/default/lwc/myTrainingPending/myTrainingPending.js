@@ -1,4 +1,4 @@
-import {LightningElement, wire} from "lwc";
+import {LightningElement} from "lwc";
 import {NavigationMixin} from "lightning/navigation";
 import getMyPending from "@salesforce/apex/TrainingVideoController.getMyPending";
 import TRAINING_VIDEO_OBJECT from "@salesforce/schema/Training_Video__c";
@@ -7,9 +7,13 @@ export default class MyTrainingPending extends NavigationMixin(LightningElement)
     items = [];
     error;
 
-    @wire(getMyPending)
-    wiredPending({data, error}) {
-        if (data) {
+    connectedCallback() {
+        this.loadPending();
+    }
+
+    async loadPending() {
+        try {
+            const data = await getMyPending();
             this.items = data.map((v) => ({
                 ...v,
                 pillClass: v.isMandatory ? "pill mand" : "pill pend",
@@ -17,7 +21,7 @@ export default class MyTrainingPending extends NavigationMixin(LightningElement)
                 statusLabel: v.viewStatus === "In Progress" ? `In progress · ${Math.round(v.watchPercent || 0)}%` : "Not started"
             }));
             this.error = undefined;
-        } else if (error) {
+        } catch (error) {
             this.error = error.body ? error.body.message : "Unable to load your training.";
         }
     }

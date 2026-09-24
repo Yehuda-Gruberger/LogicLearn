@@ -270,7 +270,7 @@ public without sharing class LogicLearnAdminController {
         return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO/DOCUMENT_NAME] is now available.',Update_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been updated.',Assignment_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been assigned to you.',Reminder_In_App_Message__c='Reminder: complete [VIDEO/DOCUMENT_NAME].',Required_Update_Email_Template__c='LogicLearn Assignment',Required_Update_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been updated.',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static Catalog getCatalog() {
         return buildCatalog();
     }
@@ -296,7 +296,7 @@ public without sharing class LogicLearnAdminController {
     }
     private static Option opt(Id value,String label,String meta){Option o=new Option();o.value=value;o.label=label;o.meta=meta;return o;}
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<String> getAudienceMembers(List<String> profileIds, List<String> groupIds) {
         LogicLearnAudienceService.requireAdmin();
         List<String> result = new List<String>();
@@ -304,7 +304,7 @@ public without sharing class LogicLearnAdminController {
         return result;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static FolderInput getFolder(Id folderId) {
         LogicLearnAudienceService.requireAdmin();
         Training_Folder__c folder = [SELECT Id, Name, Parent_Folder__c, Sort_Order__c, Icon__c, Description__c FROM Training_Folder__c WHERE Id = :folderId LIMIT 1];
@@ -401,7 +401,7 @@ public without sharing class LogicLearnAdminController {
         return draft.Id;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static TutorialInput getTutorial(Id videoId) {
         return buildTutorial(videoId);
     }
@@ -468,7 +468,7 @@ public without sharing class LogicLearnAdminController {
         return result;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<TutorialPageInput> getTutorialPages(Id videoId) {
         return buildTutorialPages(videoId);
     }
@@ -605,12 +605,12 @@ public without sharing class LogicLearnAdminController {
         if(ids==null)return;for(String raw:ids)if(String.isNotBlank(raw))out.add(new Training_Audience__c(Training_Video__c=videoId,Purpose__c=purpose,Audience_Type__c='User',User__c=(Id)raw,Excluded__c=true));
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<GroupRow> getGroups(){LogicLearnAudienceService.requireAdmin();List<GroupRow> out=new List<GroupRow>();
         Map<Id,Integer> counts=new Map<Id,Integer>();for(AggregateResult a:[SELECT Group__c g,COUNT(Id)c FROM Training_Group_Member__c GROUP BY Group__c])counts.put((Id)a.get('g'),(Integer)a.get('c'));
         for(Training_Group__c g:[SELECT Id,Name,Description__c FROM Training_Group__c ORDER BY Name]){GroupRow r=new GroupRow();r.id=g.Id;r.name=g.Name;r.description=g.Description__c;r.memberCount=counts.containsKey(g.Id)?counts.get(g.Id):0;out.add(r);}return out;}
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static GroupInput getGroup(Id groupId) {
         LogicLearnAudienceService.requireAdmin();
         if (groupId == null) throw new AuraHandledException('A group is required.');
@@ -669,7 +669,7 @@ public without sharing class LogicLearnAdminController {
         return false;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<TrackingRow> getTracking(Id videoId) {
         LogicLearnAudienceService.requireAdmin();
         if (videoId == null) return new List<TrackingRow>();
