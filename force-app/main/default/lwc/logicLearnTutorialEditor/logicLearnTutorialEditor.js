@@ -22,6 +22,7 @@ import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
 import deleteFolder from "@salesforce/apex/LogicLearnAdminController.deleteFolder";
 import saveCategory from "@salesforce/apex/LogicLearnAdminController.saveCategory";
 import deleteCategory from "@salesforce/apex/LogicLearnAdminController.deleteCategory";
+import recorderApp from "@salesforce/resourceUrl/LogicLearnRecorder";
 
 const EMPTY_FORM = {
     videoId: null,
@@ -90,6 +91,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     pages = [];
     activePageIndex = 0;
     showRecorder = false;
+    recorderUrl = recorderApp;
     recording = false;
     recordingStopping = false;
     recordingReady = false;
@@ -740,68 +742,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         }
     }
 
-    async handleRecordScreen() {
-        if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === "undefined") {
-            this.toast("Screen recording unavailable", "This browser does not support screen recording.", "error");
-            return;
-        }
-        this.prepareNewRecording();
-        try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
-            const mimeType = ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp9,opus", "video/webm"]
-                .find((type) => MediaRecorder.isTypeSupported(type));
-            this.recordingStream = stream;
-            this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
-            this.recordingParts = [];
-            this.recordingPartPromises = [];
-            this.recordingDataEvents = 0;
-            this.recordingDataBytes = 0;
-            this.recordingMimeType = this.mediaRecorder.mimeType || mimeType || "video/webm";
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (!event.data || event.data.size === 0) return;
-                this.recordingDataEvents += 1;
-                this.recordingDataBytes += event.data.size;
-                const partPromise = event.data.arrayBuffer()
-                    .then((buffer) => { if (buffer.byteLength) this.recordingParts.push(buffer); })
-                    .catch(() => {});
-                this.recordingPartPromises.push(partPromise);
-            };
-            this.mediaRecorder.onstop = () => {
-                window.clearTimeout(this.recordingStopTimer);
-                window.setTimeout(() => this.finishRecording(), 100);
-            };
-            this.mediaRecorder.onerror = () => {
-                this.recording = false;
-                this.recordingStopping = false;
-                this.recordingStream?.getTracks().forEach((track) => track.stop());
-                this.toast("Recording failed", "The browser could not finish this recording. Please try again.", "error");
-            };
-            stream.getVideoTracks()[0].onended = () => this.stopRecording();
-            this.showRecorder = true;
-            this.recording = true;
-            this.recordingStarting = true;
-            this.recordingCountdown = 3;
-            this.recordingStopping = false;
-            this.recordingReady = false;
-            this.recordingSeconds = 0;
-            requestAnimationFrame(() => {
-                const preview = this.template.querySelector(".recording-live");
-                if (preview) { preview.srcObject = stream; preview.play().catch(() => {}); }
-            });
-            this.recordingCountdownTimer = window.setInterval(() => {
-                this.recordingCountdown -= 1;
-                if (this.recordingCountdown > 0) return;
-                window.clearInterval(this.recordingCountdownTimer);
-                if (this.mediaRecorder?.state !== "inactive" || stream.getVideoTracks()[0]?.readyState !== "live") return;
-                this.mediaRecorder.start(500);
-                this.recordingStarting = false;
-                this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
-            }, 1000);
-        } catch (error) {
-            if (error?.name !== "NotAllowedError") this.toast("Could not start recording", this.message(error), "error");
-            this.closeRecorder();
-        }
-    }
+    handleRecordScreen() { this.showRecorder = true; }
 
     stopRecording() {
         if (this.mediaRecorder?.state !== "recording") return;

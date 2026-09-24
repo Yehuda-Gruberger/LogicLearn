@@ -397,6 +397,8 @@
 .recording-processing,.recording-empty{min-height:8rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;color:#496276;text-align:center}.recording-processing{position:relative}.recording-processing lightning-spinner{position:relative;width:2.5rem;height:2.5rem}.recording-empty p{margin:0;font-size:.68rem}
 .download-recording { display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .75rem;border:0;border-radius:999px;background:#0b8798;color:#fff;font:inherit;font-size:.67rem;font-weight:750;cursor:pointer; }
 .recorder-modal>footer { display:flex;justify-content:flex-end;gap:.5rem;padding:.75rem 1rem;border-top:1px solid #dce5ea;background:#fff; }
+.recorder-app-modal { width:min(820px,100%); }
+.recorder-frame { width:100%;height:min(34rem,70vh);display:block;border:0;background:#eef3f5; }
 .app-button.danger { border-color:#d0a3a0;color:#a52a20; }
 @keyframes recordPulse { 50% { opacity:.35;transform:scale(.85); } }
 .ll-button {

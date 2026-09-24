@@ -373,7 +373,15 @@ export default class TrainingLibrary extends LightningElement {
   get allRequiredVideoCards() {
     return this.allVideoCards.filter(
       (video) => video.isMandatory && video.viewStatus !== "Completed",
-    );
+    ).sort((left, right) => {
+      const leftDue = left.dueDate ? Date.parse(`${left.dueDate}T00:00:00`) : Number.POSITIVE_INFINITY;
+      const rightDue = right.dueDate ? Date.parse(`${right.dueDate}T00:00:00`) : Number.POSITIVE_INFINITY;
+      if (leftDue !== rightDue) return leftDue - rightDue;
+      const statusRank = (video) => video.viewStatus === "In Progress" ? 0 : 1;
+      const statusDifference = statusRank(left) - statusRank(right);
+      if (statusDifference) return statusDifference;
+      return (left.title || "").localeCompare(right.title || "");
+    });
   }
 
   get requiredVideoCards() {
@@ -381,7 +389,10 @@ export default class TrainingLibrary extends LightningElement {
   }
 
   get matchingVideoCards() {
-    let videos = this.allVideoCards;
+    let videos = [...this.allVideoCards].sort((left, right) => {
+      const dateDifference = new Date(right.createdDate || 0).getTime() - new Date(left.createdDate || 0).getTime();
+      return dateDifference || (left.title || "").localeCompare(right.title || "");
+    });
     if (this.libraryFilter === "required")
       videos = videos.filter(
         (video) => video.isMandatory && video.viewStatus !== "Completed",
