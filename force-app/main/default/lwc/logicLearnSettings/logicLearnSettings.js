@@ -57,7 +57,9 @@ export default class LogicLearnSettings extends LightningElement {
     }
 
     previewTokens(value) {
-        return value.replaceAll("[USER_NAME]", "Alex Morgan").replaceAll("[VIDEO_NAME]", "Security Awareness")
+        return value.replaceAll("[USER_NAME]", "Alex Morgan")
+            .replaceAll("[VIDEO/DOCUMENT_NAME]", "Security Awareness")
+            .replaceAll("[VIDEO_NAME]", "Security Awareness")
             .replaceAll("[VIDEO_LINK]", "https://example.com/tutorial").replaceAll("[LIBRARY_LINK]", "https://example.com/training");
     }
 
@@ -98,17 +100,17 @@ export default class LogicLearnSettings extends LightningElement {
     }
 
     defaultTemplateSubject(field) {
-        if (field === "reminderTemplateName") return "Reminder: [VIDEO_NAME]";
-        if (field === "updateEmailTemplate" || field === "requiredUpdateEmailTemplate") return "Updated training: [VIDEO_NAME]";
-        if (field === "assignmentTemplateName") return "You have been assigned [VIDEO_NAME]";
-        return "New training: [VIDEO_NAME]";
+        if (field === "reminderTemplateName") return "Reminder: [VIDEO/DOCUMENT_NAME]";
+        if (field === "updateEmailTemplate" || field === "requiredUpdateEmailTemplate") return "Updated training: [VIDEO/DOCUMENT_NAME]";
+        if (field === "assignmentTemplateName") return "You have been assigned [VIDEO/DOCUMENT_NAME]";
+        return "New training: [VIDEO/DOCUMENT_NAME]";
     }
 
     defaultTemplateBody(field) {
-        if (field === "reminderTemplateName") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>This is a reminder to complete <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p><p>You can also visit your <a href="[LIBRARY_LINK]">training library</a>.</p>';
-        if (field === "updateEmailTemplate" || field === "requiredUpdateEmailTemplate") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p><strong>[VIDEO_NAME]</strong> has been updated.</p><p><a href="[VIDEO_LINK]">Review the updated tutorial</a></p>';
-        if (field === "assignmentTemplateName") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>You have been assigned <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Start the tutorial</a></p><p>View all assignments in your <a href="[LIBRARY_LINK]">training library</a>.</p>';
-        return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>A new tutorial, <strong>[VIDEO_NAME]</strong>, is ready for you.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p>';
+        if (field === "reminderTemplateName") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>This is a reminder to complete <strong>[VIDEO/DOCUMENT_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p><p>You can also visit your <a href="[LIBRARY_LINK]">training library</a>.</p>';
+        if (field === "updateEmailTemplate" || field === "requiredUpdateEmailTemplate") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p><strong>[VIDEO/DOCUMENT_NAME]</strong> has been updated.</p><p><a href="[VIDEO_LINK]">Review the updated tutorial</a></p>';
+        if (field === "assignmentTemplateName") return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>You have been assigned <strong>[VIDEO/DOCUMENT_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Start the tutorial</a></p><p>View all assignments in your <a href="[LIBRARY_LINK]">training library</a>.</p>';
+        return '<p>Hi <strong>[USER_NAME]</strong>,</p><p>A new tutorial, <strong>[VIDEO/DOCUMENT_NAME]</strong>, is ready for you.</p><p><a href="[VIDEO_LINK]">Open the tutorial</a></p>';
     }
 
     closeTemplateCreator() {

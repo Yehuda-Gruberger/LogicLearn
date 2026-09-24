@@ -208,6 +208,7 @@ public with sharing class TrainingNotificationService {
         String videoLink
     ) {
         Map<String, String> tokens = new Map<String, String>{
+            '[VIDEO/DOCUMENT_NAME]' => videoName == null ? '' : videoName,
             '[VIDEO_NAME]' => videoName == null ? '' : videoName,
             '[USER_NAME]' => userName == null ? '' : userName,
             '[LIBRARY_LINK]' => libraryUrl == null ? '' : libraryUrl,

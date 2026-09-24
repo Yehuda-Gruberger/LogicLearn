@@ -47,9 +47,9 @@ public without sharing class LogicLearnAdminController {
             insert new LogicLearn_Settings__c(Name='Global', Completion_Threshold__c=90, Prevent_Skipping__c=true,
                 Assignment_Template_Name__c='LogicLearn Assignment', Reminder_Template_Name__c='LogicLearn Reminder',
                 First_Publish_Email_Template__c='LogicLearn Assignment', Update_Email_Template__c='LogicLearn Assignment',
-                First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.', Update_In_App_Message__c='[VIDEO_NAME] has been updated.',
-                Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.', Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',
-                Required_Update_Email_Template__c='LogicLearn Assignment', Required_Update_In_App_Message__c='[VIDEO_NAME] has been updated.',
+                First_Publish_In_App_Message__c='[VIDEO/DOCUMENT_NAME] is now available.', Update_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been updated.',
+                Assignment_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been assigned to you.', Reminder_In_App_Message__c='Reminder: complete [VIDEO/DOCUMENT_NAME].',
+                Required_Update_Email_Template__c='LogicLearn Assignment', Required_Update_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been updated.',
                 Document_Page_Requirement__c='Every page', Document_Reading_Order__c='In order', Document_Completion_Mode__c='Finish on last page');
         }
         if ([SELECT COUNT() FROM Training_Folder__c] == 0 && [SELECT COUNT() FROM Training_Video__c] == 0) {
@@ -83,21 +83,21 @@ public without sharing class LogicLearnAdminController {
         Set<String> existing = new Set<String>();
         for (EmailTemplate templateRow : [
             SELECT DeveloperName FROM EmailTemplate
-            WHERE FolderId = :folderId AND DeveloperName IN ('LogicLearn_Assignment', 'LogicLearn_Reminder')
+            WHERE DeveloperName IN ('LogicLearn_Assignment', 'LogicLearn_Reminder')
         ]) existing.add(templateRow.DeveloperName);
         List<EmailTemplate> templates = new List<EmailTemplate>();
         if (!existing.contains('LogicLearn_Assignment')) templates.add(new EmailTemplate(
             Name = 'LogicLearn Assignment', DeveloperName = 'LogicLearn_Assignment', FolderId = folderId,
-            TemplateType = 'custom', Subject = 'You have been assigned [VIDEO_NAME]',
-            HtmlValue = '<p>Hi <strong>[USER_NAME]</strong>,</p><p>You have been assigned <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Start the tutorial</a></p><p>View all assignments in your <a href="[LIBRARY_LINK]">training library</a>.</p>',
-            Body = 'Hi [USER_NAME],\n\nYou have been assigned [VIDEO_NAME].\n\nStart the tutorial: [VIDEO_LINK]\n\nTraining library: [LIBRARY_LINK]',
+            TemplateType = 'custom', Subject = 'You have been assigned [VIDEO/DOCUMENT_NAME]',
+            HtmlValue = '<p>Hi <strong>[USER_NAME]</strong>,</p><p>You have been assigned <strong>[VIDEO/DOCUMENT_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Start the tutorial</a></p><p>View all assignments in your <a href="[LIBRARY_LINK]">training library</a>.</p>',
+            Body = 'Hi [USER_NAME],\n\nYou have been assigned [VIDEO/DOCUMENT_NAME].\n\nStart the tutorial: [VIDEO_LINK]\n\nTraining library: [LIBRARY_LINK]',
             IsActive = true, Encoding = 'UTF-8'
         ));
         if (!existing.contains('LogicLearn_Reminder')) templates.add(new EmailTemplate(
             Name = 'LogicLearn Reminder', DeveloperName = 'LogicLearn_Reminder', FolderId = folderId,
-            TemplateType = 'custom', Subject = 'Reminder: complete [VIDEO_NAME]',
-            HtmlValue = '<p>Hi <strong>[USER_NAME]</strong>,</p><p>This is a reminder to complete <strong>[VIDEO_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Continue tutorial</a></p><p>Visit your <a href="[LIBRARY_LINK]">LogicLearn library</a> to see all assigned tutorials.</p>',
-            Body = 'Hi [USER_NAME],\n\nThis is a reminder to complete [VIDEO_NAME].\n\nContinue tutorial: [VIDEO_LINK]\n\nLogicLearn library: [LIBRARY_LINK]',
+            TemplateType = 'custom', Subject = 'Reminder: complete [VIDEO/DOCUMENT_NAME]',
+            HtmlValue = '<p>Hi <strong>[USER_NAME]</strong>,</p><p>This is a reminder to complete <strong>[VIDEO/DOCUMENT_NAME]</strong>.</p><p><a href="[VIDEO_LINK]">Continue tutorial</a></p><p>Visit your <a href="[LIBRARY_LINK]">LogicLearn library</a> to see all assigned tutorials.</p>',
+            Body = 'Hi [USER_NAME],\n\nThis is a reminder to complete [VIDEO/DOCUMENT_NAME].\n\nContinue tutorial: [VIDEO_LINK]\n\nLogicLearn library: [LIBRARY_LINK]',
             IsActive = true, Encoding = 'UTF-8'
         ));
         if (!templates.isEmpty()) insert templates;
@@ -137,12 +137,12 @@ public without sharing class LogicLearnAdminController {
         dto.assignmentTemplateName=row.Assignment_Template_Name__c; dto.reminderTemplateName=row.Reminder_Template_Name__c;
         dto.firstPublishEmailTemplate=String.isBlank(row.First_Publish_Email_Template__c)?row.Assignment_Template_Name__c:row.First_Publish_Email_Template__c;
         dto.updateEmailTemplate=String.isBlank(row.Update_Email_Template__c)?row.Assignment_Template_Name__c:row.Update_Email_Template__c;
-        dto.firstPublishInAppMessage=String.isBlank(row.First_Publish_In_App_Message__c)?'[VIDEO_NAME] is now available.':row.First_Publish_In_App_Message__c;
-        dto.updateInAppMessage=String.isBlank(row.Update_In_App_Message__c)?'[VIDEO_NAME] has been updated.':row.Update_In_App_Message__c;
-        dto.assignmentInAppMessage=String.isBlank(row.Assignment_In_App_Message__c)?'[VIDEO_NAME] has been assigned to you.':row.Assignment_In_App_Message__c;
-        dto.reminderInAppMessage=String.isBlank(row.Reminder_In_App_Message__c)?'Reminder: complete [VIDEO_NAME].':row.Reminder_In_App_Message__c;
+        dto.firstPublishInAppMessage=normalizeTutorialNameToken(String.isBlank(row.First_Publish_In_App_Message__c)?'[VIDEO/DOCUMENT_NAME] is now available.':row.First_Publish_In_App_Message__c);
+        dto.updateInAppMessage=normalizeTutorialNameToken(String.isBlank(row.Update_In_App_Message__c)?'[VIDEO/DOCUMENT_NAME] has been updated.':row.Update_In_App_Message__c);
+        dto.assignmentInAppMessage=normalizeTutorialNameToken(String.isBlank(row.Assignment_In_App_Message__c)?'[VIDEO/DOCUMENT_NAME] has been assigned to you.':row.Assignment_In_App_Message__c);
+        dto.reminderInAppMessage=normalizeTutorialNameToken(String.isBlank(row.Reminder_In_App_Message__c)?'Reminder: complete [VIDEO/DOCUMENT_NAME].':row.Reminder_In_App_Message__c);
         dto.requiredUpdateEmailTemplate=String.isBlank(row.Required_Update_Email_Template__c)?dto.updateEmailTemplate:row.Required_Update_Email_Template__c;
-        dto.requiredUpdateInAppMessage=String.isBlank(row.Required_Update_In_App_Message__c)?'[VIDEO_NAME] has been updated.':row.Required_Update_In_App_Message__c;
+        dto.requiredUpdateInAppMessage=normalizeTutorialNameToken(String.isBlank(row.Required_Update_In_App_Message__c)?'[VIDEO/DOCUMENT_NAME] has been updated.':row.Required_Update_In_App_Message__c);
         dto.documentPageRequirement=String.isBlank(row.Document_Page_Requirement__c)?'Every page':row.Document_Page_Requirement__c;
         dto.documentReadingOrder=String.isBlank(row.Document_Reading_Order__c)?'In order':row.Document_Reading_Order__c;
         dto.documentCompletionMode=String.isBlank(row.Document_Completion_Mode__c)?'Finish on last page':row.Document_Completion_Mode__c;
@@ -174,7 +174,7 @@ public without sharing class LogicLearnAdminController {
         Id folderId = findEmailTemplateFolder();
         if (folderId == null) return result;
         for (EmailTemplate templateRow : [SELECT Id, Name, Subject FROM EmailTemplate WHERE IsActive = TRUE AND FolderId = :folderId ORDER BY Name LIMIT 500]) {
-            Option item = new Option(); item.id = templateRow.Id; item.value = templateRow.Name; item.label = templateRow.Name; item.meta = templateRow.Subject;
+            Option item = new Option(); item.id = templateRow.Id; item.value = templateRow.Name; item.label = templateRow.Name; item.meta = normalizeTutorialNameToken(templateRow.Subject);
             result.add(item);
         }
         return result;
@@ -195,11 +195,11 @@ public without sharing class LogicLearnAdminController {
         if (templates.isEmpty()) throw new AuraHandledException('Email template not found: ' + templateName);
         EmailTemplate source = templates[0];
         EmailTemplateDto result = new EmailTemplateDto();
-        result.templateId = source.Id; result.name = source.Name; result.subject = source.Subject;
+        result.templateId = source.Id; result.name = source.Name; result.subject = normalizeTutorialNameToken(source.Subject);
         String fallbackBody = source.Body == null ? '' : source.Body;
-        result.htmlBody = String.isNotBlank(source.HtmlValue)
+        result.htmlBody = normalizeTutorialNameToken(String.isNotBlank(source.HtmlValue)
             ? source.HtmlValue
-            : fallbackBody.escapeHtml4().replace('\r\n', '\n').replace('\n', '<br/>');
+            : fallbackBody.escapeHtml4().replace('\r\n', '\n').replace('\n', '<br/>'));
         return result;
     }
 
@@ -248,9 +248,13 @@ public without sharing class LogicLearnAdminController {
         return result;
     }
 
+    private static String normalizeTutorialNameToken(String value) {
+        return value == null ? null : value.replace('[VIDEO_NAME]', '[VIDEO/DOCUMENT_NAME]');
+    }
+
     public static LogicLearn_Settings__c settingsRow() {
         List<LogicLearn_Settings__c> rows=[SELECT Id,Name,Completion_Threshold__c,Prevent_Skipping__c,Assignment_Template_Name__c,Reminder_Template_Name__c,First_Publish_Email_Template__c,Update_Email_Template__c,First_Publish_In_App_Message__c,Update_In_App_Message__c,Assignment_In_App_Message__c,Reminder_In_App_Message__c,Required_Update_Email_Template__c,Required_Update_In_App_Message__c,Document_Page_Requirement__c,Document_Reading_Order__c,Document_Completion_Mode__c FROM LogicLearn_Settings__c ORDER BY CreatedDate LIMIT 1];
-        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO_NAME] is now available.',Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Assignment_In_App_Message__c='[VIDEO_NAME] has been assigned to you.',Reminder_In_App_Message__c='Reminder: complete [VIDEO_NAME].',Required_Update_Email_Template__c='LogicLearn Assignment',Required_Update_In_App_Message__c='[VIDEO_NAME] has been updated.',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
+        return rows.isEmpty() ? new LogicLearn_Settings__c(Name='Global',Completion_Threshold__c=90,Prevent_Skipping__c=true,Assignment_Template_Name__c='LogicLearn Assignment',Reminder_Template_Name__c='LogicLearn Reminder',First_Publish_Email_Template__c='LogicLearn Assignment',Update_Email_Template__c='LogicLearn Assignment',First_Publish_In_App_Message__c='[VIDEO/DOCUMENT_NAME] is now available.',Update_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been updated.',Assignment_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been assigned to you.',Reminder_In_App_Message__c='Reminder: complete [VIDEO/DOCUMENT_NAME].',Required_Update_Email_Template__c='LogicLearn Assignment',Required_Update_In_App_Message__c='[VIDEO/DOCUMENT_NAME] has been updated.',Document_Page_Requirement__c='Every page',Document_Reading_Order__c='In order',Document_Completion_Mode__c='Finish on last page') : rows[0];
     }
 
     @AuraEnabled(cacheable=true)
@@ -729,7 +733,8 @@ public without sharing class LogicLearnAdminController {
             notificationType == 'First Publish' || notificationType == 'New Video' ? settings.First_Publish_In_App_Message__c :
             notificationType == 'Assignment' ? settings.Assignment_In_App_Message__c :
             notificationType == 'Reminder' ? settings.Reminder_In_App_Message__c : null;
-        String body = String.isNotBlank(configuredMessage) ? configuredMessage.replace('[VIDEO_NAME]', video.Name) :
+        String body = String.isNotBlank(configuredMessage)
+            ? configuredMessage.replace('[VIDEO/DOCUMENT_NAME]', video.Name).replace('[VIDEO_NAME]', video.Name) :
             notificationType == 'Reminder' ? 'Reminder: complete ' + video.Name :
             notificationType == 'Assignment' ? video.Name + ' has been assigned to you' : video.Name + ' is now available';
         if (video.Due_Date__c != null && (notificationType == 'Assignment' || notificationType == 'Reminder')) body += ' by ' + String.valueOf(video.Due_Date__c);

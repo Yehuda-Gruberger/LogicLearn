@@ -145,17 +145,17 @@ private class LogicLearnPlatformTest {
         settings.completionThreshold = 85; settings.preventSkipping = false;
         settings.assignmentTemplateName = 'Custom Assignment'; settings.reminderTemplateName = 'Custom Reminder';
         settings.firstPublishEmailTemplate = 'Custom Publish'; settings.updateEmailTemplate = 'Custom Update';
-        settings.firstPublishInAppMessage = '[VIDEO_NAME] is ready.'; settings.updateInAppMessage = '[VIDEO_NAME] changed.';
-        settings.assignmentInAppMessage = 'Assigned: [VIDEO_NAME]'; settings.reminderInAppMessage = 'Reminder: [VIDEO_NAME]';
+        settings.firstPublishInAppMessage = '[VIDEO/DOCUMENT_NAME] is ready.'; settings.updateInAppMessage = '[VIDEO/DOCUMENT_NAME] changed.';
+        settings.assignmentInAppMessage = 'Assigned: [VIDEO/DOCUMENT_NAME]'; settings.reminderInAppMessage = 'Reminder: [VIDEO/DOCUMENT_NAME]';
         settings.requiredUpdateEmailTemplate = 'Custom Required Update';
-        settings.requiredUpdateInAppMessage = 'Required update: [VIDEO_NAME]';
+        settings.requiredUpdateInAppMessage = 'Required update: [VIDEO/DOCUMENT_NAME]';
         LogicLearnAdminController.saveSettings(settings);
         System.assertEquals(85, LogicLearnAdminController.getSettings().completionThreshold);
         System.assertEquals('Custom Update', LogicLearnAdminController.getSettings().updateEmailTemplate);
-        System.assertEquals('Assigned: [VIDEO_NAME]', LogicLearnAdminController.getSettings().assignmentInAppMessage);
+        System.assertEquals('Assigned: [VIDEO/DOCUMENT_NAME]', LogicLearnAdminController.getSettings().assignmentInAppMessage);
         System.assertEquals('Custom Required Update', LogicLearnAdminController.getSettings().requiredUpdateEmailTemplate);
-        System.assertEquals('Required update: [VIDEO_NAME]', LogicLearnAdminController.getSettings().requiredUpdateInAppMessage);
-        System.assertEquals('Reminder: [VIDEO_NAME]', LogicLearnAdminController.getSettings().reminderInAppMessage);
+        System.assertEquals('Required update: [VIDEO/DOCUMENT_NAME]', LogicLearnAdminController.getSettings().requiredUpdateInAppMessage);
+        System.assertEquals('Reminder: [VIDEO/DOCUMENT_NAME]', LogicLearnAdminController.getSettings().reminderInAppMessage);
         System.assertEquals('dev@logicfold.com', TrainingNotificationService.recipientEmail('Shalom Eisenbach', 'shalome@logicfold.com'));
         System.assertEquals('other@example.com', TrainingNotificationService.recipientEmail('Other Learner', 'other@example.com'));
 
