@@ -31,6 +31,7 @@ const VIDEO_COLUMNS = [
         }
     }
 ];
+const TUTORIAL_BATCH_SIZE = 10;
 
 export default class TrainingAdminConsole extends LightningElement {
     videoColumns = VIDEO_COLUMNS;
@@ -58,6 +59,7 @@ export default class TrainingAdminConsole extends LightningElement {
     detailLoading = false;
     selectedVideoId;
     videoSearch = "";
+    visibleTutorialLimit = TUTORIAL_BATCH_SIZE;
 
     get selectedIsDocument() { return this.selectedTutorial?.contentType === "Document"; }
     get selectedHasPlayableVideo() {
@@ -126,6 +128,7 @@ export default class TrainingAdminConsole extends LightningElement {
         if (result.data) {
             this.videos = [...result.data].sort((left, right) =>
                 new Date(right.createdDate || 0).getTime() - new Date(left.createdDate || 0).getTime());
+            this.resetTutorialWindow();
             if (!this.selectedVideoId && this.videos.length) this.selectTutorial(this.videos[0].id);
             else if (this.selectedVideoId && !this.videos.some((video) => video.id === this.selectedVideoId)) {
                 this.selectedVideoId = undefined;
@@ -236,7 +239,7 @@ export default class TrainingAdminConsole extends LightningElement {
         }));
     }
 
-    get filteredTutorialRows() {
+    get matchingTutorialRows() {
         const search = this.videoSearch.trim().toLowerCase();
         return this.tutorialRows.filter((video) =>
             (!search || video.title?.toLowerCase().includes(search)) &&
@@ -247,12 +250,24 @@ export default class TrainingAdminConsole extends LightningElement {
         );
     }
 
-    get hasFilteredVideos() { return this.filteredTutorialRows.length > 0; }
-    get filteredVideoCount() { return this.filteredTutorialRows.length; }
+    get filteredTutorialRows() { return this.matchingTutorialRows.slice(0, this.visibleTutorialLimit); }
+
+    get hasFilteredVideos() { return this.matchingTutorialRows.length > 0; }
+    get filteredVideoCount() { return this.matchingTutorialRows.length; }
+    get hasMoreTutorialRows() { return this.visibleTutorialLimit < this.matchingTutorialRows.length; }
+
+    resetTutorialWindow() { this.visibleTutorialLimit = TUTORIAL_BATCH_SIZE; }
+
+    handleBrowserScroll(event) {
+        const list = event.currentTarget;
+        if (!this.hasMoreTutorialRows || list.scrollHeight - list.scrollTop - list.clientHeight > 80) return;
+        this.visibleTutorialLimit += TUTORIAL_BATCH_SIZE;
+    }
 
     handleTutorialScope(event) {
         this.tutorialScope = event.currentTarget.dataset.scope;
-        const visible = this.filteredTutorialRows;
+        this.resetTutorialWindow();
+        const visible = this.matchingTutorialRows;
         if (!visible.some((video) => video.id === this.selectedVideoId)) {
             if (visible.length) this.selectTutorial(visible[0].id);
             else { this.selectedVideoId = undefined; this.selectedTutorial = undefined; }
@@ -456,6 +471,7 @@ export default class TrainingAdminConsole extends LightningElement {
 
     handleVideoSearch(event) {
         this.videoSearch = event.target.value;
+        this.resetTutorialWindow();
     }
 
     handleThumbnailEnter(event) {
@@ -558,14 +574,17 @@ export default class TrainingAdminConsole extends LightningElement {
 
     handleFolderFilter(event) {
         this.folderFilter = event.detail.value || [];
+        this.resetTutorialWindow();
     }
 
     handleCategoryFilter(event) {
         this.categoryFilter = event.detail.value || [];
+        this.resetTutorialWindow();
     }
 
     handleStatusFilter(event) {
         this.statusFilter = event.detail.value || [];
+        this.resetTutorialWindow();
     }
 
     handleEditSelected() {

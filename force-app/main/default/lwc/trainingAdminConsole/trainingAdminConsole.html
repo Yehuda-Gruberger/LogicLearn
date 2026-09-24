@@ -12,13 +12,13 @@
                     <c-logic-learn-picker multiple class="status-filter" label="Status" placeholder="All statuses" options={browserStatusOptions} value={statusFilter} onchange={handleStatusFilter}></c-logic-learn-picker>
                 </div>
                 <div class="browser-label"><span>Tutorials</span><div class="tutorial-scope" role="group" aria-label="Tutorial ownership"><button class={allScopeClass} data-scope="all" onclick={handleTutorialScope}><span>All</span><strong>{videoCount}</strong></button><button class={mineScopeClass} data-scope="mine" onclick={handleTutorialScope}><span>Mine</span><strong>{mineCount}</strong></button></div></div>
-                <div class="browser-list">
+                <div class="browser-list" onscroll={handleBrowserScroll}>
                     <template lwc:if={hasFilteredVideos}>
                         <template for:each={filteredTutorialRows} for:item="video">
                             <button key={video.id} class={video.rowClass} data-id={video.id} onclick={handleVideoSelect}>
                                 <span class="browser-thumb" style={video.thumbStyle}>
                                     <template lwc:if={video.isDocument}><span class="admin-doc-page"><i></i><i></i><i></i></span></template>
-                                    <template lwc:else><template lwc:if={video.previewUrl}><video src={video.previewUrl} muted loop playsinline preload="metadata" onmouseenter={handleThumbnailEnter} onmouseleave={handleThumbnailLeave}></video></template><span class="thumb-play"><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span></template>
+                                    <template lwc:else><template lwc:if={video.previewUrl}><video src={video.previewUrl} muted loop playsinline preload="none" onmouseenter={handleThumbnailEnter} onmouseleave={handleThumbnailLeave}></video></template><span class="thumb-play"><lightning-icon icon-name="utility:play" size="xx-small" variant="inverse"></lightning-icon></span></template>
                                 </span>
                                 <span class="browser-copy"><span class="browser-copy-title"><strong>{video.title}</strong><span class={video.statusClass}>{video.status}</span></span><small>{video.meta} · by {video.creatorLabel}</small></span>
                             </button>

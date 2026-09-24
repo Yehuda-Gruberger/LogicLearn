@@ -16,6 +16,7 @@ const CATEGORY_GRADIENTS = {
   "Professional Development": "linear-gradient(135deg,#8a5318,#c6802f)",
   Other: "linear-gradient(135deg,#334155,#475569)",
 };
+const LIBRARY_BATCH_SIZE = 12;
 
 export default class TrainingLibrary extends LightningElement {
   @track searchTerm = "";
@@ -31,6 +32,7 @@ export default class TrainingLibrary extends LightningElement {
   _deepLinkHandled;
   _openTutorialAfterModeChange = false;
   _modeInitialized = false;
+  visibleCardLimit = LIBRARY_BATCH_SIZE;
 
   sections = [];
   folders = [];
@@ -161,6 +163,7 @@ export default class TrainingLibrary extends LightningElement {
     this._wired = result;
     if (result.data) {
       this.sections = result.data;
+      this.resetLibraryWindow();
       this.error = undefined;
     } else if (result.error) {
       this.error = this.extractError(result.error);
@@ -382,7 +385,7 @@ export default class TrainingLibrary extends LightningElement {
     return this.allRequiredVideoCards.filter((video) => this.matchesContentFilter(video));
   }
 
-  get visibleVideoCards() {
+  get matchingVideoCards() {
     let videos = this.allVideoCards;
     if (this.libraryFilter === "required")
       videos = videos.filter(
@@ -397,6 +400,22 @@ export default class TrainingLibrary extends LightningElement {
         (video) => video.viewStatus === "Completed",
       );
     return videos.filter((video) => this.matchesContentFilter(video));
+  }
+
+  get visibleVideoCards() {
+    return this.matchingVideoCards.slice(0, this.visibleCardLimit);
+  }
+
+  get hasMoreVideoCards() {
+    return this.visibleCardLimit < this.matchingVideoCards.length;
+  }
+
+  resetLibraryWindow() { this.visibleCardLimit = LIBRARY_BATCH_SIZE; }
+
+  handleLibraryScroll(event) {
+    const main = event.currentTarget;
+    if (!this.hasMoreVideoCards || main.scrollHeight - main.scrollTop - main.clientHeight > 180) return;
+    this.visibleCardLimit += LIBRARY_BATCH_SIZE;
   }
 
   matchesContentFilter(video) {
@@ -553,10 +572,12 @@ export default class TrainingLibrary extends LightningElement {
 
   handleSearch(event) {
     this.searchTerm = event.target.value;
+    this.resetLibraryWindow();
   }
 
   handleFolderSelect(event) {
     this.selectedFolderId = event.currentTarget.dataset.id;
+    this.resetLibraryWindow();
   }
 
   handleCardClick(event) {
@@ -612,10 +633,12 @@ export default class TrainingLibrary extends LightningElement {
 
   handleLibraryFilter(event) {
     this.libraryFilter = event.currentTarget.dataset.filter;
+    this.resetLibraryWindow();
   }
 
   handleContentFilter(event) {
     this.contentFilter = event.currentTarget.dataset.type;
+    this.resetLibraryWindow();
   }
 
   handleCreateFirstTutorial() {
