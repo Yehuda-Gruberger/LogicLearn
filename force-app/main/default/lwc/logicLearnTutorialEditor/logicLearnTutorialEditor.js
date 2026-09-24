@@ -93,14 +93,20 @@ export default class LogicLearnTutorialEditor extends LightningElement {
     recording = false;
     recordingStopping = false;
     recordingReady = false;
+    recordingStarting = false;
+    recordingCountdown = 0;
     recordingSeconds = 0;
     recordingPreviewUrl;
     recordedBlob;
     mediaRecorder;
     recordingStream;
     recordingTimer;
+    recordingCountdownTimer;
     recordingStopTimer;
-    recordingChunks = [];
+    recordingParts = [];
+    recordingPartPromises = [];
+    recordingDataEvents = 0;
+    recordingDataBytes = 0;
     recordingMimeType = "video/webm";
     richTextFormats = ["font", "size", "bold", "italic", "underline", "strike", "list", "indent", "align", "link", "image", "header", "color", "background", "clean"];
 
@@ -167,6 +173,8 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         const seconds = String(this.recordingSeconds % 60).padStart(2, "0");
         return `${minutes}:${seconds}`;
     }
+    get recordingStatusLabel() { return this.recordingStarting ? "Starting recording" : "Recording"; }
+    get recordingDisplay() { return this.recordingStarting ? String(this.recordingCountdown) : this.recordingTime; }
     get uploadTrayClass() { return this.hasFile ? "upload-tray has-file" : "upload-tray empty-file"; }
 
     get contentStageClass() { return this.activeStage === "content" ? "studio-stage active" : "studio-stage"; }
@@ -744,10 +752,19 @@ export default class LogicLearnTutorialEditor extends LightningElement {
                 .find((type) => MediaRecorder.isTypeSupported(type));
             this.recordingStream = stream;
             this.mediaRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
-            this.recordingChunks = [];
+            this.recordingParts = [];
+            this.recordingPartPromises = [];
+            this.recordingDataEvents = 0;
+            this.recordingDataBytes = 0;
             this.recordingMimeType = this.mediaRecorder.mimeType || mimeType || "video/webm";
             this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0) this.recordingChunks.push(event.data);
+                if (!event.data || event.data.size === 0) return;
+                this.recordingDataEvents += 1;
+                this.recordingDataBytes += event.data.size;
+                const partPromise = event.data.arrayBuffer()
+                    .then((buffer) => { if (buffer.byteLength) this.recordingParts.push(buffer); })
+                    .catch(() => {});
+                this.recordingPartPromises.push(partPromise);
             };
             this.mediaRecorder.onstop = () => {
                 window.clearTimeout(this.recordingStopTimer);
@@ -762,15 +779,24 @@ export default class LogicLearnTutorialEditor extends LightningElement {
             stream.getVideoTracks()[0].onended = () => this.stopRecording();
             this.showRecorder = true;
             this.recording = true;
+            this.recordingStarting = true;
+            this.recordingCountdown = 3;
             this.recordingStopping = false;
             this.recordingReady = false;
             this.recordingSeconds = 0;
-            this.mediaRecorder.start(500);
-            this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
             requestAnimationFrame(() => {
                 const preview = this.template.querySelector(".recording-live");
                 if (preview) { preview.srcObject = stream; preview.play().catch(() => {}); }
             });
+            this.recordingCountdownTimer = window.setInterval(() => {
+                this.recordingCountdown -= 1;
+                if (this.recordingCountdown > 0) return;
+                window.clearInterval(this.recordingCountdownTimer);
+                if (this.mediaRecorder?.state !== "inactive" || stream.getVideoTracks()[0]?.readyState !== "live") return;
+                this.mediaRecorder.start(500);
+                this.recordingStarting = false;
+                this.recordingTimer = window.setInterval(() => { this.recordingSeconds += 1; }, 1000);
+            }, 1000);
         } catch (error) {
             if (error?.name !== "NotAllowedError") this.toast("Could not start recording", this.message(error), "error");
             this.closeRecorder();
@@ -794,21 +820,28 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         }
     }
 
-    finishRecording() {
+    async finishRecording() {
         window.clearInterval(this.recordingTimer);
+        window.clearInterval(this.recordingCountdownTimer);
         window.clearTimeout(this.recordingStopTimer);
         this.recordingStream?.getTracks().forEach((track) => track.stop());
-        this.recordedBlob = new Blob(this.recordingChunks, {type: this.recordingMimeType});
+        await Promise.allSettled(this.recordingPartPromises);
+        this.recordedBlob = new Blob(this.recordingParts, {type: this.recordingMimeType});
         this.recordingStopping = false;
         if (!this.recordedBlob?.size) {
             this.recordingReady = false;
-            this.toast("Recording unavailable", "No video was captured. Select Record again and retry.", "error");
+            this.toast(
+                "Recording unavailable",
+                `The browser returned ${this.recordingDataEvents} recording chunk(s) and ${this.recordingDataBytes} byte(s).`,
+                "error"
+            );
             return;
         }
         if (this.recordingPreviewUrl) URL.revokeObjectURL(this.recordingPreviewUrl);
         this.recordingPreviewUrl = URL.createObjectURL(this.recordedBlob);
         this.recordingReady = true;
         this.recording = false;
+        this.recordingStarting = false;
     }
 
     downloadRecording() {
@@ -832,6 +865,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
 
     prepareNewRecording() {
         window.clearInterval(this.recordingTimer);
+        window.clearInterval(this.recordingCountdownTimer);
         window.clearTimeout(this.recordingStopTimer);
         if (this.mediaRecorder) {
             this.mediaRecorder.ondataavailable = null;
@@ -842,8 +876,13 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         this.recordingStream?.getTracks().forEach((track) => track.stop());
         this.mediaRecorder = undefined;
         this.recordingStream = undefined;
-        this.recordingChunks = [];
+        this.recordingParts = [];
+        this.recordingPartPromises = [];
+        this.recordingDataEvents = 0;
+        this.recordingDataBytes = 0;
         this.recording = false;
+        this.recordingStarting = false;
+        this.recordingCountdown = 0;
         this.recordingStopping = false;
     }
 
