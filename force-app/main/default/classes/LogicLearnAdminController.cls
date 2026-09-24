@@ -305,6 +305,18 @@ public without sharing class LogicLearnAdminController {
     }
 
     @AuraEnabled
+    public static Id saveFolderJson(String inputJson) {
+        try {
+            FolderInput input = String.isBlank(inputJson)
+                ? new FolderInput()
+                : (FolderInput)JSON.deserialize(inputJson, FolderInput.class);
+            return saveFolder(input);
+        } catch (Exception error) {
+            throw new AuraHandledException('Could not save folder: ' + error.getMessage());
+        }
+    }
+
+    @AuraEnabled
     public static Id createTutorialDraft() {
         LogicLearnAudienceService.requireAdmin();
         Training_Video__c draft = new Training_Video__c(

@@ -16,7 +16,7 @@ import sendLifecycleNotification from "@salesforce/apex/LogicLearnAdminControlle
 import sendLifecycleInAppNotification from "@salesforce/apex/LogicLearnAdminController.sendLifecycleInAppNotification";
 import setUploadedVideo from "@salesforce/apex/TrainingVideoController.setUploadedVideo";
 import saveGroupJson from "@salesforce/apex/LogicLearnAdminController.saveGroupJson";
-import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
+import saveFolderJson from "@salesforce/apex/LogicLearnAdminController.saveFolderJson";
 
 const EMPTY_FORM = {
     videoId: null,
@@ -428,7 +428,7 @@ export default class LogicLearnTutorialEditor extends LightningElement {
         if (!name || this.creatingFolder) return;
         this.creatingFolder = true;
         try {
-            const folderId = await saveFolder({input: {name}});
+            const folderId = await saveFolderJson({inputJson: JSON.stringify({name})});
             this.catalog = await getFreshCatalog();
             this.form = {...this.form, folderId};
             this.toast("Folder created", `${name} is ready and selected.`, "success");

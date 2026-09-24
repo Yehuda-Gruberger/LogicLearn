@@ -7,7 +7,7 @@ import getFolders from "@salesforce/apex/TrainingVideoController.getFolders";
 import getAdminVideos from "@salesforce/apex/TrainingVideoController.getAdminVideos";
 import initializeLogicLearn from "@salesforce/apex/LogicLearnAdminController.initializeLogicLearn";
 import getFolder from "@salesforce/apex/LogicLearnAdminController.getFolder";
-import saveFolder from "@salesforce/apex/LogicLearnAdminController.saveFolder";
+import saveFolderJson from "@salesforce/apex/LogicLearnAdminController.saveFolderJson";
 import getFreshTutorial from "@salesforce/apex/LogicLearnAdminController.getFreshTutorial";
 import getCatalog from "@salesforce/apex/LogicLearnAdminController.getCatalog";
 import getSettings from "@salesforce/apex/LogicLearnAdminController.getSettings";
@@ -339,7 +339,7 @@ export default class TrainingAdminConsole extends LightningElement {
         const name = this.template.querySelector('[data-field="name"]');
         if (!name.reportValidity()) return;
         try {
-            await saveFolder({input: this.folderForm});
+            await saveFolderJson({inputJson: JSON.stringify(this.folderForm)});
             this.showFolderForm = false;
             this.showToast("Saved", "Folder saved.", "success");
             await refreshApex(this._wiredFolders);

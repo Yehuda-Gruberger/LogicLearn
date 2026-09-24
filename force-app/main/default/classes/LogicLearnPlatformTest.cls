@@ -161,7 +161,7 @@ private class LogicLearnPlatformTest {
 
         LogicLearnAdminController.FolderInput folder = new LogicLearnAdminController.FolderInput();
         folder.name='Advanced'; folder.sortOrder=90; folder.description='Advanced material';
-        Id folderId=LogicLearnAdminController.saveFolder(folder);
+        Id folderId=LogicLearnAdminController.saveFolderJson(JSON.serialize(folder));
         LogicLearnAdminController.FolderInput loadedFolder=LogicLearnAdminController.getFolder(folderId);
         System.assertEquals('Advanced',loadedFolder.name);
 
